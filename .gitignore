@@ -1,0 +1,13 @@
+# Build results
+dist/
+typings/**/*
+app/
+
+# Others
+~$*
+*~
+node_modules/
+src/build/
+coverage/
+*-debug.log
+**.DS_Store
