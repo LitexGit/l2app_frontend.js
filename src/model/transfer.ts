@@ -51,15 +51,11 @@ export class Transfer {
       this.createdAt = createdAt;
     } else {
       this.createdAt = new Date().getTime();
-      db.transfer.put(this)
-        .then(() => console.log('new Transfer entry created at: ', this.createdAt));
     }
   }
 
   async save() {
-    return db.transaction('rw', db.transfer, async () => {
-      this.updatedAt = new Date().getTime();
-      this.id = await db.transfer.put(this);
-    });
+    this.updatedAt = new Date().getTime();
+    return await db.transfer.put(this);
   }
 }

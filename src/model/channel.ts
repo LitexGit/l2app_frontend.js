@@ -2,203 +2,107 @@
  * model class of payment network
  */
 
-import L2  from '../L2';
 import { db, PN, Puppet, Transfer, Rebalance, REBALANCE_TYPE } from './internal';
 import { ethers } from 'ethers';
 import { BigNumber, solidityKeccak256 } from 'ethers/utils';
-import { SOL_TYPE } from '../utils/constants';
+import { SOL_TYPE, SETTLE_WINDOW } from '../utils/constants';
 import { MESSAGE_COMMIT_BLOCK_EXPERITION } from '../utils/constants';
-
-let contract: ethers.Contract;
-let pn: PN;
 
 export class Channel {
 
   id: number;
 
-  pnAddress: string;
+  // owner payment network
+  pn: PN;
 
   // channel data
-  channelId: string;
-  status: CHANNEL_STATUS;
-  settleTX: string;
-  closer: string;
-  closeType: number; // 1 for cooperative close, 2 for force close
+  meta: {
+    channelId: string;
+    status: CHANNEL_STATUS;
+    settleInfo: {
+      settleTX: string;
+      closer: string;
+      closeType: SETTLE_TYPES; // 1 for cooperative close, 2 for force close
+    },
+  }
 
   // user data
-  user: string;
-  balance: string;
-  deposit: string;
-  puppet: string;
-  tredAmount: string;
-  tredNonce: number;
-  withdraw: string;
-  settleAmount: string;
+  user: {
+    address: string;
+    balance: string;
+    deposit: string;
+    puppet: Puppet;
+    tredAmount: string;
+    tredNonce: number;
+    withdraw: string;
+    settleAmount: string;
+  };
 
   // cp data
-  cp: string;
-  cpBalance: string;
-  cpTredAmount: string;
-  cpTredNonce: number;
-  cpSettleAmount: string;
+  cp: {
+    address: string;
+    balance: string;
+    tredAmount: string;
+    tredNonce: number;
+    settleAmount: string;
+  };
 
   // rebalance data
-  rebinAmount: string;
-  rebinNonce: number;
-  reboutAmount: string;
-  reboutNonce: number;
+  reb: {
+    inAmount: string;
+    inNonce: number;
+    outAmount: string;
+    outNonce: number;
+  };
 
   updatedAt: number;
   createdAt: number;
 
   /**
    * constructor
-   * @param pnAddress payment network contract address containing this channel
-   *
-   * @param channelId unique id of channel
-   * @param id auto-increment id
-   * @param status channel status, see CHANNEL_STATUS for reference
-   * @param settleTx hash of the settle transaction
-   * @param closer address of the initiator of force-close
-   * @param closeType 1 for co-close, 2 for force-close
-   *
-   * @param puppet puppet address of user
-   * @param balance off-chain balance of user
-   * @param deposit total amount of user's deposit into channel
-   * @param tredAmount total amount of user's off-chain trasactions (to cp)
-   * @param tredNonce latest sequence number of user's off-chain transaction
-   * @param withdraw total amount of user's withdraw from channel
-   * @param settleAmount user's actual amount when settled
-   *
-   * @param cpBalance off-chain balance of cp
-   * @param cpTredAmount total amount of cp's off-chain transactions (to user)
-   * @param cpTredNonce latest sequence number of cp's off-chain transaction
-   * @param cpSettleAmount cp's actual balance when settled
-   *
-   * @param rebinAmount total rebalance in amount
-   * @param rebinNonce latest sequence number of rebalance in action
-   * @param reboutAmount total rebalance out amount
-   * @param reboutNonce latest sequence number of rebalance out action
-   *
-   * @param createdAt
-   * @param updatedAt
+   * @param pn owner pn contract object
+   * @param user user's eth address
    */
-  constructor(
-
-    pnAddress: string,
-
-    channelId?: string,
-    id?: number,
-    status?: number,
-    settleTX?: string,
-    closer?: string,
-    closeType?: number,
-
-    user?: string,
-    puppet?: string,
-    balance?: string,
-    deposit?: string,
-    tredAmount?: string,
-    tredNonce?: number,
-    withdraw?: string,
-    settleAmount?: string,
-
-    cpBalance?: string,
-    cpTredAmount?: string,
-    cpTredNonce?: number,
-    cpSettleAmount?: string,
-
-    rebinAmount?: string,
-    rebinNonce?: number,
-    reboutAmount?: string,
-    reboutNonce?: number,
-
-    createdAt?: number,
-    updatedAt?: number
-  ) {
-
-    this.pnAddress = pnAddress;
-    if (!L2.getInstance().getPN(pnAddress)) {
-      let errMsg = `no PN found of address: ${pnAddress}, have you forgot to pass it in during L2.init ?`;
-      console.error(errMsg);
-      throw errMsg;
-    }
-
-    if (channelId) this.channelId = channelId;
-    if (id) this.id = id;
-    if (status) this.status = status;
-    if (settleTX) this.settleTX = settleTX;
-    if (closer) this.closer = closer;
-    if (closeType) this.closeType = closeType;
-
-    if (user) this.user = user;
-    if (puppet) this.puppet = puppet;
-    if (balance) this.balance = balance;
-    if (deposit) this.deposit = deposit;
-    if (tredAmount) this.tredAmount = tredAmount;
-    if (tredNonce) this.tredNonce = tredNonce;
-    if (withdraw) this.withdraw = withdraw;
-    if (settleAmount) this.settleAmount = settleAmount;
-
-    if (cpBalance) this.cpBalance = cpBalance;
-    if (cpTredAmount) this.cpTredAmount = cpTredAmount;
-    if (cpTredNonce) this.cpTredNonce = cpTredNonce;
-    if (cpSettleAmount) this.cpSettleAmount = cpSettleAmount;
-
-    if (rebinAmount) this.rebinAmount = rebinAmount;
-    if (rebinNonce) this.rebinNonce = rebinNonce;
-    if (reboutAmount) this.reboutAmount = reboutAmount;
-    if (reboutNonce) this.reboutNonce = reboutNonce;
-
-    if (updatedAt) this.updatedAt = updatedAt;
-    if (createdAt) {
-      this.createdAt = createdAt;
-    } else {
-      this.createdAt = new Date().getTime();
-      console.log('new Channel entry created at: ', this.createdAt);
-    }
-
-    this.getContractAndPN();
+  constructor( pn: PN, user: string ) {
+    this.pn = pn;
+    this.user.address = user;
   }
 
-  protected getContractAndPN() {
-    if (contract || pn) return;
-
-    pn = L2.getInstance().getPN(this.pnAddress);
-    contract = new ethers.Contract(pn.address, pn.abi, L2.getInstance().getProvider())
-
-    console.log('contract: ', contract);
+  static async getChannelById (channelId: string) {
+    return await db.channel.where('meta.channelId').equals(channelId).first();
   }
+
+  async getChannelId() {
+    return await this.pn.getChannelId(this.user.address);
+  }
+
   /**
    * sync data from contract
    */
   protected async syncWithContract() {
 
-    this.user = L2.getInstance().getUserAddress();
-    this.cp = await contract.functions.provider();
+    let { meta, cp, user, pn } = this;
 
-    // get channel id
-    this.channelId = await contract.getChannelIdentifier(this.user);
+    meta.channelId = await pn.getChannelId(user.address);
+    cp.address = await pn.functions.provider();
 
     // if no channel existed, stop sync
-    if (!this.channelId) {
+    if (!meta.channelId) {
       return Promise.reject(`no channel with user ${this.user} exists in contract`);
     }
 
-    let channelInfo = await contract.identifier_to_channel(this.channelId);
+    let channelInfo = await pn.identifier_to_channel(meta.channelId);
 
-    this.status = channelInfo[CHANNEL_KEYS.status]
-    console.log(`channel status: ${this.status}`);
-
+    meta.status = channelInfo[CHANNEL_KEYS.status]
     // if channel is closed, stop sync
-    if (this.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      return Promise.reject(`channel ${this.channelId} is closed, stop sync`);
+    if (meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
+      return Promise.reject(`channel ${meta.channelId} is closed, stop sync`);
     }
 
-    this.puppet = channelInfo[CHANNEL_KEYS.puppet];
-    this.deposit = channelInfo[CHANNEL_KEYS.deposit];
-    this.withdraw = channelInfo[CHANNEL_KEYS.withdraw];
-    this.balance = channelInfo[CHANNEL_KEYS.participantBalance];
+    user.puppet = channelInfo[CHANNEL_KEYS.puppet];
+    user.deposit = channelInfo[CHANNEL_KEYS.deposit];
+    user.withdraw = channelInfo[CHANNEL_KEYS.withdraw];
+    user.balance = channelInfo[CHANNEL_KEYS.participantBalance];
   }
 
   protected async syncWithL2Node() {
@@ -217,18 +121,19 @@ export class Channel {
     await this.syncWithContract();
 
     // if no channel or channel is closed, stop sync
-    if (this.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE)
-      return Promise.resolve(this.status);
+    if (this.meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
+      return Promise.resolve(this.meta.status);
+    }
 
     // sync L2 data
     await this.syncWithL2Node();
 
-    let localChannel = await db.channel.filter(c => c.pnAddress === this.pnAddress).first();
-    if (!localChannel || localChannel.tredNonce < this.tredNonce) {
+    let localChannel = await db.channel.filter(c => c.pn.address === this.pn.pnAddress).first();
+    if (!localChannel || localChannel.user.tredNonce < this.user.tredNonce) {
       await this.save();
     }
 
-    return Promise.resolve(this.status);
+    return Promise.resolve(this.meta.status);
   }
 
 
@@ -236,51 +141,49 @@ export class Channel {
    * save to db
    */
   async save() {
-    return db.transaction('rw', db.channel, async () => {
-      this.updatedAt = new Date().getTime();
-      this.id = await db.channel.put(this);
-    });
+    this.updatedAt = new Date().getTime();
+    return await db.channel.put(this);
   }
 
   async transfer(amount: string) {
 
-    let value = new BigNumber(amount);
-    let balance = new BigNumber(this.balance);
-    if (value.gt(balance)) {
+    let { user, pn, meta } = this;
+
+    let amountBN = new BigNumber(amount);
+    let balanceBN = new BigNumber(user.balance);
+    if (amountBN.gt(balanceBN)) {
       return Promise.reject('insufficient funds');
     }
 
-    let tredAmount = value.add(new BigNumber(this.tredAmount));
-    let nonce = this.tredNonce + 1;
+    let tredAmount = amountBN.add(new BigNumber(user.tredAmount));
+    let nonce = user.tredNonce + 1;
 
-    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'uint256', 'bytes'];
-    let data = [this.pnAddress, this.channelId, tredAmount, nonce];
-
-    let hash = solidityKeccak256(types, data);
-
-    let signature = await L2.getInstance().getProvider().getSigner().signMessage(hash);
-
-    let msg = {
-      contractAddress: this.pnAddress,
-      channelIdentifier: this.channelId,
+    let request = {
+      contractAddress: pn.address,
+      channelIdentifier: meta.channelId,
       balance: tredAmount.toString(),
       nonce,
-      additionalHash: '',
-      signature
     };
 
-    // send to CP with socket
+    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'uint256', 'bytes'];
+
+    let hash = solidityKeccak256(types, Object.values(request));
+
+    let signature = await pn.signer.signMessage(hash);
+
+    let msg = {...request, additionalHash: '', signature };
+    // send msg to CP with socket
 
     // save transfer to db
 
     new Transfer(
-      this.channelId,
-      this.pnAddress,
+      meta.channelId,
+      pn.address,
       tredAmount.toString(),
       amount,
       nonce,
       '',
-      L2.getInstance().getUserAddress(),
+      user.address,
       pn.cp,
       signature
     ).save();
@@ -293,12 +196,11 @@ export class Channel {
    */
   async addDeposit(amount: string) {
 
-    let web3Signer = L2.getInstance().getProvider().getSigner();
-    let contractSigner = contract.connect(web3Signer);
-    let participant = L2.getInstance().getUserAddress();
-    let value = new BigNumber(amount);
+    let participant = this.user.address;
+    let amountBN = new BigNumber(amount);
 
-    let tx = await contractSigner.setTotalDeposit(participant, { value });
+    let tx = await this.pn.setTotalDeposit(participant, { value: amountBN });
+
     console.log('deposit tx: ', tx.hash);
 
     return tx;
@@ -310,40 +212,31 @@ export class Channel {
    * @param amount withdraw amount
    * @param receiver withdraw to this address, default to user's default address
    */
-  async performWithdraw(amount: string, receiver: string = L2.getInstance().getUserAddress()) {
+  async performWithdraw(amount: string, receiver: string = this.user.address) {
 
-    let provider = L2.getInstance().getProvider();
-    let web3Signer = provider.getSigner();
-    let contractSigner = contract.connect(web3Signer);
-
+    let { pn, meta, user } = this;
     // step 1, build a withdraw request message and sign it with puppet
-    let contractAddress = pn.address;
-    let channelIdentifier = this.channelId;
-    let withdraw = new BigNumber(amount);
-    let lastCommitBlock = MESSAGE_COMMIT_BLOCK_EXPERITION + await provider.getBlockNumber();
-
-    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'bytes'];
-    let data = [contractAddress, channelIdentifier, withdraw, lastCommitBlock];
-    let withdrawRequestHash = solidityKeccak256(types, data);
-
-    let puppet = await db.puppet.where('address').equals(this.puppet).first();
-    let signatureUser = await puppet.signMessage(withdrawRequestHash);
     let userWithdrawRequest = {
-      contractAddress,
-      channelIdentifier,
-      withdraw,
-      lastCommitBlock,
-      signatureUser
+      contractAddress: pn.address,
+      channelIdentifier: meta.channelId,
+      withdraw: new BigNumber(amount),
+      lastCommitBlock: MESSAGE_COMMIT_BLOCK_EXPERITION + await pn.provider.getBlockNumber(),
     };
 
+    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'bytes'];
+    let withdrawRequestHash = solidityKeccak256(types, Object.values(userWithdrawRequest));
 
-    // TODO step 2, socket the userWithdrawRequest to CP and wait for response
+    let puppet = await db.puppet.where('address').equals(user.puppet.address).first();
+    let signatureUser = await puppet.signMessage(withdrawRequestHash);
+
+    let msg = { ...userWithdrawRequest, signatureUser };
+    // TODO step 2, socket the msg to CP and wait for response
     let res = { signatureCP: '', signatureL2: '' };
 
     // step 3, build withdraw transaction based on response and submit to blockchain
-    let tx = await contractSigner.participantWithdraw(
-      contractAddress,
-      lastCommitBlock,
+    let tx = await pn.participantWithdraw(
+      msg.contractAddress,
+      msg.lastCommitBlock,
       res.signatureCP,
       res.signatureL2,
       receiver,
@@ -361,14 +254,10 @@ export class Channel {
    */
   async open(amount: string) {
 
-    let web3Signer = L2.getInstance().getProvider().getSigner();
-    let contractSigner = contract.connect(web3Signer);
-    let participant = L2.getInstance().getUserAddress();
-    let puppet = this.puppet;
-    let settleWindow = 10;
-    let value = new BigNumber(amount);
+    let { pn, user } = this;
 
-    let tx = await contractSigner.setTotalDeposit({ participant, puppet, settleWindow }, { value });
+    let tx = await pn.setTotalDeposit( user.address, user.puppet, SETTLE_WINDOW, { value: amount });
+
     console.log('open channel tx: ', tx.hash);
 
     return tx;
@@ -377,40 +266,31 @@ export class Channel {
 
   async coClose() {
 
-    let provider = L2.getInstance().getProvider();
-    let web3Signer = provider.getSigner();
-    let contractSigner = contract.connect(web3Signer);
+    let { pn, meta, user } = this;
 
     // step 1, build a withdraw request message and sign it with puppet
-    let contractAddress = pn.address;
-    let channelIdentifier = this.channelId;
-    let balance = new BigNumber(this.balance);
-    let lastCommitBlock = MESSAGE_COMMIT_BLOCK_EXPERITION + await provider.getBlockNumber();
-
-    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'bytes'];
-    let data = [contractAddress, channelIdentifier, balance, lastCommitBlock];
-
-    let coCloseRequestHash = solidityKeccak256(types, data);
-
-    let puppet = await db.puppet.where('address').equals(this.puppet).first();
-    let signatureUser = await puppet.signMessage(coCloseRequestHash);
     let coCloseRequest = {
-      contractAddress,
-      channelIdentifier,
-      balance,
-      lastCommitBlock,
-      signatureUser
+      contractAddress: pn.address,
+      channelIdentifier: meta.channelId,
+      balance: new BigNumber(user.balance),
+      lastCommitBlock: MESSAGE_COMMIT_BLOCK_EXPERITION + await pn.provider.getBlockNumber(),
     };
 
+    let types: SOL_TYPE[] = ['address', 'bytes32', 'uint256', 'bytes'];
+    let coCloseRequestHash = solidityKeccak256(types, Object.values(coCloseRequest));
+    let puppet = await db.puppet.where('address').equals(user.puppet.address).first();
+    let signatureUser = await puppet.signMessage(coCloseRequestHash);
 
-    // TODO step 2, socket the coCloseRequest to CP and wait for response
+    let msg = { ...coCloseRequest, signatureUser };
+
+    // TODO step 2, socket msg to CP and wait for response
     let res = { signatureCP: '', signatureL2: '' };
 
     // step 3, build co-close transaction based on response and submit to blockchain
-    let tx = await contractSigner.cooperativeSettle(
-      L2.getInstance().getUserAddress(),
-      balance,
-      lastCommitBlock,
+    let tx = await pn.cooperativeSettle(
+      msg.contractAddress,
+      msg.balance,
+      msg.lastCommitBlock,
       res.signatureCP,
       res.signatureL2,
     );
@@ -428,87 +308,90 @@ export class Channel {
    */
   async updatePuppet(newPuppet: Puppet) {
 
-    let provider = L2.getInstance().getProvider();
+    let { pn, meta } = this;
 
-    let contractAddress = this.pnAddress;
-    let channelIdentifier = this.channelId;
-    let lastCommitBlock = MESSAGE_COMMIT_BLOCK_EXPERITION + await provider.getBlockNumber();
-
-    let types: SOL_TYPE[] = ['address', 'bytes32', 'address', 'uint256'];
-    let data = [contractAddress, channelIdentifier, newPuppet.address, lastCommitBlock];
-    let userSignatureData = solidityKeccak256(types, data);
-
-    let signatureUser = await L2.getInstance().getProvider().getSigner().signMessage(userSignatureData);
-    let signatureCP = '';
-
-    let NewPuppet = {
-      contractAddress,
-      channelIdentifier,
-      newPuppet: newPuppet.address,
-      lastCommitBlock,
-      signatureUser,
-      signatureCP,
-    };
-
-    let rebOut = await db.rebalance.where('type').equals(REBALANCE_TYPE.OUT).last();
-    let outAmount = rebOut.amount;
-    let outNonce = rebOut.nonce;
-
-    types = ['address', 'bytes32', 'uint256', 'bytes'];
-    data = [contractAddress, channelIdentifier, outAmount, outNonce];
-    userSignatureData = solidityKeccak256(types, data);
-    signatureUser = await newPuppet.signMessage(userSignatureData);
-    signatureCP = rebOut.signCP;
-
-    let RebalanceOut = {
-      contractAddress,
-      channelIdentifier,
-      outAmount: rebOut.amount,
-      outNonce: rebOut.nonce,
-      signatureCP,
-      signatureUser,
+    let updatePuppetRequest = {
+      contractAddress: pn.address,
+      channelIdentifier: meta.channelId,
+      lastCommitBlock: MESSAGE_COMMIT_BLOCK_EXPERITION + await pn.provider.getBlockNumber()
     }
 
+    let types: SOL_TYPE[] = ['address', 'bytes32', 'address', 'uint256'];
+    let updatePuppetRequestHash = solidityKeccak256(types, Object.values(updatePuppetRequest));
+
+    let signatureUser = await pn.signMessage(updatePuppetRequestHash);
+
+    let NewPuppet = {
+      ...updatePuppetRequest,
+      signatureUser,
+      signatureCP: '',
+      newPuppet: newPuppet.address,
+    };
+
+
+    let rebOut = await db.rebalance.where('type').equals(REBALANCE_TYPE.OUT).last();
+    let rebalanceOutRequest = {
+      contractAddress: pn.address,
+      channelIdentifier: meta.channelId,
+      outAmount: rebOut.amount,
+      outNonce: rebOut.nonce,
+    };
+
+    types = ['address', 'bytes32', 'uint256', 'bytes'];
+    let rebalanceOutRequestHash = solidityKeccak256(types, Object.values(rebalanceOutRequest));
+    signatureUser = await newPuppet.signMessage(rebalanceOutRequestHash);
+
+    let RebalanceOut = {
+      ...rebalanceOutRequest,
+      signatureUser,
+      signatureCP: rebOut.signCP
+    }
 
     let NewPuppetRequest = { NewPuppet, RebalanceOut };
 
-    //  send NewPuppetRequest to CP
+    // TODO socket NewPuppetRequest to CP
   }
 
 
   async forceClose() {
 
-    let provider = L2.getInstance().getProvider();
-    let web3Signer = provider.getSigner();
-    let contractSigner = contract.connect(web3Signer);
+    let { pn, user, cp, reb } = this;
 
-    let participant = L2.getInstance().getUserAddress();
-    let balance = this.cpTredAmount;
-    let nonce = this.cpTredNonce;
-    let { additionalHash, sign: partnerSignature } = await db.transfer.filter(t => t.nonce === nonce && t.from === pn.cp).first();
-    let inAmount = this.rebinAmount;
-    let inNonce = this.rebinNonce;
-    let { signL2: regulatorSignature, signCP: inProviderSignature } = await db.rebalance.filter(r => r.type === REBALANCE_TYPE.IN && r.nonce === inNonce).first();
-    let outAmount = this.reboutAmount;
-    let outNonce = this.reboutNonce;
-    let { signUser: participantSignature, signCP: outProviderSignature } = await db.rebalance.filter(r => r.type === REBALANCE_TYPE.OUT && r.nonce === outNonce).first();
+    let { additionalHash, sign } = await db.transfer.filter(t => t.nonce === cp.tredNonce && t.from === cp.address).first();
+    let { signL2, signCP: signCPIn } = await db.rebalance.filter(r => r.type === REBALANCE_TYPE.IN && r.nonce === reb.inNonce).first();
+    let { signUser, signCP: signCPOut } = await db.rebalance.filter(r => r.type === REBALANCE_TYPE.OUT && r.nonce === reb.outNonce).first();
 
-
-    let tx = await contractSigner.closeChannel(
-      participant,
-      balance,
-      nonce,
+    let tx = await pn.closeChannel(
+      user.address,
+      cp.tredAmount,
+      cp.tredNonce,
       additionalHash,
-      partnerSignature,
-      inAmount,
-      inNonce,
-      regulatorSignature,
-      inProviderSignature,
-      outAmount,
-      outNonce,
-      participantSignature,
-      outProviderSignature
-    );
+      sign,
+      reb.inAmount,
+      reb.inNonce,
+      signL2,
+      signCPIn,
+      reb.outAmount,
+      reb.outNonce,
+      signUser,
+      signCPOut
+    )
+
+    // let tx = await contractSigner.closeChannel(
+    //   participant,
+    //   balance,
+    //   nonce,
+    //   additionalHash,
+    //   partnerSignature,
+    //   inAmount,
+    //   inNonce,
+    //   regulatorSignature,
+    //   inProviderSignature,
+    //   outAmount,
+    //   outNonce,
+    //   participantSignature,
+    //   outProviderSignature
+    // );
 
     console.log('force close tx: ', tx.hash);
 
@@ -519,6 +402,7 @@ export class Channel {
 
 export enum CHANNEL_KEYS {
   status,
+  isCloser,
   settleBlock,
   puppet,
   deposit,
@@ -531,8 +415,9 @@ export enum CHANNEL_KEYS {
   inNonce,
   outAmount,
   outNonce,
-  isCloser, // newest version is different
-}
+};
+
+export enum SETTLE_TYPES { CO = 1, FORCE };
 
 export enum CHANNEL_STATUS {
   CHANNEL_STATUS_INIT = 1,
@@ -543,4 +428,4 @@ export enum CHANNEL_STATUS {
   CHANNEL_STATUS_CLOSE,
   CHANNEL_STATUS_PARTNER_UPDATE_PROOF,
   CHANNEL_STATUS_REGULATOR_UPDATE_PROOF
-}
+};

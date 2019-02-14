@@ -63,6 +63,14 @@ export class UserWithdraw {
     }
   }
 
+  static async find(channelId: string, balance: string, lastCommitBlock: number) {
+    return await db.userWithdraw.filter(uw =>
+      uw.channelId === channelId &&
+      uw.balance === balance &&
+      uw.lastCommitBlock === lastCommitBlock
+    ).first();
+  }
+
   public async save() {
     return db.transaction('rw', db.userWithdraw, async () => {
       this.updatedAt = new Date().getTime();
