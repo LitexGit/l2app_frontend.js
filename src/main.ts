@@ -17,37 +17,43 @@
  * [L2]: https://l2.app
  */
 
-import { ethers, utils, Event } from 'ethers'
-import * as io from 'socket.io-client'
-import { PN, Channel, Puppet, CHANNEL_STATUS, WITHDRAW_STATUS, UserWithdraw } from './model/internal';
-import { Web3Provider } from 'ethers/providers';
-import { BigNumber } from 'ethers/utils';
+import { Contract } from 'web3-eth-contract/types';
+import { provider } from 'web3-providers/types';
 
+import CITASDK from '@cryptape/cita-sdk';
+import Web3 from 'web3/types';
+import { AbiItem, BN } from 'web3-utils/types';
+import Puppet from './puppet';
+import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION } from './utils/constants';
+import { tx as appTX, events as appEvents } from './service/cita';
+import { events as ethEvents } from './service/eth';
+
+
+/**
+ * INTERNAL EXPORTS
+ * these exports are used within this library
+ * DON'T export them in L2.ts
+ */
+export var cita: any; // cita sdk object
+export var web3: Web3 // eth sdk object;
+export var ethPN: Contract; // eth payment contract
+export var appPN: Contract; // cita payment contract
+export var callbacks: Map<L2_EVENT, L2_CB>; // callbacks for L2.on
+export var user: string; // user's eth address
+export var l2: string; // L2's eth address
+export var cp: string; // CP's eth address
+export var puppet: Puppet; // puppet object
+
+
+
+/**
+ * L2 Class
+ * designed in singleton mode
+ */
 export class L2 {
-
-  // network provider
-  private provider: any;
-
-  // user's master eth address
-  private user: string;
-
-  // current puppet
-  private puppet: Puppet;
-
-  // socket url of portal server
-  private socketUrl: string;
-
-  // payment network list
-  private pnList: PN[];
-
-  // socket io client
-  private socket: any;
 
   // singleton object
   private static _instance: L2;
-
-  // callbacks of L2.on
-  private callbacks: Map<L2_EVENT, L2_CB>;
 
   private constructor() {}
 
@@ -62,358 +68,367 @@ export class L2 {
 
   /**
    * init L2 singleton
-   * @param userAddress user's main eth address
-   * @param socketUrl socket io url of portal server
-   * @param pnList supported payment network list
-   * @param provider web3 provider
+   * @param userAddress // user's ethereum address
+   * @param ethProvider // web3 provider for ethereum
+   * @param ethPaymentNetwork // payment network contract info on ethereum
+   * @param appRpcUrl // cita rpc url
+   * @param appPaymentNetwork // payment network contract info on cita
    */
   async init(
     userAddress: string,
-    socketUrl: string,
-    pnList: PN[],
-    provider?: any,
+    ethProvider: provider,
+    ethPaymentNetwork: PN,
+    appRpcUrl: string,
+    appPaymentNetwork: PN
   ) {
 
-    if (!userAddress) {
-      Promise.reject('user address is undefined');
-    }
+    web3 = new Web3(ethProvider);
+    ethPN = new Contract(ethProvider, abi2jsonInterface(ethPaymentNetwork.abi), ethPaymentNetwork.address);
+    ethPN.options.from = user;
 
-    this.user = userAddress;
-    this.socketUrl = socketUrl;
-    this.pnList = pnList;
-    if (provider) this.setProvider(provider);
+    cita = CITASDK(appRpcUrl);
+    appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
 
+    user = userAddress;
+    cp = await ethPN.methods.provider().call();
+    l2 = await ethPN.methods.regulator().call();
 
-    // init puppet
-    this.puppet = await Puppet.getOrCreate();
-    console.log('puppet: ', this.puppet);
+    // get puppet ready
+    await initPuppet();
 
+    // init listeners on both chains
+    initListeners();
+  }
 
-    // init socket connection
-    if (this.socket === undefined) {
-      // this.socket = io(this.socketUrl);
-      // NEED API to register eth address to server
-    }
+  /**
+   * ---------- Payment APIs ----------
+   */
 
+  /**
+   * deposit to channel
+   * if there is no channel, open one
+   * @param amount amount to deposit, or initial balance for new channel
+   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   */
 
-    // init payment networks
-    for (let pn of this.pnList) {
+  async deposit(amount: string, token: string = '0x0') {
 
-      console.log('init PN: ', JSON.stringify(pn));
-
-      /**
-       * check corresponding channel status
-       * */
-      let channel = new Channel(pn, this.user);
-      let status = await channel.sync();
-
-      // if channel doesn't exits or is closed, skip current pn
-      if (status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) continue;
-
-      // if channel's puppet is outdated, update puppet to local version
-      if (this.puppet.address !== channel.user.puppet.address) {
-        await channel.updatePuppet(this.puppet);
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    if (channelID) {
+      let channel = await ethPN.methods.channels(channelID).call();
+      if (channel.status === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        // add deposit
+        ethPN.methods.userDeposit(channelID, amount).send()
+          .once('receipt', (receipt: any) => {
+            callbacks.get('Deposit')(null, {
+              ok: true,
+              totalDeposit: receipt.events.returnValues.totalDeposit
+            });
+          })
+          .on('error', (err: any, receipt: any) => {
+            callbacks.get('Deposit')(err, { ok: false });
+            // TODO need to destruct err object ?
+          });
       }
-
-      // sync pn with contract
-      await pn.syncWithContract();
-
-      // save updated pn to db
-      await pn.save();
-
-      // start watching events
-      this.watchEvents(pn);
-    }
-  }
-
-  setProvider(provider: any) {
-    this.provider = new ethers.providers.Web3Provider(provider);
-  }
-
-  // deposit | openChannel
-  async deposit(pnAddress: string, amount: string) {
-
-    let channel = new Channel(this.getPN(pnAddress), this.user);
-    let status = await channel.sync();
-
-    if (status === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-      // deposit
-      return channel.addDeposit(amount);
     } else {
       // open channel
-      return channel.open(amount);
+      ethPN.methods.openChannel(
+        user,
+        puppet.getAccount().address,
+        SETTLE_WINDOW,
+        token,
+        amount
+      ).send()
+        .once('receipt', (receipt: any) => {
+          callbacks.get('Deposit')(null, {
+            ok: true,
+            totalDeposit: amount
+          });
+        })
+        .on('error', (err: any, receipt: any) => {
+          callbacks.get('Deposit')(err, { ok: false });
+          // TODO need to destruct err object ?
+        });
     }
   }
 
 
-  // withdraw | co-close
-  async withdraw(pnAddress: string, amount: string) {
+  /**
+   * withdraw from channel
+   * @param amount amount to withdraw
+   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   * @param receiver OPTIONAL, eth address to receive withdrawed asset, default: user's address
+   */
+  async withdraw(amount: string, token: string = '0x0', receiver: string = user) {
 
-    let channel = new Channel(this.getPN(pnAddress), this.user);
-    let status = await channel.sync();
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
 
-    if (status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      return Promise.reject('channel is closed');
+    let tx = { 
+      ...appTX,
+      validUntilBlock: getLCB('cita'),
+      from: puppet.getAccount().address
+    };
+
+    let res = await appPN.methods.userProposeWithdraw(
+      channelID,
+      amount,
+      getLCB('eth')
+    ).send(tx);
+
+    if(res.hash) {
+      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+      if(receipt.errorMessage) {
+        console.error('[CITA] - Withdraw', receipt.errorMessage);
+        callbacks.get('Withdraw')(receipt.errorMessage, { ok: false });
+        // TODO process errorMessage and notify CB
+      }
     }
-    let amountBN = new utils.BigNumber(amount);
-    let balanceBN = new utils.BigNumber(channel.user.balance);
-    if (amountBN.gt(balanceBN)) {
-      return Promise.reject('insufficient funds');
-    }
-    if (amountBN.lt(balanceBN)) {
-      return channel.performWithdraw(amount);
-    } else {
-      return channel.coClose();
-    }
+
+    // then wait for cita event 'ConfirmUserWithdraw' and carry on
   }
 
 
-  async forceClose(pnAddress: string) {
+  /**
+   * withdraw asset from channel to user's eth address by force
+   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   */
+  async forceWithdraw(token: string = '0x0') {
 
-    let channel = new Channel(this.getPN(pnAddress), this.user);
-    let status = await channel.sync();
-    if (status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      return Promise.reject('channel is closed');
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+
+    let [{ balance, nonce, additionalHash, signature: partnerSignature },
+      { amount: inAmount, nonce: inNonce, regulatorSignature, providerSignature }]
+      = await Promise.all([
+        appPN.methods.balanceProofMap(channelID, user).call(),
+        appPN.methods.rebalanceProofMap(channelID).call()
+      ]);
+
+    await ethPN.methods.closeChannel(
+      channelID,
+      balance, nonce, additionalHash, partnerSignature,
+      inAmount, inNonce, regulatorSignature, providerSignature
+    ).once('receipt', (receipt: any) => {
+      // TODO cancel timeout
+    }).on('error', (error: any, receipt: any) => {
+      // TODO format error message
+      callbacks.get('ForceWithdraw')(error, { ok: false });
+    });
+
+    // then wait for cita event 'ChannelSettled' and notify success
+  }
+
+
+  /**
+   * transfer asset offchain to specific address
+   * @param to destination address of transaction
+   * @param amount amount of transaction
+   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   */
+  async transfer(to: string, amount: string, token: string = '0x0') {
+
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+
+    let tx = { 
+      ...appTX,
+      validUntilBlock: getLCB('cita'),
+      from: puppet.getAccount().address
+    };
+
+    // get balance proof from eth contract
+    let { balance, nonce, additionalHash }
+      = await appPN.methods.balanceProofMap(channelID, user).call();
+
+    // TODO nonce + 1 
+      
+
+    balance = new BN(amount).add(balance);
+
+    // additionalHash 设置为"0x0"
+    // signature 签名 hash = soliditySha3(ethPaymentContractAddress, channelID, balance, nonce, additionalHash)
+    // 请求Metamask签名
+
+    let res = await appPN.methods.transfer(
+      to,
+      channelID,
+      balance,
+      nonce, 
+      additionalHash
+    ).send(tx);
+
+    if(res.hash) {
+      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+      if(receipt.errorMessage) {
+        console.error( '[CITA] - transfer', receipt.errorMessage );
+        callbacks.get('Transfer')(receipt.errorMessage, { ok: false });
+        // TODO process errorMessage and notify CB
+      }
     }
 
-    return channel.forceClose();
+    // then wait for cita event 'Transfer' and notify success
   }
 
 
-  async sendAsset(pnAddress: string, amount: string) {
+  /**
+   * ---------- Session APIs ----------
+   */
 
-    let channel = new Channel(this.getPN(pnAddress), this.user);
-    let status = await channel.sync();
-    if (status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      return Promise.reject('channel is closed');
+  // TODO
+
+
+
+  /**
+   * ---------- Query APIs ----------
+   */
+
+
+  async getCurrentSession() {
+    // TODO
+  }
+
+
+  async getBalance(token: string = '0x0') {
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channel = await appPN.methods.channelMap(channelID).call();
+    return channel.userBalance;
+  }
+
+  async getAllTXs(token: string = '0x0') {
+
+    let [inTXs, outTXs] = await Promise.all([
+      appPN.getPastEvents('Transfer', { filter: { to: user } }),
+      appPN.getPastEvents('Transfer', { filter: { from: user } })
+    ]);
+
+    const cmpNonce = (key: string) => {
+      return (a: any, b: any) => { return a[key] - b[key] }
     }
-    return channel.transfer(amount);
+
+    let lastBalance = new BN(0);
+    const getTX = (tx: any) => {
+      let { channelID, balance, ...rest } = tx.returnValues;
+      balance = new BN(balance);
+      let amount = balance.sub(lastBalance).toString();
+      lastBalance = balance;
+
+      return {
+        id: tx.transactionHash,
+        amount,
+        ...rest,
+      }
+    }
+
+    inTXs = inTXs.sort(cmpNonce('nonce')).map(tx => getTX(tx));
+    outTXs = outTXs.sort(cmpNonce('nonce')).map(tx => getTX(tx));
+    
+    return { in: inTXs, out: outTXs };
   }
 
-  getCB (event: L2_EVENT) {
-    return this.callbacks.get(event);
+
+  async getAllPNs() {
+    // TODO need pn collections in appchain payment contract
   }
 
-  getPN (address: string) {
-    return this.pnList.find(pn => pn.address === address);
-  }
+
+  /**
+   * ---------- Event API ----------
+   */
 
   on(event: L2_EVENT, callback: L2_CB) {
-    this.callbacks.set(event, callback);
+    callbacks.set(event, callback);
   }
+} // end of class L2
 
-  private async watchEvents (pn: PN) {
 
-    let participant = this.user;
-    let channelIdentifier = pn.getChannelId(participant);
-    let filter = undefined;
 
-    for (let key in this.EVENTS) {
-      if (key === 'ChannelOpened') {
-        filter = pn.filters[key](participant);
-      } else {
-        filter = pn.filters[key](channelIdentifier);
-      }
-      pn.on(filter, this.EVENTS[key].handler)
-      this.EVENTS[key].filter = filter;
+
+
+async function initPuppet() {
+
+  puppet = Puppet.get(user);
+
+  if (puppet) {
+    let puppetStatus = await ethPN.methods.puppetMap(user, puppet).call();
+    if (puppetStatus === PUPPET_STATUS.ENABLED) {
+      // puppet is active, done
+      return;
     }
   }
 
-  stopWatch(pn: PN) {
-    for (let key in this.EVENTS) {
-      pn.removeAllListeners(this.EVENTS[key].filter)
-    }
-  }
-
-  protected EVENTS = {
-    ChannelOpened: { handler: this.handleChannelOpen },
-    ChannelNewDeposit: { handler: this.handleNewDeposit },
-    PuppetChanged: { handler: this.handlePuppetChange },
-    ParticipantWithdraw: { handler: this.handleParticipantWithdraw },
-    CooperativeSettled: { handler: this.handleCoSettle },
-    ChannelClosed: { handler: this.handleChannelClose },
-    PartnerUpdateProof: { handler: this.handlePartnerUpdateProof },
-    ChannelSettled: { handler: this.handleChannelSettle },
-  }
-
-  protected async handleChannelOpen(
-    participant: string,
-    puppet: string,
-    settleWindow: number,
-    amount: BigNumber,
-    channelIdentifier: string,
-    event: Event
-  ) {
-
-    // check db for channel
-    let channel = await Channel.getChannelById(channelIdentifier);
-
-    if (!channel) {
-      channel = new Channel(this.getPN(event.address), this.user);
-      await channel.sync();
-      await channel.save();
-    }
-
-    // TODO notify cp
-  }
-
-  protected async handleNewDeposit(
-    channelIdentifier: string,
-    participant: string,
-    newDeposit: BigNumber,
-    totalDeposit: BigNumber,
-    event: Event
-  ) {
-
-    // check db for channel
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel) {
-      channel = new Channel(this.getPN(event.address), this.user);
-      await channel.sync();
-    } else {
-      let userDeposit = new BigNumber(channel.user.deposit);
-      if (userDeposit.lt(totalDeposit)) {
-        channel.user.deposit = totalDeposit.toString();
-        let userBalance = new BigNumber(channel.user.balance);
-        channel.user.balance = userBalance.add(newDeposit).toString();
-      }
-    }
-
-    await channel.save();
-
-    // TODO handle error and notify cp
-
-    // notify cp
-    this.getCB('Deposit') (undefined, {
-      pnAddress: channel.pn.address,
-      depositAddress: participant,
-      depositAmount: newDeposit.toString()
+  /* if no puppet or puppet is disabled,
+   * create a new one and add it to payment contract
+   */
+  puppet = Puppet.create(user);
+  ethPN.methods.addPuppet(puppet.getAccount().address).send()
+    .once('receipt', (receipt: any) => {
+      console.log('Puppet update success: ', receipt);
+      Promise.resolve();
+    })
+    .on('error', (err: any, receipt: any) => {
+      Promise.reject(`Puppet update error: ${JSON.stringify(err)}`)
     });
-  }
-
-  protected async handlePuppetChange(
-    channelIdentifier: string,
-    participant: string,
-    puppet: string,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel) {
-      // TODO
-    }
-
-    if (channel.user.puppet.address !== puppet) {
-      // TODO how to get the private key info?
-      channel.user.puppet = new Puppet(undefined, puppet);
-
-      // let puppetRecord = await updatePuppet.where('newPuppetAddress').equals(puppet).first();
-      // updatePuppet.status = PUPPET_STATUS.ONCHAIN;
-      // await updatePuppet.save();
-    }
-  }
-
-  protected async handleParticipantWithdraw(
-    channelIdentifier: string,
-    participant: string,
-    amount: BigNumber,
-    withdraw: BigNumber,
-    lastCommitBlock: number,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    let pnAddress = event.address;
-    if (!channel) {
-      // TODO
-    }
-
-    if (!withdraw.eq(new BigNumber(channel.user.withdraw))) {
-      channel.user.withdraw = withdraw.toString();
-      channel.user.balance = new BigNumber(channel.user.balance).sub(amount).toString();
-      let tx = await event.getTransaction();
-
-      let userWithdraw = await UserWithdraw.find(channelIdentifier, channel.user.balance, lastCommitBlock);
-      if (userWithdraw) {
-        userWithdraw.status = WITHDRAW_STATUS.ONCHAIN;
-        await userWithdraw.save()
-      }
-    }
-  }
-
-  protected async handleCoSettle(
-    channelIdentifier: string,
-    participant: string,
-    balance: BigNumber,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel || channel.meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      // TODO
-    }
-
-    channel.sync();
-    channel.meta.status = CHANNEL_STATUS.CHANNEL_STATUS_CLOSE;
-    await channel.save();
-  }
-
-  protected async handleChannelClose(
-    channelIdentifier: string,
-    closing: string,
-    balance: BigNumber,
-    nonce: number,
-    inAmount: BigNumber,
-    inNonce: number,
-    outAmount: BigNumber,
-    outNonce: number,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel || channel.meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      // TODO
-    }
-
-    channel.meta.status = CHANNEL_STATUS.CHANNEL_STATUS_CLOSE;
-    await channel.save();
-  }
-
-  protected async handlePartnerUpdateProof(
-    channelIdentifier: string,
-    participant: string,
-    participantBalance: BigNumber,
-    participantNonce: number,
-    providerBalance: BigNumber,
-    providerNonce: number,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel || channel.meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      // TODO
-    }
-
-    channel.meta.status = CHANNEL_STATUS.CHANNEL_STATUS_PARTNER_UPDATE_PROOF;
-    await channel.save();
-  }
-
-  protected async handleChannelSettle(
-    channelIdentifier: string,
-    participant: string,
-    transferToParticipantAmount: BigNumber,
-    transferToParticipantNonce: number,
-    event: Event
-  ) {
-    let channel = await Channel.getChannelById(channelIdentifier);
-    if (!channel || channel.meta.status === CHANNEL_STATUS.CHANNEL_STATUS_CLOSE) {
-      // TODO
-    }
-
-    channel.sync();
-    channel.meta.status = CHANNEL_STATUS.CHANNEL_STATUS_CLOSE;
-    await channel.save();
-  }
-
 }
 
-export type L2_EVENT = 'Deposit' | 'Withdraw' | 'ForceWithdraw'
 
-export type L2_CB = (err: any, data: any) => { }
+async function initListeners () {
+
+  // events on appchain
+  Object.keys(appEvents).forEach((event) => {
+    let { filter, handler } = appEvents[event];
+    appPN.events[event]({ filter }, handler);
+  });
+
+  // events on ethereum
+  Object.keys(ethEvents).forEach((event) => {
+    let { filter, handler } = ethEvents[event];
+    ethPN.events[event]({ filter }, handler);
+  });
+}
+  
+function abi2jsonInterface(abi: string): AbiItem[] | undefined {
+  try {
+    let abiArray: AbiItem[] = JSON.parse(abi);
+    if (!Array.isArray(abiArray)) return undefined;
+    return abiArray;
+  } catch(e) {
+    return undefined;
+  }
+}
+
+async function getLCB(chain: string) {
+  let current = chain === 'eth' ? await web3.eth.getBlockNumber() : await cita.base.getBlockNumber();
+  return current + MESSAGE_COMMIT_BLOCK_EXPERITION;
+}
+
+
+enum PUPPET_STATUS {
+  NULL,
+  ENABLED,
+  DISABLED
+};
+
+enum CHANNEL_STATUS {
+  CHANNEL_STATUS_INIT = 1,
+  CHANNEL_STATUS_PENDINGOPEN,
+  CHANNEL_STATUS_OPEN,
+  CHANNEL_STATUS_PENDING_UPDATE_PUPPET,
+  CHANNEL_STATUS_PENDING_SETTLE,
+  CHANNEL_STATUS_CLOSE,
+  CHANNEL_STATUS_PARTNER_UPDATE_PROOF,
+  CHANNEL_STATUS_REGULATOR_UPDATE_PROOF
+};
+
+
+
+
+/**
+ * EXTERNAL EXPORTS
+ * all properties need outside, will be exposed in L2.ts
+ */
+export type L2_EVENT = 'Deposit' | 'Withdraw' | 'ForceWithdraw' | 'Transfer' | 'DisablePuppet';
+export type L2_CB = (err: any, res: any) => { };
+export type PN = {
+  address: string,
+  abi: string
+};
 
 export default L2;

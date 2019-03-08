@@ -40,7 +40,7 @@
     "istanbul-instrumenter-loader": "^3.0.0",
     "jasmine": "^3.2.0",
     "jasmine-core": "^3.2.1",
-    "karma": "^3.0.0",
+    "karma": "^4.0.1",
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage-istanbul-reporter": "^2.0.1",
     "karma-jasmine": "^1.1.0",
@@ -76,10 +76,9 @@
   },
   "version": "0.0.1",
   "dependencies": {
+    "@cryptape/cita-sdk": "^0.21.1",
     "@types/socket.io-client": "^1.4.32",
-    "dexie": "^2.0.4",
-    "ethers": "^4.0.23",
     "simple-crypto-js": "^2.0.2",
-    "socket.io-client": "^2.2.0"
+    "web3": "^1.0.0-beta.48"
   }
 }
