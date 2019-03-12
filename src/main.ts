@@ -17,12 +17,15 @@
  * [L2]: https://l2.app
  */
 
-import { Contract } from 'web3-eth-contract/types';
-import { provider } from 'web3-providers/types';
+import { Contract } from 'web3/node_modules/web3-eth-contract';
+import { provider } from 'web3-providers';
 
 import CITASDK from '@cryptape/cita-sdk';
-import Web3 from 'web3/types';
-import { AbiItem, BN } from 'web3-utils/types';
+// const { default: CITASDK } = require("@cryptape/cita-sdk");
+
+const Web3 = require('web3');
+// import Web3 from 'web3';
+import { AbiItem, BN } from 'web3/node_modules/web3-utils';
 import Puppet from './puppet';
 import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION } from './utils/constants';
 import { tx as appTX, events as appEvents } from './service/cita';
@@ -82,22 +85,38 @@ export class L2 {
     appPaymentNetwork: PN
   ) {
 
-    web3 = new Web3(ethProvider);
+    console.log("start init");
+    web3 = new Web3(Web3.givenProvider || ethProvider);
+    let blockNumber = await web3.eth.getBlockNumber();
+    console.log("blockNumber is ", blockNumber);
+    console.log("Contract is ", Contract);
+
+    console.log("ethPaymentNetwork", ethPaymentNetwork);
+
     ethPN = new Contract(ethProvider, abi2jsonInterface(ethPaymentNetwork.abi), ethPaymentNetwork.address);
     ethPN.options.from = user;
+    ethPN.options.address = ethPaymentNetwork.address;
 
-    cita = CITASDK(appRpcUrl);
-    appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
+    console.log('ethPN is ', ethPN);
+
+    // console.log("CITASDK", CITASDK);
 
     user = userAddress;
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
+    console.log("cp / l2 is ", cp, l2);
+
+    console.log("appRpcUrl", appRpcUrl);
+    cita = CITASDK(appRpcUrl);
+    console.log("cita is ", cita);
+
+    // appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
     // get puppet ready
     await initPuppet();
 
     // init listeners on both chains
-    initListeners();
+    // initListeners();
   }
 
   /**
@@ -347,7 +366,9 @@ async function initPuppet() {
   puppet = Puppet.get(user);
 
   if (puppet) {
-    let puppetStatus = await ethPN.methods.puppetMap(user, puppet).call();
+
+    console.log("puppet is ", puppet);
+    let puppetStatus = await ethPN.methods.puppetMap(user, puppet.getAccount().address).call();
     if (puppetStatus === PUPPET_STATUS.ENABLED) {
       // puppet is active, done
       return;
@@ -358,14 +379,30 @@ async function initPuppet() {
    * create a new one and add it to payment contract
    */
   puppet = Puppet.create(user);
-  ethPN.methods.addPuppet(puppet.getAccount().address).send()
-    .once('receipt', (receipt: any) => {
-      console.log('Puppet update success: ', receipt);
-      Promise.resolve();
-    })
-    .on('error', (err: any, receipt: any) => {
-      Promise.reject(`Puppet update error: ${JSON.stringify(err)}`)
-    });
+  console.log("puppet is ", puppet.getAccount().address, user);
+  let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
+
+  web3.eth.sendTransaction({
+    from: user,
+    to: ethPN.options.address,
+    value: 0,
+    data: data
+  }, function(err: any, result: any){
+    console.log("send Transaction", err, result);
+  });
+
+
+
+
+  // let result = await ethPN.methods.addPuppet(puppet.getAccount().address).send({ from: user });
+  // console.log("send Result is ", result);
+    // .once('receipt', (receipt: any) => {
+    //   console.log('Puppet update success: ', receipt);
+    //   Promise.resolve();
+    // })
+    // .on('error', (err: any, receipt: any) => {
+    //   Promise.reject(`Puppet update error: ${JSON.stringify(err)}`)
+    // });
 }
 
 

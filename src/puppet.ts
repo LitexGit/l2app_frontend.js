@@ -3,8 +3,8 @@
  */
 import SimpleCrypto from 'simple-crypto-js';
 import { cita } from './main'
-import { sha3 } from 'web3-utils/types'
-import { Account } from 'web3-eth-accounts/types';
+import { sha3 } from 'web3/node_modules/web3-utils'
+import { Account } from 'web3/node_modules/web3-eth-accounts';
 
 export default class Puppet {
 

@@ -6,9 +6,10 @@ import {
 } from './main';
 
 export {
+  L2,
   L2_CB,
   L2_EVENT,
   PN
 };
 
-export default L2;
+// export default L2;
