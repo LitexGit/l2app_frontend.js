@@ -120,7 +120,8 @@ export class L2 {
     cita = CITASDK(appRpcUrl);
     console.log("cita is ", cita);
 
-    // appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
+    console.log("app abi", appPaymentNetwork.abi);
+    appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
     // get puppet ready
     await initPuppet();
 
