@@ -37,7 +37,16 @@ export const events = {
         ok: true
       });
     }
-  }
+  },
+
+  'ConfirmCooperativeSettle': {
+    filter: {user},
+    handler: async (event: any) => {
+
+    }
+  }, 
+
+
 };
 
 function getProofID(): string {

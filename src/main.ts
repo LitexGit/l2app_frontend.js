@@ -27,9 +27,14 @@ const Web3 = require('web3');
 // import Web3 from 'web3';
 import { AbiItem, BN } from 'web3/node_modules/web3-utils';
 import Puppet from './puppet';
-import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION } from './utils/constants';
+import HttpWatcher from './httpwatcher';
+import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION, ADDRESS_ZERO } from './utils/constants';
+import { ERC20ABI } from './ERC20';
 import { tx as appTX, events as appEvents } from './service/cita';
 import { events as ethEvents } from './service/eth';
+import { SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION } from 'constants';
+import { Z_ERRNO } from 'zlib';
+import { throws } from 'assert';
 
 
 /**
@@ -40,6 +45,7 @@ import { events as ethEvents } from './service/eth';
 export var cita: any; // cita sdk object
 export var web3: Web3 // eth sdk object;
 export var ethPN: Contract; // eth payment contract
+export var ERC20: Contract; // eth payment contract
 export var appPN: Contract; // cita payment contract
 export var callbacks: Map<L2_EVENT, L2_CB>; // callbacks for L2.on
 export var user: string; // user's eth address
@@ -99,6 +105,9 @@ export class L2 {
 
     console.log('ethPN is ', ethPN);
 
+    ERC20 = new Contract(ethProvider, abi2jsonInterface(ERC20ABI));
+
+
     // console.log("CITASDK", CITASDK);
 
     user = userAddress;
@@ -116,7 +125,7 @@ export class L2 {
     await initPuppet();
 
     // init listeners on both chains
-    // initListeners();
+    initListeners();
   }
 
   /**
@@ -130,44 +139,66 @@ export class L2 {
    * @param token OPTIONAL, token contract address, default: '0x0' for ETH
    */
 
-  async deposit(amount: string, token: string = '0x0') {
+  async deposit(amount: string, token: string = ADDRESS_ZERO ) {
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
-    if (channelID) {
+    console.log("channelID is ", channelID);
+    // if (channelID) {
       let channel = await ethPN.methods.channels(channelID).call();
-      if (channel.status === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+      console.log('channel is ', channel);
+      if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         // add deposit
-        ethPN.methods.userDeposit(channelID, amount).send()
-          .once('receipt', (receipt: any) => {
-            callbacks.get('Deposit')(null, {
-              ok: true,
-              totalDeposit: receipt.events.returnValues.totalDeposit
-            });
-          })
-          .on('error', (err: any, receipt: any) => {
-            callbacks.get('Deposit')(err, { ok: false });
-            // TODO need to destruct err object ?
-          });
-      }
+        let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
+        if (token == ADDRESS_ZERO) {
+          await sendEthTx(user, ethPN.options.address, amount, data);
+        } else {
+          await sendEthTx(user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
+          await sendEthTx(user, ethPN.options.address, 0, data);
+        }
+
+          // .once('receipt', (receipt: any) => {
+          //   callbacks.get('Deposit')(null, {
+          //     ok: true,
+          //     totalDeposit: receipt.events.returnValues.totalDeposit
+          //   });
+          // })
+          // .on('error', (err: any, receipt: any) => {
+          //   callbacks.get('Deposit')(err, { ok: false });
+          //   // TODO need to destruct err object ?
+          // });
+      // }
     } else {
       // open channel
-      ethPN.methods.openChannel(
+      let data = ethPN.methods.openChannel(
         user,
         puppet.getAccount().address,
         SETTLE_WINDOW,
         token,
         amount
-      ).send()
-        .once('receipt', (receipt: any) => {
-          callbacks.get('Deposit')(null, {
-            ok: true,
-            totalDeposit: amount
-          });
-        })
-        .on('error', (err: any, receipt: any) => {
-          callbacks.get('Deposit')(err, { ok: false });
-          // TODO need to destruct err object ?
-        });
+      ).encodeABI();
+
+      if (token == ADDRESS_ZERO){
+        await sendEthTx(user, ethPN.options.address, amount, data);
+      }else{
+        //Approve ERC20
+
+        await sendEthTx(user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
+        await sendEthTx(user, ethPN.options.address, 0, data);
+
+      }
+
+
+
+        // .once('receipt', (receipt: any) => {
+        //   callbacks.get('Deposit')(null, {
+        //     ok: true,
+        //     totalDeposit: amount
+        //   });
+        // })
+        // .on('error', (err: any, receipt: any) => {
+        //   callbacks.get('Deposit')(err, { ok: false });
+        //   // TODO need to destruct err object ?
+        // });
     }
   }
 
@@ -178,9 +209,15 @@ export class L2 {
    * @param token OPTIONAL, token contract address, default: '0x0' for ETH
    * @param receiver OPTIONAL, eth address to receive withdrawed asset, default: user's address
    */
-  async withdraw(amount: string, token: string = '0x0', receiver: string = user) {
+  async withdraw(amount: string, token: string = ADDRESS_ZERO, receiver: string = user) {
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
+
+    let channel = await appPN.methods.channelMap(channelID).call();
+
+    if (channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+      throw new Error("channel status is not open");
+    }
 
     let tx = { 
       ...appTX,
@@ -202,7 +239,6 @@ export class L2 {
         // TODO process errorMessage and notify CB
       }
     }
-
     // then wait for cita event 'ConfirmUserWithdraw' and carry on
   }
 
@@ -211,9 +247,13 @@ export class L2 {
    * withdraw asset from channel to user's eth address by force
    * @param token OPTIONAL, token contract address, default: '0x0' for ETH
    */
-  async forceWithdraw(token: string = '0x0') {
-
+  async forceWithdraw(token: string = ADDRESS_ZERO) {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
+
+    let channel = await ethPN.methods.channels(channelID).call();
+    if(channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+      throw new Error("channel status is not open");
+    }
 
     let [{ balance, nonce, additionalHash, signature: partnerSignature },
       { amount: inAmount, nonce: inNonce, regulatorSignature, providerSignature }]
@@ -222,16 +262,19 @@ export class L2 {
         appPN.methods.rebalanceProofMap(channelID).call()
       ]);
 
-    await ethPN.methods.closeChannel(
+    let data = ethPN.methods.closeChannel(
       channelID,
       balance, nonce, additionalHash, partnerSignature,
       inAmount, inNonce, regulatorSignature, providerSignature
-    ).once('receipt', (receipt: any) => {
-      // TODO cancel timeout
-    }).on('error', (error: any, receipt: any) => {
-      // TODO format error message
-      callbacks.get('ForceWithdraw')(error, { ok: false });
-    });
+    ).encodeABI();
+    await sendEthTx(user, ethPN.options.address, 0, data);
+
+    // .once('receipt', (receipt: any) => {
+    //   // TODO cancel timeout
+    // }).on('error', (error: any, receipt: any) => {
+    //   // TODO format error message
+    //   callbacks.get('ForceWithdraw')(error, { ok: false });
+    // });
 
     // then wait for cita event 'ChannelSettled' and notify success
   }
@@ -369,8 +412,10 @@ async function initPuppet() {
 
     console.log("puppet is ", puppet);
     let puppetStatus = await ethPN.methods.puppetMap(user, puppet.getAccount().address).call();
-    if (puppetStatus === PUPPET_STATUS.ENABLED) {
+    console.log("puppetStatus", puppetStatus);
+    if (Number(puppetStatus) === PUPPET_STATUS.ENABLED) {
       // puppet is active, done
+      console.log("puppet is active");
       return;
     }
   }
@@ -382,17 +427,7 @@ async function initPuppet() {
   console.log("puppet is ", puppet.getAccount().address, user);
   let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
 
-  web3.eth.sendTransaction({
-    from: user,
-    to: ethPN.options.address,
-    value: 0,
-    data: data
-  }, function(err: any, result: any){
-    console.log("send Transaction", err, result);
-  });
-
-
-
+  await sendEthTx(user, ethPN.options.address, 0, data);
 
   // let result = await ethPN.methods.addPuppet(puppet.getAccount().address).send({ from: user });
   // console.log("send Result is ", result);
@@ -405,20 +440,44 @@ async function initPuppet() {
     // });
 }
 
+async function sendEthTx(from: string, to: string, value: number | string | BN, data: string) {
+  web3.eth.sendTransaction({ from, to, value, data }, function (err: any, result: any) {
+    console.log("send Transaction", err, result);
+  }); 
+}
+
 
 async function initListeners () {
 
-  // events on appchain
-  Object.keys(appEvents).forEach((event) => {
-    let { filter, handler } = appEvents[event];
-    appPN.events[event]({ filter }, handler);
+  // // events on appchain
+  // Object.keys(appEvents).forEach((event) => {
+  //   let { filter, handler } = appEvents[event];
+  //   appPN.events[event]({ filter }, handler);
+  // });
+
+  ethPN.getPastEvents('ChannelOpened', {
+    filter: { user: user},
+    fromBlock: 0,
+  }, (error: any, event: any) => {
+    console.log("watch new deposit", error, event);
   });
 
+
+  let ethWatcher = new HttpWatcher(web3.eth, 15000, ethPN, ethEvents);
+  ethWatcher.start();
+
+
+
+
+
+
+
+
   // events on ethereum
-  Object.keys(ethEvents).forEach((event) => {
-    let { filter, handler } = ethEvents[event];
-    ethPN.events[event]({ filter }, handler);
-  });
+  // Object.keys(ethEvents).forEach((event) => {
+  //   let { filter, handler } = ethEvents[event];
+  //   ethPN.events[event]({ filter }, handler);
+  // });
 }
   
 function abi2jsonInterface(abi: string): AbiItem[] | undefined {
@@ -444,11 +503,11 @@ enum PUPPET_STATUS {
 };
 
 enum CHANNEL_STATUS {
-  CHANNEL_STATUS_INIT = 1,
-  CHANNEL_STATUS_PENDINGOPEN,
-  CHANNEL_STATUS_OPEN,
-  CHANNEL_STATUS_PENDING_UPDATE_PUPPET,
-  CHANNEL_STATUS_PENDING_SETTLE,
+  // CHANNEL_STATUS_INIT = 1,
+  // CHANNEL_STATUS_PENDINGOPEN,
+  CHANNEL_STATUS_OPEN = 1,
+  // CHANNEL_STATUS_PENDING_UPDATE_PUPPET,
+  // CHANNEL_STATUS_PENDING_SETTLE,
   CHANNEL_STATUS_CLOSE,
   CHANNEL_STATUS_PARTNER_UPDATE_PROOF,
   CHANNEL_STATUS_REGULATOR_UPDATE_PROOF

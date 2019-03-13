@@ -36,6 +36,10 @@ if (typeof window.ethereum !== 'undefined') {
 
     let appRpcUrl = "https://node.cryptape.com";
     await L2.getInstance().init(user, web3.currentProvider, ethPN, appRpcUrl, appPN);
+
+    await L2.getInstance().deposit(1e16 + '');
+
+
   }catch (err){
     console.log(err);
   }
