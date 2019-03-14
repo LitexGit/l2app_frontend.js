@@ -43,7 +43,7 @@ import { throws } from 'assert';
  * DON'T export them in L2.ts
  */
 export var cita: any; // cita sdk object
-export var web3: Web3 // eth sdk object;
+export var web3_10: Web3 // eth sdk object;
 export var ethPN: Contract; // eth payment contract
 export var ERC20: Contract; // eth payment contract
 export var appPN: Contract; // cita payment contract
@@ -92,8 +92,8 @@ export class L2 {
   ) {
 
     console.log("start init");
-    web3 = new Web3(Web3.givenProvider || ethProvider);
-    let blockNumber = await web3.eth.getBlockNumber();
+    web3_10 = new Web3(Web3.givenProvider || ethProvider);
+    let blockNumber = await web3_10.eth.getBlockNumber();
     console.log("blockNumber is ", blockNumber);
     console.log("Contract is ", Contract);
 
@@ -122,6 +122,7 @@ export class L2 {
 
     console.log("app abi", appPaymentNetwork.abi);
     appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
+
     // get puppet ready
     await initPuppet();
 
@@ -216,27 +217,44 @@ export class L2 {
 
     let channel = await appPN.methods.channelMap(channelID).call();
 
-    if (channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+    if (Number(channel.status) != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
       throw new Error("channel status is not open");
+    }
+
+    if(Number(channel.userBalance) < Number(amount)){
+      throw new Error("withdraw amount exceeds the balance");
     }
 
     let tx = { 
       ...appTX,
-      validUntilBlock: getLCB('cita'),
-      from: puppet.getAccount().address
+      validUntilBlock: await getLCB('cita'),
+      from: puppet.getAccount().address,
+      privateKey: puppet.getAccount().privateKey
     };
 
-    let res = await appPN.methods.userProposeWithdraw(
-      channelID,
-      amount,
-      getLCB('eth')
-    ).send(tx);
+
+    let res;
+    if(Number(channel.userBalance) > Number(amount)){
+      console.log("will call userProposeWithdraw");
+      res = await appPN.methods.userProposeWithdraw(
+        channelID,
+        amount,
+        await getLCB('eth')
+      ).send(tx);
+    }else{
+      console.log("will call proposeCooperativeSettle");
+      res = await appPN.methods.proposeCooperativeSettle(
+        channelID,
+        amount,
+        await getLCB('eth')
+      ).send(tx);
+    }
 
     if(res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if(receipt.errorMessage) {
         console.error('[CITA] - Withdraw', receipt.errorMessage);
-        callbacks.get('Withdraw')(receipt.errorMessage, { ok: false });
+        // callbacks.get('Withdraw')(receipt.errorMessage, { ok: false });
         // TODO process errorMessage and notify CB
       }
     }
@@ -287,42 +305,55 @@ export class L2 {
    * @param amount amount of transaction
    * @param token OPTIONAL, token contract address, default: '0x0' for ETH
    */
-  async transfer(to: string, amount: string, token: string = '0x0') {
+  async transfer(to: string, amount: string, token: string = ADDRESS_ZERO) {
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
 
-    let tx = { 
-      ...appTX,
-      validUntilBlock: getLCB('cita'),
-      from: puppet.getAccount().address
-    };
-
     // get balance proof from eth contract
-    let { balance, nonce, additionalHash }
+    let { balance, nonce }
       = await appPN.methods.balanceProofMap(channelID, user).call();
 
-    // TODO nonce + 1 
-      
+    console.log('balance is' , balance);
 
-    balance = new BN(amount).add(balance);
+    balance = web3_10.utils.toBN(amount).add(web3_10.utils.toBN(balance)).toString();
+    nonce = nonce + 1;
 
-    // additionalHash 设置为"0x0"
-    // signature 签名 hash = soliditySha3(ethPaymentContractAddress, channelID, balance, nonce, additionalHash)
-    // 请求Metamask签名
+    console.log('balance is' , balance);
+
+    let additionalHash = "0x0";
+    let messageHash = web3_10.utils.soliditySha3(
+      { t: 'address', v: ethPN.options.address },
+      { t: 'bytes32', v: channelID },
+      { t: 'uint256', v: balance},
+      { t: 'bytes32', v: additionalHash}
+      );
+
+    let signature = await signMessage(messageHash);
+
+
+    return;
+
+    let tx = { 
+      ...appTX,
+      validUntilBlock: await getLCB('cita'),
+      from: puppet.getAccount().address,
+      privateKey: puppet.getAccount().privateKey
+    };
 
     let res = await appPN.methods.transfer(
       to,
       channelID,
       balance,
       nonce, 
-      additionalHash
+      additionalHash,
+      signature 
     ).send(tx);
 
     if(res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if(receipt.errorMessage) {
         console.error( '[CITA] - transfer', receipt.errorMessage );
-        callbacks.get('Transfer')(receipt.errorMessage, { ok: false });
+        // callbacks.get('Transfer')(receipt.errorMessage, { ok: false });
         // TODO process errorMessage and notify CB
       }
     }
@@ -349,7 +380,7 @@ export class L2 {
   }
 
 
-  async getBalance(token: string = '0x0') {
+  async getBalance(token: string = ADDRESS_ZERO) {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     return channel.userBalance;
@@ -399,6 +430,51 @@ export class L2 {
   on(event: L2_EVENT, callback: L2_CB) {
     callbacks.set(event, callback);
   }
+
+  async getPuppets(user: string){
+
+    let pupet = await appPN.methods.puppets(user, 0).call();
+    console.log(pupet);
+
+    let paymentNetwork = await appPN.methods.paymentNetworkMap(user).call();
+    console.log(paymentNetwork);
+
+    let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
+    console.log("channelID is ", channelID);
+
+    let channel = await ethPN.methods.channels(channelID).call();
+    console.log("eth channel is ", channel);
+
+    let appchannel = await appPN.methods.channelMap(channelID).call();
+    console.log("app channel is ", appchannel);
+
+    return;
+
+    let tx = { 
+      ...appTX,
+      validUntilBlock: await getLCB('cita'),
+      from: puppet.getAccount().address,
+      privateKey: puppet.getAccount().privateKey
+    };
+
+    console.log("tx", tx);
+
+    let res = await appPN.methods.onchainOpenChannel(channel.user, channel.token, channelID, channel.deposit).send(tx);
+    if(res.hash) {
+      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+      if(receipt.errorMessage) {
+        console.error('[CITA] - onchainOpenChannel', receipt.errorMessage);
+        // callbacks.get('')(receipt.errorMessage, { ok: false });
+        // TODO process errorMessage and notify CB
+      }
+    }
+
+
+
+
+  }
+
+  
 } // end of class L2
 
 
@@ -430,21 +506,38 @@ async function initPuppet() {
 
   await sendEthTx(user, ethPN.options.address, 0, data);
 
-  // let result = await ethPN.methods.addPuppet(puppet.getAccount().address).send({ from: user });
-  // console.log("send Result is ", result);
-    // .once('receipt', (receipt: any) => {
-    //   console.log('Puppet update success: ', receipt);
-    //   Promise.resolve();
-    // })
-    // .on('error', (err: any, receipt: any) => {
-    //   Promise.reject(`Puppet update error: ${JSON.stringify(err)}`)
-    // });
 }
 
 async function sendEthTx(from: string, to: string, value: number | string | BN, data: string) {
-  web3.eth.sendTransaction({ from, to, value, data }, function (err: any, result: any) {
+  web3_10.eth.sendTransaction({ from, to, value, data }, function (err: any, result: any) {
     console.log("send Transaction", err, result);
   }); 
+}
+
+async function signMessage(messageHash: string) {
+
+  // var params = [messageHash, user];
+  // var method = 'personal_sign';
+
+  // return new Promise((resolve, reject) => {
+  //   web3.currentProvider.sendAsync({
+  //     method,
+  //     params,
+  //     user,
+  //   }, function (err: any, result: any) {
+  //     console.log("sign result, ", err, result);
+  //     if (err) {
+  //       reject(err);
+  //     } else {
+  //       resolve(result.result)
+  //     }
+  //   });
+  // })
+
+
+
+
+
 }
 
 
@@ -464,7 +557,7 @@ async function initListeners () {
   });
 
 
-  let ethWatcher = new HttpWatcher(web3.eth, 15000, ethPN, ethEvents);
+  let ethWatcher = new HttpWatcher(web3_10.eth, 15000, ethPN, ethEvents);
   ethWatcher.start();
 
 
@@ -492,8 +585,12 @@ function abi2jsonInterface(abi: string): AbiItem[] | undefined {
 }
 
 async function getLCB(chain: string) {
-  let current = chain === 'eth' ? await web3.eth.getBlockNumber() : await cita.base.getBlockNumber();
-  return current + MESSAGE_COMMIT_BLOCK_EXPERITION;
+  let current = chain === 'eth' ? await web3_10.eth.getBlockNumber() : await cita.base.getBlockNumber();
+  if (chain === 'eth') {
+    return current + MESSAGE_COMMIT_BLOCK_EXPERITION;
+  } else {
+    return current + 88;
+  }
 }
 
 
