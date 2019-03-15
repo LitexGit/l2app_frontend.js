@@ -45,7 +45,7 @@ export default class HttpWatcher {
         lastBlockNumber = lastBlockNumber || currentBlockNumber - 10;
   
         console.log("start syncing process", lastBlockNumber, currentBlockNumber);
-        while (lastBlockNumber < currentBlockNumber) {
+        while (lastBlockNumber <= currentBlockNumber) {
             for (let eventName in this.eventHandlerList) {
                 await this.processEvent(
                     lastBlockNumber,
@@ -55,7 +55,7 @@ export default class HttpWatcher {
                 );
             }
 
-            lastBlockNumber = currentBlockNumber;
+            lastBlockNumber = currentBlockNumber+1;
             currentBlockNumber = await this.base.getBlockNumber();
         }
 
@@ -66,10 +66,10 @@ export default class HttpWatcher {
 
             await this.delay(this.blockInterval);
 
-            lastBlockNumber = currentBlockNumber;
+            lastBlockNumber = currentBlockNumber + 1;
             currentBlockNumber = await this.base.getBlockNumber();
             console.log("watching event", lastBlockNumber, currentBlockNumber);
-            if (lastBlockNumber == currentBlockNumber) {
+            if (lastBlockNumber > currentBlockNumber) {
                 continue;
             }
 

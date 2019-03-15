@@ -78,6 +78,7 @@
   "dependencies": {
     "@cryptape/cita-sdk": "^0.21.1",
     "@types/socket.io-client": "^1.4.32",
+    "ethereumjs-util": "^6.1.0",
     "simple-crypto-js": "^2.0.2",
     "web3": "^1.0.0-beta.48"
   }
