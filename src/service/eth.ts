@@ -24,7 +24,7 @@ export const events = {
   },
 
   'ChannelOpened': {
-    filter: {},
+    filter: { user },
     handler: async(event: any) => {
       console.log("ChannelOpened event", event);
 

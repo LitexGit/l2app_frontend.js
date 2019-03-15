@@ -1,0 +1,1028 @@
+[
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "TRANSFER_TYPEHASH",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "provider",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "DOMAIN_SEPERATOR",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        },
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "puppetMap",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "counter",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "channels",
+      "outputs": [
+        {
+          "name": "status",
+          "type": "uint8"
+        },
+        {
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "name": "isCloser",
+          "type": "bool"
+        },
+        {
+          "name": "settleBlock",
+          "type": "uint256"
+        },
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "deposit",
+          "type": "uint256"
+        },
+        {
+          "name": "withdraw",
+          "type": "uint256"
+        },
+        {
+          "name": "userBalance",
+          "type": "uint256"
+        },
+        {
+          "name": "userNonce",
+          "type": "uint256"
+        },
+        {
+          "name": "providerBalance",
+          "type": "uint256"
+        },
+        {
+          "name": "providerNonce",
+          "type": "uint256"
+        },
+        {
+          "name": "inAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "inNonce",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "settleWindowMax",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "providerBalance",
+      "outputs": [
+        {
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "EIP712DOMAIN_TYPEHASH",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "settleWindowMin",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        },
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "channelCounter",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "regulator",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "regulatorWithdrawMap",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "name": "_regulator",
+          "type": "address"
+        },
+        {
+          "name": "_provider",
+          "type": "address"
+        },
+        {
+          "name": "_settleWindowMin",
+          "type": "uint256"
+        },
+        {
+          "name": "_settleWindowMax",
+          "type": "uint256"
+        },
+        {
+          "name": "_chainID",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "puppet",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "settleWindow",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "channelID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ChannelOpened",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "puppet",
+          "type": "address"
+        }
+      ],
+      "name": "PuppetAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "puppet",
+          "type": "address"
+        }
+      ],
+      "name": "PuppetDisabled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "newDeposit",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "totalDeposit",
+          "type": "uint256"
+        }
+      ],
+      "name": "UserNewDeposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "balance",
+          "type": "int256"
+        }
+      ],
+      "name": "ProviderNewDeposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "totalWithdraw",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "UserWithdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "balance",
+          "type": "int256"
+        },
+        {
+          "indexed": false,
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProviderWithdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "withdrawAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "feeAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "feeNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "RegulatorWithdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "CooperativeSettled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "inAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "inNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "ChannelClosed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "userBalance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "userNonce",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "providerBalance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "providerNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "PartnerUpdateProof",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "inAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "inNonce",
+          "type": "uint256"
+        }
+      ],
+      "name": "RegulatorUpdateProof",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "transferTouserAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "transferToProviderAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ChannelSettled",
+      "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "name": "puppet",
+          "type": "address"
+        },
+        {
+          "name": "settleWindow",
+          "type": "uint256"
+        },
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "openChannel",
+      "outputs": [],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "puppet",
+          "type": "address"
+        }
+      ],
+      "name": "addPuppet",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "puppet",
+          "type": "address"
+        }
+      ],
+      "name": "disablePuppet",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "userDeposit",
+      "outputs": [],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "providerDeposit",
+      "outputs": [],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "withdraw",
+          "type": "uint256"
+        },
+        {
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        },
+        {
+          "name": "providerSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "regulatorSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "receiver",
+          "type": "address"
+        }
+      ],
+      "name": "userWithdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "balance",
+          "type": "int256"
+        },
+        {
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        },
+        {
+          "name": "regulatorSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "providerWithdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "withdrawAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "feeAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "feeNonce",
+          "type": "uint256"
+        },
+        {
+          "name": "signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "regulatorWithdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "lastCommitBlock",
+          "type": "uint256"
+        },
+        {
+          "name": "providerSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "regulatorSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "cooperativeSettle",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "name": "additionalHash",
+          "type": "bytes32"
+        },
+        {
+          "name": "partnerSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "inAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "inNonce",
+          "type": "uint256"
+        },
+        {
+          "name": "regulatorSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "providerSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "closeChannel",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "name": "additionalHash",
+          "type": "bytes32"
+        },
+        {
+          "name": "partnerSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "consignorSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "partnerUpdateProof",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "inAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "inNonce",
+          "type": "uint256"
+        },
+        {
+          "name": "regulatorSignature",
+          "type": "bytes"
+        },
+        {
+          "name": "inProviderSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "regulatorUpdateProof",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "settleChannel",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "getChannelID",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
