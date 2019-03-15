@@ -54,7 +54,7 @@ export const events = {
           totalDeposit
       }, transactionHash} = event;
 
-      let {token } = await ethPN.methods.channes(channelID).call();
+      let {token } = await ethPN.methods.channels(channelID).call();
 
       let depositEvent: DEPOSIT_EVENT = { user: user, type: 2, token, amount: newDeposit, totalDeposit: totalDeposit, txhash: transactionHash };
       callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);

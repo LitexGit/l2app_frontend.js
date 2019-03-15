@@ -31,6 +31,7 @@ import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION, ADDRESS_ZERO } from './
 import { ERC20ABI } from './ERC20';
 import { tx as appTX, events as appEvents, methods as ethMethods, appMethods } from './service/cita';
 import { events as ethEvents } from './service/eth';
+import {EIP712_TYPES} from './config/TypedData';
 
 
 /**
@@ -122,6 +123,7 @@ export class L2 {
     let appEthPN = await appPN.methods.paymentNetworkMap(ADDRESS_ZERO).call();
     console.log('appEthPN', appEthPN);
 
+    callbacks = new Map<L2_EVENT, L2_CB>();
 
     // get puppet ready
     await initPuppet();
@@ -311,27 +313,37 @@ export class L2 {
 
     // get balance proof from eth contract
     let { balance, nonce }
-      = await appPN.methods.balanceProofMap(channelID, user).call();
+      = await appPN.methods.balanceProofMap(channelID, cp).call();
 
     console.log('balance is' , balance);
 
     balance = web3_10.utils.toBN(amount).add(web3_10.utils.toBN(balance)).toString();
-    nonce = nonce + 1;
+    nonce = web3_10.utils.toBN(nonce).add(web3_10.utils.toBN(1)).toString();
 
     console.log('balance is' , balance);
 
     let additionalHash = "0x0";
-    let messageHash = web3_10.utils.soliditySha3(
-      { t: 'address', v: ethPN.options.address },
-      { t: 'bytes32', v: channelID },
-      { t: 'uint256', v: balance},
-      { t: 'bytes32', v: additionalHash}
-      );
 
-    let signature = await signMessage(messageHash);
+    let typedData = {
+      types: EIP712_TYPES,
+      primaryType: 'Transfer',
+      domain: {
+        name: 'litexlayer2',
+        version: '1',
+        chainId: 4,
+        verifyingContract: ethPN.options.address,
+      },
+      message: {
+        channelID: channelID,
+        balance,
+        nonce,
+        additionalHash
+      },
+    }
 
+    console.log("typedData ", typedData);
 
-    return;
+    let signature = await signMessage(typedData);
 
     let tx = { 
       ...appTX,
@@ -353,8 +365,8 @@ export class L2 {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if(receipt.errorMessage) {
         console.error( '[CITA] - transfer', receipt.errorMessage );
-        // callbacks.get('Transfer')(receipt.errorMessage, { ok: false });
-        // TODO process errorMessage and notify CB
+      }else{
+        console.log("submit transfer success");
       }
     }
 
@@ -515,27 +527,28 @@ export async function sendEthTx(from: string, to: string, value: number | string
   }); 
 }
 
-export async function signMessage(messageHash: string) {
+export async function signMessage(typedData: any) {
 
-  // var params = [messageHash, user];
-  // var method = 'personal_sign';
+    var params = [user, JSON.stringify(typedData)]
+    console.dir(params)
+    var method = 'eth_signTypedData_v3'
 
-  // return new Promise((resolve, reject) => {
-  //   web3.currentProvider.sendAsync({
-  //     method,
-  //     params,
-  //     user,
-  //   }, function (err: any, result: any) {
-  //     console.log("sign result, ", err, result);
-  //     if (err) {
-  //       reject(err);
-  //     } else {
-  //       resolve(result.result)
-  //     }
-  //   });
-  // })
-
-
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.sendAsync({
+      method,
+      params,
+      user,
+    }, async (err:any, result:any) => {
+      console.log('sign Result', err, result);
+      if (err){
+        reject(err);
+      }else if (result.error) {
+        reject(result.error)
+      }else{
+        resolve(result.result);
+      }
+    });
+  });
 }
 
 

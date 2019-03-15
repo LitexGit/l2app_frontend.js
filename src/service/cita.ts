@@ -142,9 +142,16 @@ export const appMethods = {
 
     let { balance, nonce, additionalHash, signature, consignorSignature } = await appPN.methods.balanceProofMap(channelID, to).call();
 
+
+    console.log("balanceProof is", {balance, nonce, additionalHash, signature, consignorSignature});
     // check if user has uploaded his guard proof
-    if (consignorSignature != '') {
+    if (consignorSignature != null) {
       console.log("balance proof already signed now");
+      return;
+    }
+
+    if(balance == '0'){
+      console.log("no balance proof now");
       return;
     }
 

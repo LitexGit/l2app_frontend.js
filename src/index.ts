@@ -5,8 +5,8 @@ import { l2 } from './main';
 console.log('See this in your browser console: Typescript Webpack Starter Launched');
 
 const socketUrl = 'localhost';
-const ethPN: PN = {address: '0xf211887E769E49a2df5E2a3900d949CfF0e0d737', abi: JSON.stringify(require('./config/onchainPayment.json'))};
-const appPN: PN = {address: '0x565235C593b791D1D1E072cD6CE20F5A4D2fb67B', abi: JSON.stringify(require('./config/offchainPayment.json'))};
+const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
+const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 
