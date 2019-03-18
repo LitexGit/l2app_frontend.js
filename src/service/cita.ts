@@ -1,5 +1,5 @@
-import { ethPN, appPN, user, callbacks, sendEthTx, getLCB, puppet, cita, web3_10, TRANSFER_EVENT } from '../main';
-import { myEcsignToHex } from '../utils/common'
+import { ethPN, appPN, user, callbacks, getLCB, puppet, cita, web3_10, TRANSFER_EVENT } from '../main';
+import { myEcsignToHex, sendEthTx } from '../utils/common'
 
 /**
  * the transaction options for submiting cita transaction 
@@ -12,6 +12,19 @@ export const tx = {
   validUntilBlock: 999999,
   value: '0x0', 
 }
+
+/**
+ * build the valid tx options for submiting cita transaction
+ */
+export async function getAppTxOption() {
+  return {
+    ...tx,
+    validUntilBlock: await getLCB('cita'),
+    from: puppet.getAccount().address,
+    privateKey: puppet.getAccount().privateKey
+  }
+}
+
 
 /**
  * Handle events from cita payment contract, only filter current user related event
@@ -31,7 +44,7 @@ export const events = {
       console.log("Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx");
 
       // when both provider and regualtor confirmed UserWithdraw Proposal, user should submit eth tx to get his asset on chain
-      await methods.ethSubmitUserWithdraw(channelID);
+      await ethMethods.ethSubmitUserWithdraw(channelID);
 
     }
   },
@@ -49,7 +62,7 @@ export const events = {
       console.log("Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx");
 
       // when both provider and regualtor confirmed CooperativeSettle Proposal, user should submit eth tx to get his asset on chain
-      await methods.ethSubmitCooperativeSettle(channelID);
+      await ethMethods.ethSubmitCooperativeSettle(channelID);
 
     }
   }, 
@@ -89,7 +102,7 @@ export const events = {
 
 };
 
-export const methods = {
+export const ethMethods = {
 
   /**
    *  submit user withdraw tx to eth payment contract.
@@ -108,7 +121,7 @@ export const methods = {
 
 
     let txData = ethPN.methods.userWithdraw(channelID, withdraw, lastCommitBlock, providerSignature, regulatorSignature, receiver).encodeABI();
-    sendEthTx(user, ethPN.options.address, 0, txData);
+    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
   },
 
   /**
@@ -127,7 +140,7 @@ export const methods = {
     //TODO: check if lastCommitBlock is exceed, should unlock the proof on appchain
 
     let txData = ethPN.methods.cooperativeSettle(channelID, settleBalance, lastCommitBlock, providerSignature, regulatorSignature).encodeABI();
-    sendEthTx(user, ethPN.options.address, 0, txData);
+    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
   }
 
 }
@@ -173,12 +186,7 @@ export const appMethods = {
     consignorSignature = myEcsignToHex(web3_10, messageHash, puppet.getAccount().privateKey);
 
 
-    let appTx = {
-      ...tx,
-      validUntilBlock: await getLCB('cita'),
-      from: user,
-      privateKey: puppet.getAccount().privateKey
-    }
+    let appTx = await getAppTxOption();
 
     console.log("guardBalanceProof params", { channelID, balance, nonce, additionalHash, signature, consignorSignature });
     let res = await appPN.methods.guardBalanceProof(channelID, balance, nonce, additionalHash, signature, consignorSignature).send(appTx);
@@ -196,4 +204,6 @@ export const appMethods = {
   }
 
 }
+
+
 

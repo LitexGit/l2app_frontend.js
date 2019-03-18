@@ -1,22 +1,25 @@
 import { L2, PN } from './L2';
-import { l2 } from './main';
+import { l2, DEPOSIT_EVENT, WITHDRAW_EVENT, PUPPETCHANGED_EVENT, FORCEWITHDRAW_EVENT, TRANSFER_EVENT } from './main';
 
 
 console.log('See this in your browser console: Typescript Webpack Starter Launched');
 
 const socketUrl = 'localhost';
-const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
-const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
+// const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
+// const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
+
+const ethPNAddress = '0x466F66B1C20a56B43e12F6Ab70781089c603BB65';
+const appPNAddress = '0xf6486AB66Fa7e3af90098cBD9cd6342E422A1c3F';
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 
+// let token = "0x0000000000000000000000000000000000000000";
+let token = "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928";
 
 var defaultAccount = "";
 window.addEventListener('load', async () => {
-
   await main();
 });
-
 
 async function  main() {
 
@@ -25,9 +28,7 @@ async function  main() {
     try {
       console.log("start enable");
       window.web3 = new Web3(ethereum);
-
       await window.ethereum.enable();
-
       defaultAccount = ethereum.selectedAddress;
 
     } catch (error) {
@@ -49,68 +50,103 @@ async function  main() {
 
     document.getElementById("refresh").addEventListener("click", async (event)=>{
       console.log("refresh clicked");
-      document.getElementById("info").innerHTML = "Loading...";
-      let balance = await L2.getInstance().getChannelInfo();
+      await refresh();
+    });
 
-      document.getElementById("info").innerHTML = "<br>Address: " + defaultAccount+"</br>";
-      document.getElementById("info").innerHTML += "<br>channel Balance: " + JSON.stringify(balance)+"</br>";
+    L2.getInstance().on('Deposit', (err: any, res: DEPOSIT_EVENT)=>{
+      console.log("Deposit from L2", err, res);
+      refresh();
 
+    });
+
+    L2.getInstance().on('Withdraw', (err: any, res: WITHDRAW_EVENT)=>{
+      console.log("Withdraw from L2", err, res);
+      refresh();
+    });
+
+    L2.getInstance().on('PuppetChanged', (err: any, res:PUPPETCHANGED_EVENT )=>{
+      console.log("PuppetChanged from L2", err, res);
+      refresh();
+    });
+
+    L2.getInstance().on('ForceWithdraw', (err: any, res: FORCEWITHDRAW_EVENT)=>{
+      console.log("ForceWithdraw from L2", err, res);
+      refresh();
+    });
+
+    L2.getInstance().on('Transfer', (err: any, res: TRANSFER_EVENT)=>{
+      console.log("Transfer from L2", err, res);
+      refresh();
     });
 
 
     document.getElementById("init").addEventListener("click", async (event)=>{
       console.log("init button clicked");
-      await L2.getInstance().init(defaultAccount, web3.currentProvider, ethPN, appRpcUrl, appPN);
-
+      let res = await L2.getInstance().init(defaultAccount, web3.currentProvider, ethPNAddress, appRpcUrl, appPNAddress);
+      console.log("int res ", res);
       console.log("web3 version", web3.version);
-
     });
 
-
-    document.getElementById("deposit").addEventListener("click", (event)=>{
+    document.getElementById("deposit").addEventListener("click", async (event)=>{
       console.log("deposit button clicked");
-      L2.getInstance().deposit(1e16 + '');
+      let res = await L2.getInstance().deposit(1e16 + '', token);
+      console.log("deposit res ", res);
     });
 
-    document.getElementById("withdraw").addEventListener("click", (event)=>{
+    document.getElementById("withdraw").addEventListener("click", async (event)=>{
       console.log("withdraw button clicked");
-      L2.getInstance().withdraw(1e16+"");
+      let res = await L2.getInstance().withdraw(1e16+"", token);
+      console.log("withdraw res ", res);
     });
 
-    document.getElementById("coclose").addEventListener("click", (event)=>{
+    document.getElementById("coclose").addEventListener("click", async (event)=>{
       console.log("coclose button clicked");
-      L2.getInstance().getBalance().then((balance)=>{
-        console.log("balance is", balance);
-        L2.getInstance().withdraw(balance);
-      });
+
+      let balance = await L2.getInstance().getBalance();
+      console.log("balance is", balance);
+      let res = L2.getInstance().withdraw(balance, token);
+      console.log("coclose res", res);
+
     });
 
-    document.getElementById("coclose2").addEventListener("click", (event)=>{
+    document.getElementById("coclose2").addEventListener("click", async (event)=>{
       console.log("coclose2 button clicked");
-      L2.getInstance().testCoClose();
+      let res = await L2.getInstance().testCoClose();
     });
 
-    document.getElementById("forceClose").addEventListener("click", (event)=>{
+    document.getElementById("forceClose").addEventListener("click", async (event)=>{
       console.log("forceClose button clicked");
-      L2.getInstance().forceWithdraw();
+      let res = await L2.getInstance().forceWithdraw(token);
+      console.log("forcewithdraw res", res);
     });
 
-    document.getElementById("transfer").addEventListener("click", (event)=>{
+    document.getElementById("transfer").addEventListener("click", async (event)=>{
       console.log("transfer button clicked");
-      L2.getInstance().transfer("0xa08105d7650Fe007978a291CcFECbB321fC21ffe", 1e15+"");
-
-      event.preventDefault()
-
+      let res = await L2.getInstance().transfer("0xa08105d7650Fe007978a291CcFECbB321fC21ffe", 1e15+"", token);
+      console.log("transfer res", res);
 
       var msg = '0x879a053d4800c6354e76c7985a865d2922c82fb5b3f4577b2fe08b998954f2e0'
       var from = defaultAccount;
-
-
     });
 
-    document.getElementById("guardTransfer").addEventListener("click", (event)=>{
+    document.getElementById("guardTransfer").addEventListener("click", async (event)=>{
       console.log("guardTransfer button clicked");
-      L2.getInstance().testGuardProof();
+      let res = await L2.getInstance().testGuardProof();
+      console.log("guardproof res ", res);
     });
 
+    document.getElementById("query").addEventListener("click", async (event)=>{
+      console.log("query button clicked");
+      let result = await L2.getInstance().getAllTXs(token);
+      console.log('query result', result);
+    });
+}
+
+async function refresh() {
+
+  document.getElementById("info").innerHTML = "Loading...";
+  let balance = await L2.getInstance().getChannelInfo(token);
+
+  document.getElementById("info").innerHTML = "<br>Address: " + defaultAccount + "</br>";
+  document.getElementById("info").innerHTML += "<br>channel Balance: " + JSON.stringify(balance) + "</br>";
 }

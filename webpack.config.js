@@ -57,7 +57,6 @@ var config = {
     ].filter(Boolean)
   },
   resolve: {
-    modules: ['node_modules'],
     extensions: ['.ts', '.js']
   },
   plugins: plugins,

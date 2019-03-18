@@ -24,14 +24,14 @@ import CITASDK from '@cryptape/cita-sdk';
 
 const Web3 = require('web3');
 // import Web3 from 'web3';
-import { AbiItem, BN } from 'web3/node_modules/web3-utils';
 import Puppet from './puppet';
 import HttpWatcher from './httpwatcher';
 import { SETTLE_WINDOW, MESSAGE_COMMIT_BLOCK_EXPERITION, ADDRESS_ZERO } from './utils/constants';
 import { ERC20ABI } from './ERC20';
-import { tx as appTX, events as appEvents, methods as ethMethods, appMethods } from './service/cita';
+import { getAppTxOption, events as appEvents, ethMethods as ethMethods, appMethods } from './service/cita';
 import { events as ethEvents } from './service/eth';
-import {EIP712_TYPES} from './config/TypedData';
+import { EIP712_TYPES } from './config/TypedData';
+import { sendEthTx, signMessage, abi2jsonInterface } from './utils/common';
 
 
 /**
@@ -40,7 +40,7 @@ import {EIP712_TYPES} from './config/TypedData';
  * DON'T export them in L2.ts
  */
 export var cita: any; // cita sdk object
-export var web3_10: Web3 // eth sdk object;
+export var web3_10: any// eth sdk object;
 export var ethPN: Contract; // eth payment contract
 export var ERC20: Contract; // eth payment contract
 export var appPN: Contract; // cita payment contract
@@ -49,7 +49,6 @@ export var user: string; // user's eth address
 export var l2: string; // L2's eth address
 export var cp: string; // CP's eth address
 export var puppet: Puppet; // puppet object
-
 
 
 /**
@@ -61,12 +60,17 @@ export class L2 {
   // singleton object
   private static _instance: L2;
 
-  private constructor() {}
+  private initialized: boolean;
+  private ethWatcher: HttpWatcher;
+  private appWatcher: HttpWatcher;
+
+  private constructor() { }
 
   // get singleton
   public static getInstance(): L2 {
     if (this._instance === undefined) {
       this._instance = new L2();
+      callbacks = new Map<L2_EVENT, L2_CB>();
     }
 
     return this._instance;
@@ -76,31 +80,39 @@ export class L2 {
    * init L2 singleton
    * @param userAddress // user's ethereum address
    * @param ethProvider // web3 provider for ethereum
-   * @param ethPaymentNetwork // payment network contract info on ethereum
+   * @param ethPaymentNetworkAddress // payment network contract info on ethereum
    * @param appRpcUrl // cita rpc url
-   * @param appPaymentNetwork // payment network contract info on cita
+   * @param appPaymentNetworkAddress // payment network contract info on cita
    */
   async init(
     userAddress: string,
     ethProvider: provider,
-    ethPaymentNetwork: PN,
+    ethPaymentNetworkAddress: string,
     appRpcUrl: string,
-    appPaymentNetwork: PN
+    appPaymentNetworkAddress: string 
   ) {
+
+    let ethPaymentNetwork: PN = {
+      abi: JSON.stringify(require('./config/onchainPayment.json')),
+      address: ethPaymentNetworkAddress
+    };
+    let appPaymentNetwork: PN = {
+      abi: JSON.stringify(require('./config/offchainPayment.json')),
+      address: appPaymentNetworkAddress
+    };
 
     console.log("start init");
     web3_10 = new Web3(Web3.givenProvider || ethProvider);
     let blockNumber = await web3_10.eth.getBlockNumber();
     console.log("blockNumber is ", blockNumber);
     console.log("Contract is ", Contract);
-
     console.log("ethPaymentNetwork", ethPaymentNetwork);
 
     ethPN = new Contract(ethProvider, abi2jsonInterface(ethPaymentNetwork.abi), ethPaymentNetwork.address);
     ethPN.options.from = user;
     ethPN.options.address = ethPaymentNetwork.address;
 
-    console.log('ethPN is ', ethPN);
+    // console.log('ethPN is ', ethPN);
 
     ERC20 = new Contract(ethProvider, abi2jsonInterface(ERC20ABI));
 
@@ -117,22 +129,21 @@ export class L2 {
     cita = CITASDK(appRpcUrl);
     console.log("cita is ", cita);
 
-    console.log("app abi", appPaymentNetwork.abi);
+    // console.log("app abi", appPaymentNetwork.abi);
     appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
 
     let appEthPN = await appPN.methods.paymentNetworkMap(ADDRESS_ZERO).call();
-    console.log('appEthPN', appEthPN);
-
-    callbacks = new Map<L2_EVENT, L2_CB>();
+    // console.log('appEthPN', appEthPN);
 
     // get puppet ready
-    await initPuppet();
+    await this.initPuppet();
 
     // init listeners on both chains
-    initListeners();
+    this.initListeners();
+
+    this.initialized = true;
 
     //TODO: check not handled cita_event
-
 
   }
 
@@ -144,34 +155,35 @@ export class L2 {
    * deposit to channel
    * if there is no channel, open one
    * @param amount amount to deposit, or initial balance for new channel
-   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   * @param token OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    */
 
-  async deposit(amount: string, token: string = ADDRESS_ZERO ) {
+  async deposit(amount: string, token: string = ADDRESS_ZERO): Promise<string> {
+
+    this.checkInitialized();
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     console.log("channelID is ", channelID);
-    // if (channelID) {
-      let channel = await ethPN.methods.channels(channelID).call();
-      console.log('channel is ', channel);
-      if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-        // add deposit
+    let channel = await ethPN.methods.channels(channelID).call();
+    console.log('channel is ', channel);
+    if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+      // add deposit
 
-        let appChannel = await appPN.methods.channelMap(channelID).call();
+      let appChannel = await appPN.methods.channelMap(channelID).call();
 
-        if(Number(appChannel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-          throw new Error("channel status of appchain is not open");
-        }
+      if (Number(appChannel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        throw new Error("channel status of appchain is not open");
+      }
 
-        let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
-        if (token == ADDRESS_ZERO) {
-          await sendEthTx(user, ethPN.options.address, amount, data);
-        } else {
-          await sendEthTx(user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
-          await sendEthTx(user, ethPN.options.address, 0, data);
-        }
+      let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
+      if (token == ADDRESS_ZERO) {
+        return await sendEthTx(web3_10, user, ethPN.options.address, amount, data);
+      } else {
+        await sendEthTx(web3_10, user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
+        return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+      }
 
-    } else {
+    } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
       // open channel
       let data = ethPN.methods.openChannel(
         user,
@@ -181,16 +193,17 @@ export class L2 {
         amount
       ).encodeABI();
 
-      if (token == ADDRESS_ZERO){
-        await sendEthTx(user, ethPN.options.address, amount, data);
-      }else{
+      if (token == ADDRESS_ZERO) {
+        return await sendEthTx(web3_10, user, ethPN.options.address, amount, data);
+      } else {
         //Approve ERC20
-
-        await sendEthTx(user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
-        await sendEthTx(user, ethPN.options.address, 0, data);
+        await sendEthTx(web3_10, user, token, 0, ERC20.methods.approve(ethPN.options.address, amount).encodeABI());
+        return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
 
       }
 
+    } else {
+      throw new Error('can not deposit now, channel status is ' + channel.status);
     }
   }
 
@@ -198,33 +211,28 @@ export class L2 {
   /**
    * withdraw from channel
    * @param amount amount to withdraw
-   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   * @param token OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    * @param receiver OPTIONAL, eth address to receive withdrawed asset, default: user's address
    */
-  async withdraw(amount: string, token: string = ADDRESS_ZERO, receiver: string = user) {
+  async withdraw(amount: string, token: string = ADDRESS_ZERO, receiver: string = user): Promise<string> {
+
+    this.checkInitialized();
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
-
     let channel = await appPN.methods.channelMap(channelID).call();
 
-    if (Number(channel.status) != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
-      throw new Error("channel status is not open");
+    if (Number(channel.status) != CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+      throw new Error("channel status is not open, can not withdraw now");
     }
 
-    if(Number(channel.userBalance) < Number(amount)){
+    if (Number(channel.userBalance) < Number(amount)) {
       throw new Error("withdraw amount exceeds the balance");
     }
 
-    let tx = { 
-      ...appTX,
-      validUntilBlock: await getLCB('cita'),
-      from: puppet.getAccount().address,
-      privateKey: puppet.getAccount().privateKey
-    };
-
+    let tx = await getAppTxOption();
 
     let res;
-    if(Number(channel.userBalance) > Number(amount)){
+    if (Number(channel.userBalance) > Number(amount)) {
       console.log("will call userProposeWithdraw");
       res = await appPN.methods.userProposeWithdraw(
         channelID,
@@ -232,7 +240,7 @@ export class L2 {
         user,
         await getLCB('eth')
       ).send(tx);
-    }else{
+    } else {
       console.log("will call proposeCooperativeSettle");
       res = await appPN.methods.proposeCooperativeSettle(
         channelID,
@@ -241,29 +249,33 @@ export class L2 {
       ).send(tx);
     }
 
-    if(res.hash) {
+    if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if(receipt.errorMessage) {
-        console.error('[CITA] - Withdraw', receipt.errorMessage);
-        // callbacks.get('Withdraw')(receipt.errorMessage, { ok: false });
-        // TODO process errorMessage and notify CB
+      if (receipt.errorMessage) {
+        throw new Error(receipt.errorMessage);
+      }else{
+        return res.hash
       }
+    }else{
+      throw new Error('submit tx error');
     }
-    // then wait for cita event 'ConfirmUserWithdraw' and carry on
   }
 
 
   /**
    * withdraw asset from channel to user's eth address by force
-   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   * @param token OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
+   * @returns Promise<string> transaction hash of the force withdraw on ETH
    */
-  async forceWithdraw(token: string = ADDRESS_ZERO) {
+  async forceWithdraw(token: string = ADDRESS_ZERO): Promise<string> {
+    this.checkInitialized();
+
     let channelID = await ethPN.methods.getChannelID(user, token).call();
 
     let channel = await ethPN.methods.channels(channelID).call();
-    if(channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
-      throw new Error("channel status is not open");
-    }
+    // if(channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+    //   throw new Error("channel status is not open, can not force withdraw");
+    // }
 
     let [{ balance, nonce, additionalHash, signature: partnerSignature },
       { amount: inAmount, nonce: inNonce, regulatorSignature, providerSignature }]
@@ -272,32 +284,24 @@ export class L2 {
         appPN.methods.rebalanceProofMap(channelID).call()
       ]);
 
-      partnerSignature = partnerSignature || '0x0';
-      regulatorSignature = regulatorSignature || '0x0';
-      providerSignature = providerSignature || '0x0';
+    partnerSignature = partnerSignature || '0x0';
+    regulatorSignature = regulatorSignature || '0x0';
+    providerSignature = providerSignature || '0x0';
 
 
-      console.log('force-close params', {
-        channelID,
-        balance, nonce, additionalHash, partnerSignature,
-        inAmount, inNonce, regulatorSignature, providerSignature
-      });
+    console.log('force-close params', {
+      channelID,
+      balance, nonce, additionalHash, partnerSignature,
+      inAmount, inNonce, regulatorSignature, providerSignature
+    });
 
     let data = ethPN.methods.closeChannel(
       channelID,
       balance, nonce, additionalHash, partnerSignature,
       inAmount, inNonce, regulatorSignature, providerSignature
     ).encodeABI();
-    await sendEthTx(user, ethPN.options.address, 0, data);
+    return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
 
-    // .once('receipt', (receipt: any) => {
-    //   // TODO cancel timeout
-    // }).on('error', (error: any, receipt: any) => {
-    //   // TODO format error message
-    //   callbacks.get('ForceWithdraw')(error, { ok: false });
-    // });
-
-    // then wait for cita event 'ChannelSettled' and notify success
   }
 
 
@@ -305,22 +309,28 @@ export class L2 {
    * transfer asset offchain to specific address
    * @param to destination address of transaction
    * @param amount amount of transaction
-   * @param token OPTIONAL, token contract address, default: '0x0' for ETH
+   * @param token OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    */
-  async transfer(to: string, amount: string, token: string = ADDRESS_ZERO) {
+  async transfer(to: string, amount: string, token: string = ADDRESS_ZERO): Promise<string> {
+
+    this.checkInitialized();
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channel = await ethPN.methods.channels(channelID).call();
+    //check channel status
+    if (channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+      throw new Error("channel status is not open, can not transfer now");
+    }
 
     // get balance proof from eth contract
-    let { balance, nonce }
-      = await appPN.methods.balanceProofMap(channelID, cp).call();
+    let { balance, nonce } = await appPN.methods.balanceProofMap(channelID, cp).call();
 
-    console.log('balance is' , balance);
+    console.log('balance is', balance);
 
     balance = web3_10.utils.toBN(amount).add(web3_10.utils.toBN(balance)).toString();
     nonce = web3_10.utils.toBN(nonce).add(web3_10.utils.toBN(1)).toString();
 
-    console.log('balance is' , balance);
+    console.log('balance is', balance);
 
     let additionalHash = "0x0";
 
@@ -343,38 +353,32 @@ export class L2 {
 
     console.log("typedData ", typedData);
 
-    let signature = await signMessage(typedData);
-
-    let tx = { 
-      ...appTX,
-      validUntilBlock: await getLCB('cita'),
-      from: puppet.getAccount().address,
-      privateKey: puppet.getAccount().privateKey
-    };
-
+    let signature = await signMessage(user, typedData);
+    let tx = await getAppTxOption();
     let res = await appPN.methods.transfer(
       to,
       channelID,
       balance,
-      nonce, 
+      nonce,
       additionalHash,
-      signature 
+      signature
     ).send(tx);
 
-    if(res.hash) {
+    if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if(receipt.errorMessage) {
-        console.error( '[CITA] - transfer', receipt.errorMessage );
-      }else{
+      if (receipt.errorMessage) {
+        throw new Error(receipt.errorMessage);
+      } else {
         console.log("submit transfer success");
+        return res.hash;
       }
+    }else{
+      throw new Error('submit tx failed')
     }
-
-    // then wait for cita event 'Transfer' and notify success
   }
 
 
-  async testCoClose(){
+  async testCoClose() {
     let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
     await ethMethods.ethSubmitCooperativeSettle(channelID);
   }
@@ -407,11 +411,18 @@ export class L2 {
 
 
   async getCurrentSession() {
+    this.checkInitialized();
     // TODO
   }
 
 
-  async getBalance(token: string = ADDRESS_ZERO) {
+  /**
+   * get offchain token balance of user
+   * @param token token address, default: '0x0000000000000000000000000000000000000000' for ETH
+   * @returns Promise<string> user's balance
+   */
+  async getBalance(token: string = ADDRESS_ZERO): Promise<string> {
+    this.checkInitialized();
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     return channel.userBalance;
@@ -419,6 +430,7 @@ export class L2 {
 
   async getChannelInfo(token: string = ADDRESS_ZERO) {
 
+    this.checkInitialized();
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
 
@@ -426,21 +438,28 @@ export class L2 {
 
   }
 
-  async getAllTXs(token: string = '0x0') {
+  /**
+   * get offchain tx transactions for token
+   * 
+   * @param token token address, default: '0x0000000000000000000000000000000000000000' for ETH
+   * @returns Promise<any> transaction list for token
+   */
+  async getAllTXs(token: string = ADDRESS_ZERO): Promise<any> {
+    this.checkInitialized();
 
     let [inTXs, outTXs] = await Promise.all([
-      appPN.getPastEvents('Transfer', { filter: { to: user } }),
-      appPN.getPastEvents('Transfer', { filter: { from: user } })
+      appPN.getPastEvents("Transfer", { filter: { to: user }, fromBlock: 0, toBlock: 'latest' }),
+      appPN.getPastEvents("Transfer", { filter: { from: user }, fromBlock: 0, toBlock: 'latest' })
     ]);
 
     const cmpNonce = (key: string) => {
       return (a: any, b: any) => { return a[key] - b[key] }
     }
 
-    let lastBalance = new BN(0);
+    let lastBalance = web3_10.utils.toBN(0);
     const getTX = (tx: any) => {
       let { channelID, balance, ...rest } = tx.returnValues;
-      balance = new BN(balance);
+      balance = new web3_10.utils.toBN(balance);
       let amount = balance.sub(lastBalance).toString();
       lastBalance = balance;
 
@@ -453,13 +472,8 @@ export class L2 {
 
     inTXs = inTXs.sort(cmpNonce('nonce')).map(tx => getTX(tx));
     outTXs = outTXs.sort(cmpNonce('nonce')).map(tx => getTX(tx));
-    
+
     return { in: inTXs, out: outTXs };
-  }
-
-
-  async getAllPNs() {
-    // TODO need pn collections in appchain payment contract
   }
 
 
@@ -468,139 +482,80 @@ export class L2 {
    */
 
   on(event: L2_EVENT, callback: L2_CB) {
+    // this.checkInitialized();
     callbacks.set(event, callback);
   }
 
-  async getPuppets(user: string){
-
-    let pupet = await appPN.methods.puppets(user, 0).call();
-    console.log(pupet);
-
-    let paymentNetwork = await appPN.methods.paymentNetworkMap(user).call();
-    console.log(paymentNetwork);
-
-    let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
-    console.log("channelID is ", channelID);
-
-    let channel = await ethPN.methods.channels(channelID).call();
-    console.log("eth channel is ", channel);
-
-    let appchannel = await appPN.methods.channelMap(channelID).call();
-    console.log("app channel is ", appchannel);
-
-    return;
-  }
-  
-} // end of class L2
 
 
+  /**
+   * ---------- Private methods----------
+  */
 
-
-
-/**
- * init Puppet when L2 initializing
- */
-async function initPuppet() {
-
-  puppet = Puppet.get(user);
-
-  // get puppet from LocalStorage, check if it is valid on eth payment contract
-  if (puppet) {
-
-    console.log("puppet is ", puppet);
-    let puppetStatus = await ethPN.methods.puppetMap(user, puppet.getAccount().address).call();
-    console.log("puppetStatus", puppetStatus);
-    if (Number(puppetStatus) === PUPPET_STATUS.ENABLED) {
-      // puppet is active, done
-      console.log("puppet is active");
-      return;
+  /**
+   * check L2 is initialized
+   */
+  private checkInitialized() {
+    if (!this.initialized) {
+      throw new Error("L2 is not initialized");
     }
   }
 
-  /* if no puppet or puppet is disabled,
-   * create a new one and add it to payment contract
+
+  /**
+   * init Puppet when L2 initializing
    */
-  puppet = Puppet.create(user);
-  console.log("puppet is ", puppet.getAccount().address, user);
-  let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
+  private async initPuppet() {
 
-  await sendEthTx(user, ethPN.options.address, 0, data);
+    puppet = Puppet.get(user);
 
-}
+    // get puppet from LocalStorage, check if it is valid on eth payment contract
+    if (puppet) {
 
-/**
- * submit a transaction to ethereum
- * 
- * @param from from eth address
- * @param to to eth address
- * @param value transaction value
- * @param data transaction data
- * @returns void
- */
-export async function sendEthTx(from: string, to: string, value: number | string | BN, data: string) {
-  web3_10.eth.sendTransaction({ from, to, value, data }, function (err: any, result: any) {
-    console.log("send Transaction", err, result);
-  }); 
-}
-
-/**
- * sign message with eth_SignTypedData_v3 by metamask
- * 
- * @param typedData messages need to be signed
- * @returns the sign result
- */
-export async function signMessage(typedData: any) {
-
-  var params = [user, JSON.stringify(typedData)]
-  console.dir(params)
-  var method = 'eth_signTypedData_v3'
-
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.sendAsync({
-      method,
-      params,
-      user,
-    }, async (err: any, result: any) => {
-      console.log('sign Result', err, result);
-      if (err) {
-        reject(err);
-      } else if (result.error) {
-        reject(result.error)
-      } else {
-        resolve(result.result);
+      console.log("puppet is ", puppet);
+      let puppetStatus = await ethPN.methods.puppetMap(user, puppet.getAccount().address).call();
+      console.log("puppetStatus", puppetStatus);
+      if (Number(puppetStatus) === PUPPET_STATUS.ENABLED) {
+        // puppet is active, done
+        console.log("puppet is active");
+        return;
       }
-    });
-  });
-}
+    }
 
-var ethWatcher:HttpWatcher, appWatcher: HttpWatcher;
+    /* if no puppet or puppet is disabled,
+     * create a new one and add it to payment contract
+     */
+    puppet = Puppet.create(user);
+    console.log("puppet is ", puppet.getAccount().address, user);
+    let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
 
-/**
- * init listeners for payment contract of eth and appchain 
- */
-async function initListeners () {
+    await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
 
-  //before start new watcher, stop the old watcher
-  ethWatcher && ethWatcher.stop();
-  ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethPN, ethEvents);
-  ethWatcher.start();
-
-  //before start new watcher, stop the old watcher
-  appWatcher && appWatcher.stop();
-  appWatcher = new HttpWatcher(cita.base, 1500, appPN, appEvents);
-  appWatcher.start();
-
-}
-  
-function abi2jsonInterface(abi: string): AbiItem[] | undefined {
-  try {
-    let abiArray: AbiItem[] = JSON.parse(abi);
-    if (!Array.isArray(abiArray)) return undefined;
-    return abiArray;
-  } catch(e) {
-    return undefined;
   }
-}
+
+
+
+  /**
+   * init listeners for payment contract of eth and appchain 
+   */
+  private async initListeners() {
+
+    //before start new watcher, stop the old watcher
+    this.ethWatcher && this.ethWatcher.stop();
+    this.ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethPN, ethEvents);
+    this.ethWatcher.start();
+
+    //before start new watcher, stop the old watcher
+    this.appWatcher && this.appWatcher.stop();
+    this.appWatcher = new HttpWatcher(cita.base, 1000, appPN, appEvents);
+    this.appWatcher.start();
+
+  }
+
+
+
+
+} // end of class L2
 
 /**
  * get the valid the block number for tx or msg
@@ -624,9 +579,9 @@ enum PUPPET_STATUS {
 };
 
 enum CHANNEL_STATUS {
-  // CHANNEL_STATUS_INIT = 1,
+  CHANNEL_STATUS_INIT = 0,
   // CHANNEL_STATUS_PENDINGOPEN,
-  CHANNEL_STATUS_OPEN = 1,
+  CHANNEL_STATUS_OPEN,
   // CHANNEL_STATUS_PENDING_UPDATE_PUPPET,
   // CHANNEL_STATUS_PENDING_SETTLE,
   CHANNEL_STATUS_CLOSE,
@@ -652,7 +607,7 @@ export type DEPOSIT_EVENT = {
 }
 
 export type WITHDRAW_EVENT = {
-  user: string, 
+  user: string,
   type: number,
   token: string,
   amount: string,
@@ -684,7 +639,7 @@ export type PUPPETCHANGED_EVENT = {
 }
 
 
-export type L2_CB = (err: any, res: DEPOSIT_EVENT | WITHDRAW_EVENT | FORCEWITHDRAW_EVENT | TRANSFER_EVENT | PUPPETCHANGED_EVENT) => { };
+export type L2_CB = (err: any, res: DEPOSIT_EVENT | WITHDRAW_EVENT | FORCEWITHDRAW_EVENT | TRANSFER_EVENT | PUPPETCHANGED_EVENT) => void;
 export type PN = {
   address: string,
   abi: string
