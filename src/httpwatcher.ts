@@ -6,6 +6,7 @@ export default class HttpWatcher {
     private blockInterval: number;
     private contract: Contract;
     private eventHandlerList: any;
+    private enabled: boolean;
 
 
     constructor(base: any, blockInterval: number, contract: Contract, eventHandlerList: any) {
@@ -13,6 +14,7 @@ export default class HttpWatcher {
       this.base = base;
       this.blockInterval = blockInterval;
       this.eventHandlerList = eventHandlerList;
+      this.enabled = true;
     }
   
     async delay(duration: number){
@@ -58,6 +60,10 @@ export default class HttpWatcher {
 
             lastBlockNumber = currentBlockNumber+1;
             currentBlockNumber = await this.base.getBlockNumber();
+
+            if(this.enabled == false) {
+                return;
+            }
         }
 
         // finish sync process;
@@ -83,7 +89,14 @@ export default class HttpWatcher {
                 );
             }
 
+            if(this.enabled == false) {
+                return;
+            }
         }
+    }
+
+    async stop(){
+        this.enabled = false;
     }
 }
   

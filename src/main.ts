@@ -374,14 +374,10 @@ export class L2 {
   }
 
 
-
-
-
   async testCoClose(){
     let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
     await ethMethods.ethSubmitCooperativeSettle(channelID);
   }
-
 
   async testGuardProof() {
 
@@ -501,10 +497,14 @@ export class L2 {
 
 
 
+/**
+ * init Puppet when L2 initializing
+ */
 async function initPuppet() {
 
   puppet = Puppet.get(user);
 
+  // get puppet from LocalStorage, check if it is valid on eth payment contract
   if (puppet) {
 
     console.log("puppet is ", puppet);
@@ -528,44 +528,66 @@ async function initPuppet() {
 
 }
 
+/**
+ * submit a transaction to ethereum
+ * 
+ * @param from from eth address
+ * @param to to eth address
+ * @param value transaction value
+ * @param data transaction data
+ * @returns void
+ */
 export async function sendEthTx(from: string, to: string, value: number | string | BN, data: string) {
   web3_10.eth.sendTransaction({ from, to, value, data }, function (err: any, result: any) {
     console.log("send Transaction", err, result);
   }); 
 }
 
+/**
+ * sign message with eth_SignTypedData_v3 by metamask
+ * 
+ * @param typedData messages need to be signed
+ * @returns the sign result
+ */
 export async function signMessage(typedData: any) {
 
-    var params = [user, JSON.stringify(typedData)]
-    console.dir(params)
-    var method = 'eth_signTypedData_v3'
+  var params = [user, JSON.stringify(typedData)]
+  console.dir(params)
+  var method = 'eth_signTypedData_v3'
 
   return new Promise((resolve, reject) => {
     web3.currentProvider.sendAsync({
       method,
       params,
       user,
-    }, async (err:any, result:any) => {
+    }, async (err: any, result: any) => {
       console.log('sign Result', err, result);
-      if (err){
+      if (err) {
         reject(err);
-      }else if (result.error) {
+      } else if (result.error) {
         reject(result.error)
-      }else{
+      } else {
         resolve(result.result);
       }
     });
   });
 }
 
+var ethWatcher:HttpWatcher, appWatcher: HttpWatcher;
 
+/**
+ * init listeners for payment contract of eth and appchain 
+ */
 async function initListeners () {
 
-  let ethWatcher = new HttpWatcher(web3_10.eth, 15000, ethPN, ethEvents);
+  //before start new watcher, stop the old watcher
+  ethWatcher && ethWatcher.stop();
+  ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethPN, ethEvents);
   ethWatcher.start();
 
-
-  let appWatcher = new HttpWatcher(cita.base, 3000, appPN, appEvents);
+  //before start new watcher, stop the old watcher
+  appWatcher && appWatcher.stop();
+  appWatcher = new HttpWatcher(cita.base, 1500, appPN, appEvents);
   appWatcher.start();
 
 }
@@ -580,6 +602,11 @@ function abi2jsonInterface(abi: string): AbiItem[] | undefined {
   }
 }
 
+/**
+ * get the valid the block number for tx or msg
+ * @param chain eth or cita 
+ * @returns the last commit block for valid data
+ */
 export async function getLCB(chain: string) {
   let current = chain === 'eth' ? await web3_10.eth.getBlockNumber() : await cita.base.getBlockNumber();
   if (chain === 'eth') {
