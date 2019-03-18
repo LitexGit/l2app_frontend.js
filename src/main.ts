@@ -385,8 +385,15 @@ export class L2 {
 
   async testGuardProof() {
 
-    let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
-    await appMethods.appSubmitGuardProof(channelID, user);
+    // let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
+    // await appMethods.appSubmitGuardProof(channelID, user);
+
+    appPN.getPastEvents('Transfer', {
+      filter: { to: user },
+      fromBlock: 0,
+      // toBlock: 'latest',
+    }, console.log);
+
 
   }
 

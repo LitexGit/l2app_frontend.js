@@ -2,7 +2,7 @@ import { callbacks, user, PUPPETCHANGED_EVENT, DEPOSIT_EVENT, ethPN, WITHDRAW_EV
 
 export const events = {
   'PuppetAdded': {
-    filter: { user },
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("PuppetAdd event", event);
 
@@ -13,7 +13,7 @@ export const events = {
   },
 
   'PuppetDisabled': {
-    filter: { user },
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("PuppetAdd event", event);
 
@@ -24,7 +24,7 @@ export const events = {
   },
 
   'ChannelOpened': {
-    filter: { user },
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("ChannelOpened event", event);
 
@@ -43,7 +43,7 @@ export const events = {
 
   }, 
   'UserNewDeposit': {
-    filter: {user},
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("UserNewDeposit event", event);
 
@@ -64,7 +64,7 @@ export const events = {
     }
   },
   'UserWithdraw': {
-    filter: {user},
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("UserWithdraw event", event);
 
@@ -86,7 +86,7 @@ export const events = {
   }, 
 
   'CooperativeSettled': {
-    filter: {user},
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("CooperativeSettled event", event);
 
@@ -96,13 +96,13 @@ export const events = {
     }
   }, 
   'ChannelClosed': {
-    filter: {},
+    filter: () => { return { user } },
     handler: async(event: any) => {
       console.log("ChannelClosed event", event);
     }
   }, 
   'ChannelSettled': {
-    filter: { user },
+    filter: () => { return { user } },
     handler: async (event: any) => {
 
       console.log("ChannelSettled event", event);

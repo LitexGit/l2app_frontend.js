@@ -19,7 +19,7 @@ export const tx = {
 export const events = {
 
   'ConfirmUserWithdraw': {
-    filter: { user },
+    filter: () => { return { user } },
     handler: async (event: any) => {
 
       let { returnValues: { channelID, user: eventUser, confirmer, amount, lastCommitBlock, isAllConfirmed }} = event;
@@ -37,7 +37,7 @@ export const events = {
   },
 
   'ConfirmCooperativeSettle': {
-    filter: {user},
+    filter: () => { return { user } },
     handler: async (event: any) => {
       let { returnValues: { channelID, user, confirmer, balance, lastCommitBlock: lcb, isAllConfirmed } } = event;
 
@@ -55,8 +55,10 @@ export const events = {
   }, 
 
   'Transfer': {
-    filter: { to: user },
+    filter: () => { return { to: user } },
     handler: async (event: any) => {
+
+      // console.log("Transfer user is ", user);
 
       let {
         returnValues: {
@@ -68,6 +70,8 @@ export const events = {
           additionalHash
         }
       } = event;
+
+      console.log("Receive Transfer event", event);
 
 
       // emit the Transfer event to sdk caller

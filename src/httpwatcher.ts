@@ -21,23 +21,24 @@ export default class HttpWatcher {
   
   
     async processEvent(fromBlockNumber: number, toBlockNumber: number, eventName: string, eventSetting: any) {
-  
-      // console.log(this.contract);
-  
-      console.log('eventName is ', eventName);
-  
-      let events = await this.contract.getPastEvents(eventName, {
-        filter: eventSetting.filter,
-        fromBlock: fromBlockNumber,
-        toBlock: toBlockNumber
-      });
-  
-      for (let event of events) {
-        await eventSetting.handler(event);
-        // process event
-        console.log("event", event.transactionHash);
-      }
-      console.log("get events ", events.length);
+
+        // console.log(this.contract);
+
+        //   console.log('eventName is ', eventName, eventSetting.filter());
+
+        let events = await this.contract.getPastEvents(eventName, {
+            filter: eventSetting.filter(),
+            fromBlock: fromBlockNumber,
+            toBlock: toBlockNumber
+        });
+
+        for (let event of events) {
+            await eventSetting.handler(event);
+            // process event
+            console.log('eventName is ', eventName, eventSetting.filter());
+            console.log("event", event.transactionHash);
+        }
+        //   console.log("get events ", events.length);
     }
   
     async start(lastBlockNumber: number = 0) {
