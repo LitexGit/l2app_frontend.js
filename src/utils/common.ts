@@ -1,10 +1,9 @@
 /**
  * 签名相关的工具函数
  */
-//const Tx = require('ethereumjs-tx')
-// const ethUtil = require('ethereumjs-util');
 import { ecsign, toRpcSig } from 'ethereumjs-util'
 import { AbiItem } from 'web3/node_modules/web3-utils';
+import { ETH_MESSAGE_COMMIT_BLOCK_EXPERITION, CITA_TX_COMMIT_BLOCK_EXPERITION } from './constants';
 
 
 /**
@@ -65,7 +64,7 @@ export async function sendEthTx(web3: any, from: string, to: string, value: numb
  * @param typedData messages need to be signed
  * @returns Promise<string> the sign result
  */
-export async function signMessage(from: string, typedData: any): Promise<string> {
+export async function signMessage(web3: any, from: string, typedData: any): Promise<string> {
 
     // if (!(web3.currentProvider as any).isMetaMask) {
 
@@ -103,6 +102,12 @@ export async function signMessage(from: string, typedData: any): Promise<string>
 }
 
 
+/**
+ * convert contract abi code of string type to AbiItem[]
+ * 
+ * @param abi contract abi code
+ * @returns the abi code of AbiItem[] type
+ */
 export function abi2jsonInterface(abi: string): AbiItem[] | undefined {
   try {
     let abiArray: AbiItem[] = JSON.parse(abi);
@@ -110,5 +115,19 @@ export function abi2jsonInterface(abi: string): AbiItem[] | undefined {
     return abiArray;
   } catch(e) {
     return undefined;
+  }
+}
+
+/**
+ * get the valid the block number for tx or msg
+ * @param chain eth or cita 
+ * @returns the last commit block for valid data
+ */
+export async function getLCB(base: any, chain: string) {
+  let current = await base.getBlockNumber();
+  if (chain === 'eth') {
+    return current + ETH_MESSAGE_COMMIT_BLOCK_EXPERITION;
+  } else {
+    return current + CITA_TX_COMMIT_BLOCK_EXPERITION;
   }
 }

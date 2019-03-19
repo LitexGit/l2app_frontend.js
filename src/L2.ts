@@ -1,15 +1,7 @@
-import {
-  L2,
-  L2_CB,
-  L2_EVENT,
-  PN
-} from './main';
+import { L2 } from "./main";
 
-export {
-  L2,
-  L2_CB,
-  L2_EVENT,
-  PN
-};
+import { L2_CB, L2_EVENT } from './utils/constants'
 
-// export default L2;
+export { L2, L2_CB, L2_EVENT };
+
+export default L2;

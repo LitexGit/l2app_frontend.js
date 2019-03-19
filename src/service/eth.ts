@@ -1,4 +1,5 @@
-import { callbacks, user, PUPPETCHANGED_EVENT, DEPOSIT_EVENT, ethPN, WITHDRAW_EVENT, FORCEWITHDRAW_EVENT, appPN } from '../main';
+import { callbacks, user,  ethPN,  appPN } from '../main';
+import {PUPPETCHANGED_EVENT, DEPOSIT_EVENT,WITHDRAW_EVENT, FORCEWITHDRAW_EVENT} from '../utils/constants';
 
 export const events = {
   'PuppetAdded': {
@@ -69,15 +70,15 @@ export const events = {
       console.log("UserWithdraw event", event);
 
       
-      let {returnValues: {
+      let { returnValues: {
         channelID,
         user,
         amount,
         totalWithdraw,
         lastCommitBlock
-      }, transactionHash} = event;
+      }, transactionHash } = event;
 
-      let {token } = await ethPN.methods.channes(channelID).call();
+      let {token } = await ethPN.methods.channels(channelID).call();
 
       let withdrawEvent: WITHDRAW_EVENT = { user: user, type: 1, token, amount, totalWithdraw, txhash: transactionHash };
       callbacks.get('Withdraw') && callbacks.get('Withdraw')(null, withdrawEvent);

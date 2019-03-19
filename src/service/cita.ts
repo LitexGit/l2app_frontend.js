@@ -1,5 +1,6 @@
-import { ethPN, appPN, user, callbacks, getLCB, puppet, cita, web3_10, TRANSFER_EVENT } from '../main';
-import { myEcsignToHex, sendEthTx } from '../utils/common'
+import { ethPN, appPN, user, callbacks,  puppet, cita, web3_10 } from '../main';
+import { myEcsignToHex, sendEthTx, getLCB } from "../utils/common";
+import { TRANSFER_EVENT } from '../utils/constants'
 
 /**
  * the transaction options for submiting cita transaction 
@@ -19,7 +20,7 @@ export const tx = {
 export async function getAppTxOption() {
   return {
     ...tx,
-    validUntilBlock: await getLCB('cita'),
+    validUntilBlock: await getLCB(cita.base, 'cita'),
     from: puppet.getAccount().address,
     privateKey: puppet.getAccount().privateKey
   }
@@ -131,6 +132,8 @@ export const ethMethods = {
    */
   ethSubmitCooperativeSettle: async (channelID: string) => {
     let { isConfirmed, balance: settleBalance, lastCommitBlock, providerSignature, regulatorSignature, } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
+
+    console.log('cooperativeSettleProof', { channelID, isConfirmed, balance: settleBalance, lastCommitBlock, providerSignature, regulatorSignature, });
 
     if(!isConfirmed){
       console.log("cooperativeSettleProof not confirmed");
