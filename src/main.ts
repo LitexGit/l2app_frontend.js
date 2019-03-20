@@ -98,10 +98,11 @@ export class L2 {
       address: appPaymentNetworkAddress
     };
 
+    console.log("start init");
+
     web3_outer = outerWeb3;
     let ethProvider = outerWeb3.currentProvider;
 
-    console.log("start init");
     web3_10 = new Web3(Web3.givenProvider || ethProvider);
     let blockNumber = await web3_10.eth.getBlockNumber();
     console.log("blockNumber is ", blockNumber);
@@ -112,33 +113,26 @@ export class L2 {
     ethPN.options.from = user;
     ethPN.options.address = ethPaymentNetwork.address;
 
-    // console.log('ethPN is ', ethPN);
-
     ERC20 = new Contract(ethProvider, abi2jsonInterface(JSON.stringify(require('./config/ERC20.json'))));
-
-    // console.log("CITASDK", CITASDK);
 
     user = userAddress;
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
     console.log("cp / l2 is ", cp, l2);
-
     console.log("appRpcUrl", appRpcUrl);
+
     cita = CITASDK(appRpcUrl);
-    console.log("cita is ", cita);
+    // console.log("cita is ", cita);
 
     // console.log("app abi", appPaymentNetwork.abi);
     appPN = new cita.base.Contract(abi2jsonInterface(appPaymentNetwork.abi), appPaymentNetwork.address);
-
-    // let appEthPN = await appPN.methods.paymentNetworkMap(ADDRESS_ZERO).call();
-    // console.log('appEthPN', appEthPN);
 
     // get puppet ready
     await this.initPuppet();
 
     // init listeners on both chains
-    this.initListeners();
+    await this.initListeners();
 
     // check not handled event
     await this.initMissingEvent();
@@ -147,9 +141,7 @@ export class L2 {
 
   }
 
-  /**
-   * ---------- Payment APIs ----------
-   */
+  /** * ---------- Payment APIs ---------- */
 
   /**
    * deposit to channel
@@ -162,14 +154,12 @@ export class L2 {
     this.checkInitialized();
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
-    console.log("channelID is ", channelID);
     let channel = await ethPN.methods.channels(channelID).call();
+
     console.log('channel is ', channel);
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
-
       let appChannel = await appPN.methods.channelMap(channelID).call();
-
       if (Number(appChannel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         throw new Error("channel status of appchain is not open");
       }
@@ -215,22 +205,22 @@ export class L2 {
   async withdraw(amount: string, token: string = ADDRESS_ZERO, receiver: string = user): Promise<string> {
 
     this.checkInitialized();
-
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
 
-    // if (Number(channel.status) != CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-    //   throw new Error("channel status is not open, can not withdraw now");
-    // }
-
-    if (Number(channel.userBalance) < Number(amount)) {
+    // withdraw amount must less than user balance
+    if (web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
       throw new Error("withdraw amount exceeds the balance");
     }
 
     let tx = await getAppTxOption();
-
     let res;
-    if (Number(channel.userBalance) > Number(amount)) {
+
+    /*
+     *  if withdraw balance < user's balance, then go walk with userwithdraw process.
+     *  if withdraw balance == user's balance, then go walk with cooperative settle process.
+     */
+    if (web3_10.utils.toBN(channel.userBalance).gt(web3_10.utils.toBN(amount))) {
       console.log("will call userProposeWithdraw");
       res = await appPN.methods.userProposeWithdraw(
         channelID,
@@ -247,6 +237,7 @@ export class L2 {
       ).send(tx);
     }
 
+    //watch cita transaction receipt, if no error, returns tx hash
     if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if (receipt.errorMessage) {
@@ -271,9 +262,10 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
 
     let channel = await ethPN.methods.channels(channelID).call();
-    // if(channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
-    //   throw new Error("channel status is not open, can not force withdraw");
-    // }
+
+    if(channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+      throw new Error("eth channel status is not open, can not force withdraw");
+    }
 
     let [{ balance, nonce, additionalHash, signature: partnerSignature },
       { amount: inAmount, nonce: inNonce, regulatorSignature, providerSignature }]
@@ -285,7 +277,6 @@ export class L2 {
     partnerSignature = partnerSignature || '0x0';
     regulatorSignature = regulatorSignature || '0x0';
     providerSignature = providerSignature || '0x0';
-
 
     console.log('force-close params', {
       channelID,
@@ -314,24 +305,26 @@ export class L2 {
     this.checkInitialized();
 
     let channelID = await ethPN.methods.getChannelID(user, token).call();
-    let channel = await ethPN.methods.channels(channelID).call();
+    let channel = await appPN.methods.channelMap(channelID).call();
+
     //check channel status
     if (channel.status != CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-      throw new Error("channel status is not open, can not transfer now");
+      throw new Error("app channel status is not open, can not transfer now");
+    }
+
+    //check user's balance is enough
+    if (web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
+      throw new Error("user's balance is less than transfer amount");
     }
 
     // get balance proof from eth contract
     let { balance, nonce } = await appPN.methods.balanceProofMap(channelID, cp).call();
-
-    console.log('balance is', balance);
-
     balance = web3_10.utils.toBN(amount).add(web3_10.utils.toBN(balance)).toString();
     nonce = web3_10.utils.toBN(nonce).add(web3_10.utils.toBN(1)).toString();
-
-    console.log('balance is', balance);
-
     let additionalHash = "0x0";
+    // console.log('balance is', balance);
 
+    // build typed data for transfer message
     let typedData = {
       types: EIP712_TYPES,
       primaryType: 'Transfer',
@@ -402,17 +395,13 @@ export class L2 {
 
   }
 
-  /**
-   * ---------- Session APIs ----------
-   */
+  /** * ---------- Session APIs ---------- */
 
   // TODO
 
 
 
-  /**
-   * ---------- Query APIs ----------
-   */
+  /** * ---------- Query APIs ---------- */
 
 
   async getCurrentSession() {
@@ -482,21 +471,52 @@ export class L2 {
     return { in: inTXs, out: outTXs };
   }
 
+  /**
+   * get all registered puppet of user
+   */
+  async getAllPuppets(): Promise<Array<any>> {
+    this.checkInitialized();
+
+    let puppetList = [];
+    let n = 0;
+    while(true){
+      try{
+        let { p: address, enabled } = await appPN.methods.puppets(user, n++).call();
+        puppetList.push({address, enabled});
+      }catch(err){
+        break;
+      }
+    }
+    console.log(puppetList);
+    return puppetList;
+  }
 
   /**
-   * ---------- Event API ----------
+   * disable user's puppet on chain
+   * 
+   * @param puppet address of user's puppet
+   * @returns Promise<string> hash of disablePuppet transaction
    */
+  async disablePuppet(puppet: string): Promise<string> {
+    this.checkInitialized();
+    let data = ethPN.methods.disablePuppet(puppet).encodeABI();
+    return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+  }
 
+  /** ---------- Event API ---------- */
+
+  /**
+   * 
+   * @param event event name to watch
+   * @param callback callback to be executed when the event fired
+   */
   on(event: L2_EVENT, callback: L2_CB) {
     // this.checkInitialized();
     callbacks.set(event, callback);
   }
 
 
-
-  /**
-   * ---------- Private methods----------
-  */
+  /**  ---------- Private methods---------- */
 
   /**
    * check L2 is initialized
@@ -517,7 +537,6 @@ export class L2 {
 
     // get puppet from LocalStorage, check if it is valid on eth payment contract
     if (puppet) {
-
       console.log("puppet is ", puppet);
       let puppetStatus = await ethPN.methods.puppetMap(user, puppet.getAccount().address).call();
       console.log("puppetStatus", puppetStatus);
@@ -532,9 +551,7 @@ export class L2 {
      * create a new one and add it to payment contract
      */
     puppet = Puppet.create(user);
-    console.log("puppet is ", puppet.getAccount().address, user);
     let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
-
     await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
 
   }

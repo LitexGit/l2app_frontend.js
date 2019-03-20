@@ -8,8 +8,8 @@ const socketUrl = 'localhost';
 // const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
 // const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
 
-const ethPNAddress = '0xaa6770573cAD81717Cfc9B02750F70eFf0d33F58';
-const appPNAddress = '0x39baC1AA98FEa8d5eE61E2CEeD7CB11A5B3675f1';
+const ethPNAddress = '0x6a927622FaFDAbd3179FE7E665298B7Ec4CA3FA9';
+const appPNAddress = '0x7853b321868cdD4cd5180595573262F7CcfA828E';
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 // let appRpcUrl = "https://node.cryptape.com";
@@ -134,10 +134,30 @@ async function  main() {
       console.log("guardproof res ", res);
     });
 
-    document.getElementById("query").addEventListener("click", async (event)=>{
-      console.log("query button clicked");
+    document.getElementById("getAllTxs").addEventListener("click", async (event)=>{
+      console.log("getAllTxs button clicked");
       let result = await L2.getInstance().getAllTXs(token);
-      console.log('query result', result);
+      console.log('getAllTxs result', result);
+    });
+
+    document.getElementById("getAllPuppets").addEventListener("click", async (event)=>{
+      console.log("getAllPuppets button clicked");
+      let result = await L2.getInstance().getAllPuppets();
+      console.log('getAllPuppets result', result);
+    });
+
+    document.getElementById("disablePuppet").addEventListener("click", async (event)=>{
+      console.log("disablePuppet button clicked");
+
+      let puppetList = await L2.getInstance().getAllPuppets();
+
+      if (puppetList.length > 0) {
+        let hash = await L2.getInstance().disablePuppet(puppetList[0].address);
+        console.log('disablePuppet result', hash);
+
+      }else{
+        console.log("no puppet now");
+      }
     });
 }
 

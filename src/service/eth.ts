@@ -16,7 +16,7 @@ export const events = {
   'PuppetDisabled': {
     filter: () => { return { user } },
     handler: async(event: any) => {
-      console.log("PuppetAdd event", event);
+      console.log("PuppetDisabled event", event);
 
       let {returnValues: {user, puppet}} = event;
       let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 2 };
