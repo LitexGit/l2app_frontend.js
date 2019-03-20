@@ -8,8 +8,8 @@ const socketUrl = 'localhost';
 // const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
 // const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
 
-const ethPNAddress = '0x6a927622FaFDAbd3179FE7E665298B7Ec4CA3FA9';
-const appPNAddress = '0x7853b321868cdD4cd5180595573262F7CcfA828E';
+const ethPNAddress = '0x7fD0016601C73Fe76E74B3c0b78A777534946aEc';
+const appPNAddress = '0x882fdcaCd0b70F5acba4b36505c80aac7e1081a8';
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 // let appRpcUrl = "https://node.cryptape.com";
