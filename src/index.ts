@@ -95,6 +95,12 @@ async function  main() {
       console.log("withdraw res ", res);
     });
 
+    document.getElementById("withdraw2").addEventListener("click", async (event)=>{
+      console.log("withdraw button clicked");
+      let res = await L2.getInstance().testUnlockWithdraw(token);
+      console.log("withdraw res ", res);
+    });
+
     document.getElementById("coclose").addEventListener("click", async (event)=>{
       console.log("coclose button clicked");
       let channel = await L2.getInstance().getChannelInfo(token);

@@ -375,6 +375,10 @@ export class L2 {
     }
   }
 
+  async testUnlockWithdraw(token:string = ADDRESS_ZERO) {
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    await ethMethods.ethSubmitUserWithdraw(channelID);
+  }
 
   async testCoClose(token:string = ADDRESS_ZERO) {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
@@ -580,10 +584,29 @@ export class L2 {
    */
   private async initMissingEvent(){
 
-    //TODO unimplemented
+    console.log("start initMissingEvent");
 
+    // get all open channel of user
+
+    let allChannelOpenedEvent = await ethPN.getPastEvents('ChannelOpened', {
+      filter: {user},
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+
+    console.log("getAllChannelOpenedEvent length", allChannelOpenedEvent.length);
+
+    for(let event of allChannelOpenedEvent){
+      let { channelID } = event.returnValues;
+      let channel = await ethPN.methods.channels(channelID).call();
+
+      if(Number(channel.status) == CHANNEL_STATUS.CHANNEL_STATUS_OPEN){
+        await appMethods.appSubmitGuardProof(channelID, user);
+      }
+    }
+
+    //TODO handle missing confirmCooperativeSettle event & confirmUserWithdraw event
     // init missing transfer event
-    // appMethods.appSubmitGuardProof()
 
     // init missing cooperativeSettle event
 

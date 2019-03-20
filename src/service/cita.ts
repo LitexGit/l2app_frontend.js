@@ -118,11 +118,17 @@ export const ethMethods = {
       return;
     }
 
-    //TODO: check if lastCommitBlock is exceed, should unlock the proof on appchain
+    let currentBlockNumber = await web3_10.eth.getBlockNumber();
+    if (web3_10.utils.toBN(currentBlockNumber).gt(web3_10.utils.toBN(lastCommitBlock))) {
+      let tx = await getAppTxOption();
+      let res = await appPN.methods.unlockUserWithdrawProof(channelID).send(tx);
 
+    }else{
+      //TODO: check the eth tx has been submited before
+      let txData = ethPN.methods.userWithdraw(channelID, withdraw, lastCommitBlock, providerSignature, regulatorSignature, receiver).encodeABI();
+      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+    }
 
-    let txData = ethPN.methods.userWithdraw(channelID, withdraw, lastCommitBlock, providerSignature, regulatorSignature, receiver).encodeABI();
-    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
   },
 
   /**
@@ -140,10 +146,19 @@ export const ethMethods = {
       return;
     }
 
-    //TODO: check if lastCommitBlock is exceed, should unlock the proof on appchain
+    let currentBlockNumber = await web3_10.eth.getBlockNumber();
+    if (web3_10.utils.toBN(currentBlockNumber).gt(web3_10.utils.toBN(lastCommitBlock))) {
 
-    let txData = ethPN.methods.cooperativeSettle(channelID, settleBalance, lastCommitBlock, providerSignature, regulatorSignature).encodeABI();
-    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      let tx = await getAppTxOption();
+      let res = await appPN.methods.unlockCooperativeSettle(channelID).send(tx);
+
+    }else{
+      //TODO: check the eth tx has been submited before
+      let txData = ethPN.methods.cooperativeSettle(channelID, settleBalance, lastCommitBlock, providerSignature, regulatorSignature).encodeABI();
+      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+
+    }
+
   }
 
 }
