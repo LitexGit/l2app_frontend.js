@@ -1,6 +1,6 @@
 import { ethPN, appPN, user, callbacks,  puppet, cita, web3_10 } from '../main';
-import { myEcsignToHex, sendEthTx, getLCB } from "../utils/common";
-import { TRANSFER_EVENT } from '../utils/constants'
+import { myEcsignToHex, sendEthTx, getLCB, delay } from "../utils/common";
+import { TRANSFER_EVENT, CITA_TX_BLOCK_INTERVAL } from '../utils/constants'
 
 /**
  * the transaction options for submiting cita transaction 
@@ -45,6 +45,7 @@ export const events = {
       console.log("Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx");
 
       // when both provider and regualtor confirmed UserWithdraw Proposal, user should submit eth tx to get his asset on chain
+      await delay(CITA_TX_BLOCK_INTERVAL);
       await ethMethods.ethSubmitUserWithdraw(channelID);
 
     }
@@ -63,6 +64,7 @@ export const events = {
       console.log("Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx");
 
       // when both provider and regualtor confirmed CooperativeSettle Proposal, user should submit eth tx to get his asset on chain
+      await delay(CITA_TX_BLOCK_INTERVAL);
       await ethMethods.ethSubmitCooperativeSettle(channelID);
 
     }
@@ -96,6 +98,7 @@ export const events = {
 
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
+      await delay(CITA_TX_BLOCK_INTERVAL);
       await appMethods.appSubmitGuardProof(channelID, to);
     
     }
@@ -111,8 +114,9 @@ export const ethMethods = {
    *  2. embrace provider and regualtor's signature in the withdraw request to eth payment contract
    */
   ethSubmitUserWithdraw: async (channelID: string)=>{
-    let { isConfirmed, amount: withdraw, providerSignature, regulatorSignature, lastCommitBlock, receiver, } = await appPN.methods.userWithdrawProofMap(channelID).call();
+    let [{ isConfirmed, amount: withdraw, providerSignature, regulatorSignature, lastCommitBlock, receiver, }] = await Promise.all([appPN.methods.userWithdrawProofMap(channelID).call()]);
 
+    console.log("userWithdrawProofMap is ", { isConfirmed, withdraw, providerSignature, regulatorSignature, lastCommitBlock, receiver });
     if(!isConfirmed){
       console.log("userWithdrawProofMap not confirmed");
       return;
@@ -120,10 +124,12 @@ export const ethMethods = {
 
     let currentBlockNumber = await web3_10.eth.getBlockNumber();
     if (web3_10.utils.toBN(currentBlockNumber).gt(web3_10.utils.toBN(lastCommitBlock))) {
+      console.log("unlock user withdraw now");
       let tx = await getAppTxOption();
       let res = await appPN.methods.unlockUserWithdrawProof(channelID).send(tx);
 
     }else{
+      console.log("submit user withdraw now");
       //TODO: check the eth tx has been submited before
       let txData = ethPN.methods.userWithdraw(channelID, withdraw, lastCommitBlock, providerSignature, regulatorSignature, receiver).encodeABI();
       sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
@@ -158,6 +164,14 @@ export const ethMethods = {
       sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
 
     }
+
+  },
+
+
+  ethSettleChannel: async (channelID: string) => {
+
+    let txData = ethPN.methods.settleChannel(channelID).encodeABI();
+    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
 
   }
 

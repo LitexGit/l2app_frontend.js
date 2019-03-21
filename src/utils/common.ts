@@ -4,13 +4,19 @@
 import { ecsign, toRpcSig } from 'ethereumjs-util'
 import { AbiItem } from 'web3/node_modules/web3-utils';
 import { ETH_MESSAGE_COMMIT_BLOCK_EXPERITION, CITA_TX_COMMIT_BLOCK_EXPERITION } from './constants';
+import { Contract } from 'web3/node_modules/web3-eth-contract';
+import { EIP712_TYPES } from '../config/TypedData';
+
+
 
 
 /**
  * 用私钥签署消息
- * @param web3 
- * @param messageHash 消息Hash
- * @param privateKey 私钥
+ * 
+ * @param {any} web3 
+ * @param {string} messageHash 消息Hash
+ * @param {string } privateKey 私钥
+ * 
  * @returns {Bytes} 返回bytes格式的签名结果
  */
 export function myEcsign(web3: any, messageHash: string, privateKey: string)  {
@@ -22,9 +28,11 @@ export function myEcsign(web3: any, messageHash: string, privateKey: string)  {
 
 /**
  * 用私钥签署消息
- * @param web3 
- * @param messageHash 消息Hash
- * @param privateKey 私钥
+ * 
+ * @param {any} web3 
+ * @param {string} messageHash 消息Hash
+ * @param {string} privateKey 私钥
+ * 
  * @returns {String} 返回hex格式的签名结果
  */
 export function myEcsignToHex(web3: any, messageHash: string, privateKey: string): string {
@@ -39,11 +47,12 @@ export function myEcsignToHex(web3: any, messageHash: string, privateKey: string
 /**
  * submit a transaction to ethereum
  * 
- * @param from from eth address
- * @param to to eth address
- * @param value transaction value
- * @param data transaction data
- * @returns Promise<string> transactionHash
+ * @param {string} from from eth address
+ * @param {string} to to eth address
+ * @param {number|string} value transaction value
+ * @param {string} data transaction data
+ * 
+ * @returns {Promise<string>} transactionHash
  */
 export async function sendEthTx(web3: any, from: string, to: string, value: number | string , data: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
@@ -61,8 +70,10 @@ export async function sendEthTx(web3: any, from: string, to: string, value: numb
 /**
  * sign message with eth_SignTypedData_v3 by metamask
  * 
- * @param typedData messages need to be signed
- * @returns Promise<string> the sign result
+ * @param {any} web3 
+ * @param {string} typedData messages need to be signed
+ * 
+ * @returns {Promise<string>} the sign result
  */
 export async function signMessage(web3: any, from: string, typedData: any): Promise<string> {
 
@@ -105,8 +116,9 @@ export async function signMessage(web3: any, from: string, typedData: any): Prom
 /**
  * convert contract abi code of string type to AbiItem[]
  * 
- * @param abi contract abi code
- * @returns the abi code of AbiItem[] type
+ * @param {string} abi contract abi code
+ * 
+ * @returns {AbiItem[]|undefined} the abi code of AbiItem[] type
  */
 export function abi2jsonInterface(abi: string): AbiItem[] | undefined {
   try {
@@ -120,7 +132,10 @@ export function abi2jsonInterface(abi: string): AbiItem[] | undefined {
 
 /**
  * get the valid the block number for tx or msg
- * @param chain eth or cita 
+ * 
+ * @param {any} base 
+ * @param {string} chain eth or cita 
+ * 
  * @returns the last commit block for valid data
  */
 export async function getLCB(base: any, chain: string) {
@@ -130,4 +145,69 @@ export async function getLCB(base: any, chain: string) {
   } else {
     return current + CITA_TX_COMMIT_BLOCK_EXPERITION;
   }
+}
+
+
+/**
+ * delay time for duation
+ * 
+ * @param {number} duration 
+ * 
+ * @returns {Promise<any>}
+ */
+export async function delay(duration: number): Promise<any>{
+    return new Promise((resolve) => setTimeout(resolve, duration));
+}
+
+/**
+ * ask outer wallet to sign transfer message
+ * 
+ * @param {any} web3_outer 
+ * @param {string} ethPNAddress 
+ * @param {string} channelID 
+ * @param {string} balance 
+ * @param {string} nonce 
+ * @param {string} additionalHash 
+ * @param {string} user 
+ * 
+ * @returns {Promise<string>} signature for transfer message
+ */
+export async function prepareSignatureForTransfer(
+  web3_outer: any,
+  ethPNAddress: string,
+  channelID: string,
+  balance: string,
+  nonce: string,
+  additionalHash: string,
+  user: string
+): Promise<string> {
+  // build typed data for transfer message
+  let typedData = {
+    types: EIP712_TYPES,
+    primaryType: "Transfer",
+    domain: {
+      name: "litexlayer2",
+      version: "1",
+      chainId: 4,
+      verifyingContract: ethPNAddress
+    },
+    message: {
+      channelID: channelID,
+      balance,
+      nonce,
+      additionalHash
+    }
+  };
+
+  console.log("typedData ", typedData);
+
+  let signature = "";
+  try {
+    signature = await signMessage(web3_outer, user, typedData);
+  } catch (err) {
+    console.log("user reject the sign action");
+    throw err;
+  }
+
+  return signature;
 }

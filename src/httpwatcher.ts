@@ -2,18 +2,20 @@ import { Contract } from 'web3/node_modules/web3-eth-contract';
 
 export default class HttpWatcher {
 
+    private enabled: boolean;
+
     private base: any;
     private blockInterval: number;
     private contract: Contract;
-    private eventHandlerList: any;
-    private enabled: boolean;
+    private watchList: any;
 
 
-    constructor(base: any, blockInterval: number, contract: Contract, eventHandlerList: any) {
-      this.contract = contract;
+    constructor(base: any, blockInterval: number, watchList: any) {
+    //   this.contract = contract;
       this.base = base;
       this.blockInterval = blockInterval;
-      this.eventHandlerList = eventHandlerList;
+      this.watchList = watchList;
+
       this.enabled = true;
     }
   
@@ -22,13 +24,13 @@ export default class HttpWatcher {
     }
   
   
-    async processEvent(fromBlockNumber: number, toBlockNumber: number, eventName: string, eventSetting: any) {
+    async processEvent(fromBlockNumber: number, toBlockNumber: number, contract:Contract, eventName: string, eventSetting: any) {
 
         // console.log(this.contract);
 
         //   console.log('eventName is ', eventName, eventSetting.filter());
 
-        let events = await this.contract.getPastEvents(eventName, {
+        let events = await contract.getPastEvents(eventName, {
             filter: eventSetting.filter(),
             fromBlock: fromBlockNumber,
             toBlock: toBlockNumber
@@ -49,22 +51,26 @@ export default class HttpWatcher {
   
         console.log("start syncing process", lastBlockNumber, currentBlockNumber);
         while (lastBlockNumber <= currentBlockNumber) {
-            for (let eventName in this.eventHandlerList) {
-                await this.processEvent(
-                    lastBlockNumber,
-                    currentBlockNumber,
-                    eventName,
-                    this.eventHandlerList[eventName]
-                );
+            console.log('watchList', this.watchList);
+            for (let watchItem of this.watchList) {
+                for (let eventName in watchItem.listener) {
+                    await this.processEvent(
+                        lastBlockNumber,
+                        currentBlockNumber,
+                        watchItem.contract,
+                        eventName,
+                        watchItem.listener[eventName]
+                    );
+                }
+
+                if (this.enabled == false) {
+                    return;
+                }
             }
 
-            lastBlockNumber = currentBlockNumber+1;
+            lastBlockNumber = currentBlockNumber + 1;
             currentBlockNumber = await this.base.getBlockNumber();
-
-            if(this.enabled == false) {
-                return;
-            }
-        }
+    }
 
         // finish sync process;
         console.log("finish syncing process", currentBlockNumber);
@@ -79,18 +85,21 @@ export default class HttpWatcher {
             if (lastBlockNumber > currentBlockNumber) {
                 continue;
             }
-
-            for (let eventName in this.eventHandlerList) {
-                await this.processEvent(
+            
+            for (let watchItem of this.watchList) {
+                for (let eventName in watchItem.listener) {
+                  await this.processEvent(
                     lastBlockNumber,
                     currentBlockNumber,
+                    watchItem.contract,
                     eventName,
-                    this.eventHandlerList[eventName]
-                );
-            }
+                    watchItem.listener[eventName]
+                  );
+                }
 
-            if(this.enabled == false) {
-                return;
+                if (this.enabled == false) {
+                    return;
+                }
             }
         }
     }

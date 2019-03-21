@@ -13,6 +13,13 @@
 
   <meta name="description" content="<%= htmlWebpackPlugin.options.title %>">
 
+  <style>
+    button
+    {
+      margin: 5px;
+    }
+  </style>
+
 </head>
 
 <body>
@@ -22,31 +29,41 @@
   <div id = "info" style="word-break: break-word">
 
   </div>
+  <div class="d-flex justify-content-md-start flex-wrap" style="padding: 5px">
+  
+    <button id="refresh" type="button" class="btn btn-info">refresh</button>
+    <button id="init" type="button" class="btn btn-info">InitL2</button>
+    <button id="deposit" type="button" class="btn btn-info">User Deposit</button>
+    <button id="withdraw" type="button" class="btn btn-info">User Withdraw</button>
+    <button id="withdraw2" type="button" class="btn btn-danger" style="visibility: block">Submit/Unlock Withdraw</button>
+    <button id="coclose" type="button" class="btn btn-info">User Cooperative Settle</button>
+    <button id="coclose2" type="button" class="btn btn-danger" style="visibility: block">Submit/Unlock CoSettle</button>
+  </div>
+  
+  
+  <div class="d-flex justify-content-md-start flex-wrap">
+    <button id="forceClose" type="button" class="btn btn-info">forceClose</button>
+    <button id="settle" type="button" class="btn btn-danger">settle</button>
+    <button id="transfer" type="button" class="btn btn-info">transfer</button>
+    <button id="guardTransfer" type="button" class="btn btn-info">guardTransfer</button>
+    <button id="getAllTxs" type="button" class="btn btn-info">getAllTxs</button>
+    <button id="getAllPuppets" type="button" class="btn btn-info">getAllPuppets</button>
+    <button id="disablePuppet" type="button" class="btn btn-info">disablePuppet</button>
+  
+  </div>
 
-  <button id="refresh" type="button" class="btn btn-info">refresh</button>
+  <div class="d-flex justify-content-start flex-wrap">
 
-  <button id="init" type="button" class="btn btn-info">InitL2</button>
+    <button id="createSession" type="button" class="btn btn-info">createSession</button>
+    <button id="startSession" type="button" class="btn btn-info">startSession</button>
+    <button id="sendMessage" type="button" class="btn btn-info">sendMessage</button>
+    <button id="sendMessageWithAsset" type="button" class="btn btn-info">sendMessageWithAsset</button>
+    <button id="closeSession" type="button" class="btn btn-warning">closeSession</button>
 
-  <button id="deposit" type="button" class="btn btn-info">User Deposit</button>
+    <button id="getSessionPlayers" type="button" class="btn btn-warning">getSessionPlayers</button>
+    <button id="getSessionMessages" type="button" class="btn btn-warning">getSessionMessages</button>
 
-  <button id="withdraw" type="button" class="btn btn-info">User Withdraw</button>
-  <button id="withdraw2" type="button" class="btn btn-danger" style="visibility: block">Submit/Unlock Withdraw</button>
-
-  <button id="coclose" type="button" class="btn btn-info">User Cooperative Settle</button>
-  <button id="coclose2" type="button" class="btn btn-danger" style="visibility: block">Submit/Unlock CoSettle</button>
-
-  <button id="forceClose" type="button" class="btn btn-info">forceClose</button>
-
-  <button id="transfer" type="button" class="btn btn-info">transfer</button>
-
-  <button id="guardTransfer" type="button" class="btn btn-info">guardTransfer</button>
-
-  <button id="getAllTxs" type="button" class="btn btn-info">getAllTxs</button>
-
-  <button id="getAllPuppets" type="button" class="btn btn-info">getAllPuppets</button>
-
-  <button id="disablePuppet" type="button" class="btn btn-info">disablePuppet</button>
-
+  </div>
 
   
 </body>

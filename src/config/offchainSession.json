@@ -1,0 +1,432 @@
+[
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "players",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "messages",
+      "outputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "name": "mType",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "type": "bytes"
+        },
+        {
+          "name": "signature",
+          "type": "bytes"
+        },
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "name": "additionalHash",
+          "type": "bytes32"
+        },
+        {
+          "name": "paymentSignature",
+          "type": "bytes"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "sessions",
+      "outputs": [
+        {
+          "name": "status",
+          "type": "uint8"
+        },
+        {
+          "name": "provider",
+          "type": "address"
+        },
+        {
+          "name": "game",
+          "type": "address"
+        },
+        {
+          "name": "paymentContract",
+          "type": "address"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "provider",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "game",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "_players",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "name": "sessionID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "InitSession",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "JoinSession",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "mType",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "name": "content",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "name": "signature",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "additionalHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "paymentSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "SendMessage",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "sessionID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "CloseSession",
+      "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "name": "provider",
+          "type": "address"
+        },
+        {
+          "name": "game",
+          "type": "address"
+        },
+        {
+          "name": "_players",
+          "type": "address[]"
+        },
+        {
+          "name": "paymentContract",
+          "type": "address"
+        },
+        {
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "initSession",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "joinSession",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        },
+        {
+          "name": "mType",
+          "type": "string"
+        },
+        {
+          "name": "content",
+          "type": "bytes"
+        },
+        {
+          "name": "signature",
+          "type": "bytes"
+        },
+        {
+          "name": "channelID",
+          "type": "bytes32"
+        },
+        {
+          "name": "balance",
+          "type": "uint256"
+        },
+        {
+          "name": "nonce",
+          "type": "uint256"
+        },
+        {
+          "name": "additionalHash",
+          "type": "bytes32"
+        },
+        {
+          "name": "paymentSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "sendMessage",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "closeSession",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "sessionID",
+          "type": "bytes32"
+        }
+      ],
+      "name": "exportSession",
+      "outputs": [
+        {
+          "components": [
+            {
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "sessionID",
+              "type": "bytes32"
+            },
+            {
+              "name": "mType",
+              "type": "string"
+            },
+            {
+              "name": "content",
+              "type": "bytes"
+            },
+            {
+              "name": "signature",
+              "type": "bytes"
+            },
+            {
+              "name": "channelID",
+              "type": "bytes32"
+            },
+            {
+              "name": "balance",
+              "type": "uint256"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "name": "additionalHash",
+              "type": "bytes32"
+            },
+            {
+              "name": "paymentSignature",
+              "type": "bytes"
+            }
+          ],
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]

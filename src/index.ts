@@ -1,5 +1,7 @@
 import { L2 } from './L2';
 import { DEPOSIT_EVENT, WITHDRAW_EVENT, PUPPETCHANGED_EVENT, FORCEWITHDRAW_EVENT, TRANSFER_EVENT } from './utils/constants';
+import L2Session from './session';
+import { cp } from './main';
 
 
 console.log('See this in your browser console: Typescript Webpack Starter Launched');
@@ -8,8 +10,9 @@ const socketUrl = 'localhost';
 // const ethPN: PN = {address: '0x119dc8Dae6C2EB015F108bF80d81f294D0711A14', abi: JSON.stringify(require('./config/onchainPayment.json'))};
 // const appPN: PN = {address: '0x0a95fF901dc4206Ac4a67E827436790A0A0cF36a', abi: JSON.stringify(require('./config/offchainPayment.json'))};
 
-const ethPNAddress = '0x7fD0016601C73Fe76E74B3c0b78A777534946aEc';
-const appPNAddress = '0x882fdcaCd0b70F5acba4b36505c80aac7e1081a8';
+const ethPNAddress = '0xA522665CEf690221850264696a02d4D785F9ba8A';
+const appPNAddress = '0x9324C590040b140def29d8968Ea6c40b53F25C9c';
+const appSessionAddress = '0x322628380Ee3BbC82bdB1c5683AD4B074b63A84E';
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 // let appRpcUrl = "https://node.cryptape.com";
@@ -21,6 +24,10 @@ var defaultAccount = "";
 window.addEventListener('load', async () => {
   await main();
 });
+
+let sessionId = "";
+let session: L2Session;
+
 
 async function  main() {
 
@@ -78,7 +85,7 @@ async function  main() {
 
     document.getElementById("init").addEventListener("click", async (event)=>{
       console.log("init button clicked");
-      let res = await L2.getInstance().init(defaultAccount, window.web3, ethPNAddress, appRpcUrl, appPNAddress);
+      let res = await L2.getInstance().init(defaultAccount, window.web3, ethPNAddress, appRpcUrl, appPNAddress, appSessionAddress);
       console.log("int res ", res);
       console.log("web3 version", web3.version);
     });
@@ -124,6 +131,12 @@ async function  main() {
       console.log("forcewithdraw res", res);
     });
 
+    document.getElementById("settle").addEventListener("click", async (event)=>{
+      console.log("settle button clicked");
+      let res = await L2.getInstance().testSettle(token);
+      console.log("settle res", res);
+    });
+
     document.getElementById("transfer").addEventListener("click", async (event)=>{
       console.log("transfer button clicked");
       let res = await L2.getInstance().transfer("0xa08105d7650Fe007978a291CcFECbB321fC21ffe", 1e15+"", token);
@@ -164,6 +177,65 @@ async function  main() {
       }else{
         console.log("no puppet now");
       }
+    });
+
+    document.getElementById("createSession").addEventListener("click", async (event)=>{
+      console.log("createSession button clicked");
+
+      sessionId = window.web3.sha3("hello world" + new Date().getTime());
+      console.log("sessionId is", sessionId);
+
+      let result = await L2.getInstance().testCreateSession(sessionId, token, "hello my dear");
+
+      console.log('createSession result', result);
+    });
+
+    document.getElementById("startSession").addEventListener("click", async (event)=>{
+      console.log("startSession button clicked");
+      session = await L2.getInstance().startSession(sessionId);
+      console.log('startSession result', session);
+
+
+      session.onMessage((error: Error, res: any) => {
+        console.log("Watch session message------", res);
+      });
+
+      session.onSessionClose((error: Error, res: any) => {
+        console.log("Watch session closed------", res)
+      });
+
+    });
+
+    document.getElementById("sendMessage").addEventListener("click", async (event)=>{
+      console.log("sendMessage button clicked");
+
+      let result = await session.sendMessage(cp, 'one', window.web3.toHex("you know what I say"));
+
+      console.log('sendMessage result', result);
+    });
+
+    document.getElementById("sendMessageWithAsset").addEventListener("click", async (event)=>{
+      console.log("sendMessageWithAsset button clicked");
+      let result = await L2.getInstance().getAllPuppets();
+      console.log('sendMessageWithAsset result', result);
+    });
+
+    document.getElementById("closeSession").addEventListener("click", async (event)=>{
+      console.log("closeSession button clicked");
+      let result = await L2.getInstance().testCloseSession(sessionId);
+      console.log('closeSession result', result);
+    });
+
+    document.getElementById("getSessionPlayers").addEventListener("click", async (event)=>{
+      console.log("getSessionPlayers button clicked");
+      let result = await L2.getInstance().getPlayersBySessionId(sessionId);
+      console.log('getSessionPlayers result', result);
+    });
+
+    document.getElementById("getSessionMessages").addEventListener("click", async (event)=>{
+      console.log("getSessionMessages button clicked");
+      let result = await L2.getInstance().getMessagesBySessionId(sessionId);
+      console.log('getSessionMessages result', result);
     });
 }
 
