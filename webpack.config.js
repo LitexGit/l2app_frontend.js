@@ -32,8 +32,32 @@ var config = {
   },
   output: {
     path: path.resolve('./dist'),
-    filename: '[name].bundle.js'
+    filename: '[name].bundle.js',
+    library: 'l2js',
+    libraryTarget: 'var'
   },
+  externals:[  
+    // "web3"
+    // {
+    //   "lodash": {
+    //         commonjs: "lodash",//如果我们的库运行在Node.js环境中，import _ from 'lodash'等价于const _ = require('lodash')
+    //         commonjs2: "lodash",//同上
+    //         amd: "lodash",//如果我们的库使用require.js等加载,等价于 define(["lodash"], factory);
+    //         root: "_"//如果我们的库在浏览器中使用，需要提供一个全局的变量‘_’，等价于 var _ = (window._) or (_);
+    //   }
+    // },
+    // "@cryptape/cita-sdk",
+    // "@babel",
+    // "_",
+    // /^[a-z\-0-9]+$/,
+    // function(context, request, callback) { // ③ function形式
+    //   // Every module prefixed with "global-" becomes external
+    //   // "global-abc" -> abc
+    //   if(/^global-/.test(request))
+    //       return callback(null, "var " + request.substr(7));
+    //   callback();
+    // },
+ ],
   module: {
     rules: [
       {

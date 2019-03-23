@@ -31,7 +31,9 @@ export default class Puppet {
 
     let key = localStorage.getItem(sha3(masterAddress));
 
-    if(!key) return null;
+    if (!key) {
+      return null;
+    }
 
     key = new SimpleCrypto(getPassword(masterAddress)).decrypt(key).toString();
 
