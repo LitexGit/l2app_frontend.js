@@ -228,9 +228,6 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
 
-    if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-      throw new Error("channel status is not open");
-    }
 
     // withdraw amount must less than user balance
     if (web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
@@ -245,6 +242,11 @@ export class L2 {
      *  if withdraw balance == user's balance, then go walk with cooperative settle process.
      */
     if (web3_10.utils.toBN(channel.userBalance).gt(web3_10.utils.toBN(amount))) {
+
+      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        throw new Error("channel status is not open");
+      }
+
       console.log("will call userProposeWithdraw");
       res = await appPN.methods.userProposeWithdraw(
         channelID,
@@ -289,7 +291,7 @@ export class L2 {
 
     let channel = await ethPN.methods.channels(channelID).call();
 
-    if (channel.status !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+    if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error("eth channel status is not open, can not force withdraw");
     }
 
@@ -337,7 +339,7 @@ export class L2 {
     let channel = await appPN.methods.channelMap(channelID).call();
 
     // check channel status
-    if (channel.status !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+    if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error("app channel status is not open, can not transfer now");
     }
 

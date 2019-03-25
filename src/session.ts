@@ -28,6 +28,7 @@ export default class L2Session {
   //   players: Array<string>;
   game: string;
   data: string;
+  provider: string;
 
   callbacks: Map<string, (err: Error, res: any) => void>;
 
@@ -132,6 +133,7 @@ export default class L2Session {
     this.status = Number(status);
     this.game = game;
     this.data = data;
+    this.provider = provider;
 
     this.callbacks = this.callbacks || new Map<string, () => void>();
   }

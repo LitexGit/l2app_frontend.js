@@ -82,6 +82,10 @@
     "@types/socket.io-client": "^1.4.32",
     "ethereumjs-util": "^6.1.0",
     "simple-crypto-js": "^2.0.2",
-    "web3": "^1.0.0-beta.48"
+    "web3": "^1.0.0-beta.48",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "peerDependencies": {
+    "lodash": "^4.17.11"
   }
 }

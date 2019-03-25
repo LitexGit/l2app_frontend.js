@@ -12,6 +12,7 @@
   </title>
 
   <meta name="description" content="<%= htmlWebpackPlugin.options.title %>">
+  <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.js"></script>
 
   <style>
     button
@@ -26,11 +27,14 @@
   <div> You have successfully started your Typescript application using Webpack. Open your console to see your printed message from the index.ts file </div>
   <p>By <a href="https://twitter.com/renaudin_yann">@renaudin_yann</a> </p>
 
+  <div id="token"></div>
+
   <div id = "info" style="word-break: break-word">
 
   </div>
   <div class="d-flex justify-content-md-start flex-wrap" style="padding: 5px">
   
+    <button id="switch" type="button" class="btn btn-success">switch ERC20/ETH</button>
     <button id="refresh" type="button" class="btn btn-info">refresh</button>
     <button id="init" type="button" class="btn btn-info">InitL2</button>
     <button id="deposit" type="button" class="btn btn-info">User Deposit</button>
@@ -69,15 +73,21 @@
 
 <script>
 
-const ethPNAddress = '0xA522665CEf690221850264696a02d4D785F9ba8A';
-const appPNAddress = '0x9324C590040b140def29d8968Ea6c40b53F25C9c';
+const ethPNAddress = '0x276B5d0202967D1aa26C86e135A94B3A0852bFdb';
+const appPNAddress = '0x8C4391F387B6d20d4F38b7e5449D755fC0B7DB0E';
 const appSessionAddress = '0x322628380Ee3BbC82bdB1c5683AD4B074b63A84E';
 
 let appRpcUrl = "http://wallet.milewan.com:8090";
 // let appRpcUrl = "https://node.cryptape.com";
 
-// let token = "0x0000000000000000000000000000000000000000";
-let token = "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928";
+let tokenList = [
+  "0x0000000000000000000000000000000000000000",
+  "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
+];
+
+let token = "0x0000000000000000000000000000000000000000";
+let tokenRound = 0;
+// let token = "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928";
 
 var defaultAccount = "";
 window.addEventListener('load', async () => {
@@ -110,6 +120,17 @@ if (typeof window.ethereum !== 'undefined') {
   } else {
     return;
   }
+
+  document.getElementById("token").innerHTML = "token Address: " + token;
+
+
+    document.getElementById("switch").addEventListener("click", (event)=>{
+
+      tokenRound ++;
+      token = tokenList[tokenRound % 2];
+      document.getElementById("token").innerHTML = "token Address: " + token;
+
+    });
 
 
     document.getElementById("refresh").addEventListener("click", async (event)=>{
@@ -269,14 +290,14 @@ if (typeof window.ethereum !== 'undefined') {
     document.getElementById("sendMessage").addEventListener("click", async (event)=>{
       console.log("sendMessage button clicked");
 
-      let result = await session.sendMessage(cp, 'one', window.web3.toHex("you know what I say"));
+      let result = await session.sendMessage(session.provider, 'one', window.web3.toHex("you know what I say"));
 
       console.log('sendMessage result', result);
     });
 
     document.getElementById("sendMessageWithAsset").addEventListener("click", async (event)=>{
       console.log("sendMessageWithAsset button clicked");
-      let result = await session.sendMessage(cp, 'pay', window.web3.toHex("you know what I say, here you are"), 1e14+"", token);
+      let result = await session.sendMessage(session.provider, 'pay', window.web3.toHex("you know what I say, here you are"), 1e14+"", token);
       console.log('sendMessageWithAsset result', result);
     });
 
