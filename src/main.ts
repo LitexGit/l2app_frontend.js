@@ -228,6 +228,9 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
 
+    if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+      throw new Error("channel status is not open");
+    }
 
     // withdraw amount must less than user balance
     if (web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
@@ -236,16 +239,11 @@ export class L2 {
 
     let tx = await getAppTxOption();
     let res;
-
-    /*
-     *  if withdraw balance < user's balance, then go walk with userwithdraw process.
-     *  if withdraw balance == user's balance, then go walk with cooperative settle process.
-     */
+    
+    // if withdraw balance < user's balance, then go walk with userwithdraw process.
+    // if withdraw balance == user's balance, then go walk with cooperative settle process.
     if (web3_10.utils.toBN(channel.userBalance).gt(web3_10.utils.toBN(amount))) {
 
-      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-        throw new Error("channel status is not open");
-      }
 
       console.log("will call userProposeWithdraw");
       res = await appPN.methods.userProposeWithdraw(

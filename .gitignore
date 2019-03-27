@@ -1,5 +1,6 @@
 # Build results
-dist/
+dist/*
+!dist/app.bundle.js
 typings/**/*
 app/
 

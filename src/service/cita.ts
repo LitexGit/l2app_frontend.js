@@ -43,19 +43,21 @@ export const events = {
           amount,
           lastCommitBlock,
           isAllConfirmed
-        }
+        },
+        transactionHash
       } = event;
 
       // if UserWithdraw Proposal not confirmed by both provider and regulator, ignore the event.
-      if (!isAllConfirmed) {
+      if (isAllConfirmed === false) {
         return;
       }
       console.log(
-        "Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx"
+        "Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx %s", transactionHash
       );
 
       // when both provider and regualtor confirmed UserWithdraw Proposal, user should submit eth tx to get his asset on chain
-      await delay(CITA_TX_BLOCK_INTERVAL);
+      await delay(CITA_TX_BLOCK_INTERVAL * 2);
+      // await ethMethods.ethSubmitUserWithdraw(channelID, CITA_TX_BLOCK_INTERVAL);
       await ethMethods.ethSubmitUserWithdraw(channelID);
     }
   },
@@ -73,20 +75,21 @@ export const events = {
           balance,
           lastCommitBlock: lcb,
           isAllConfirmed
-        }
+        },
+        transactionHash
       } = event;
 
       // if CooperativeSettle Proposal not confirmed by both provider and regulator, ignore the event.
-      if (!isAllConfirmed) {
+      if (isAllConfirmed === false) {
         return;
       }
 
       console.log(
-        "Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx"
+        "Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx %s", transactionHash
       );
 
       // when both provider and regualtor confirmed CooperativeSettle Proposal, user should submit eth tx to get his asset on chain
-      await delay(CITA_TX_BLOCK_INTERVAL);
+      await delay(CITA_TX_BLOCK_INTERVAL * 2);
       await ethMethods.ethSubmitCooperativeSettle(channelID);
     }
   },
@@ -104,6 +107,7 @@ export const events = {
           to,
           channelID,
           balance,
+          transferAmount,
           // nonce,
           additionalHash
         }
@@ -112,21 +116,22 @@ export const events = {
       console.log("Receive Transfer event", event);
 
       // emit the Transfer event to sdk caller
-      let { token } = await appPN.methods.channelMap(channelID).call();
-      let amount = "";
-      let transferEvent: TRANSFER_EVENT = {
-        from,
-        to,
-        token,
-        amount,
-        additionalHash,
-        totalTransferredAmount: balance
-      };
-      callbacks.get("Transfer") &&
+      if (callbacks.get("Transfer") && additionalHash === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+        let { token } = await appPN.methods.channelMap(channelID).call();
+        let amount = transferAmount;
+        let transferEvent: TRANSFER_EVENT = {
+          from,
+          to,
+          token,
+          amount,
+          additionalHash,
+          totalTransferredAmount: balance
+        };
         callbacks.get("Transfer")(null, transferEvent);
+      }
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
-      await delay(CITA_TX_BLOCK_INTERVAL);
+      await delay(CITA_TX_BLOCK_INTERVAL* 2);
       await appMethods.appSubmitGuardProof(channelID, to);
     }
   }
@@ -138,7 +143,9 @@ export const ethMethods = {
    *  1. find provider and regulator's confirmation from appchain
    *  2. embrace provider and regualtor's signature in the withdraw request to eth payment contract
    */
-  ethSubmitUserWithdraw: async (channelID: string) => {
+  ethSubmitUserWithdraw: async (channelID: string, duration: number = 0) => {
+    await delay(duration);
+
     let [
       {
         isConfirmed,

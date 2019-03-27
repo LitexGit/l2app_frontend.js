@@ -1,6 +1,7 @@
 import L2Session from "../session";
-import { cp, cita } from "../main";
+import { cp, cita, web3_10, appPN } from "../main";
 import { ADDRESS_ZERO } from "../utils/constants";
+import { extractEventFromReceipt } from "../utils/common";
 
 export const events = {
   // 'InitSession': {
@@ -43,10 +44,16 @@ export const events = {
       let token = ADDRESS_ZERO;
 
       if (Number(balance) !== 0 && Number(nonce) !== 0) {
-        // let receipt = await cita.listeners.listenToTransactionReceipt(transactionHash);
+        // fetch token&amount from transaction receipt log
+        let receipt = await cita.listeners.listenToTransactionReceipt(transactionHash);
+        let transferEvent = extractEventFromReceipt(web3_10, receipt, appPN, 'Transfer');
+
+        let channel = await appPN.methods.channelMap(transferEvent.channelID).call();
+        token = channel.token;
+        amount = transferEvent.transferAmount;
       }
 
-      console.log("session callbacks", session.callbacks.get("message"));
+      // console.log("session callbacks", session.callbacks.get("message"));
 
       session.callbacks.get("message") &&
         session.callbacks.get("message")(null, {

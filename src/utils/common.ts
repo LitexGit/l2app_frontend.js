@@ -229,3 +229,40 @@ export async function prepareSignatureForTransfer(
 
   return signature;
 }
+
+
+/**
+ * extract event from transaction receipt
+ * 
+ * @param receipt 
+ * @param contract contract definition 
+ * @param name event name
+ * 
+ * @returns event object
+ */
+export function extractEventFromReceipt(web3: any, receipt: any, contract: Contract, name: string ){
+  let abiItems = contract.options.jsonInterface;
+
+  let eventDefinition = null;
+  for(let abiItem of abiItems){
+      if(abiItem.type === 'event' && abiItem.name === name){
+          eventDefinition = abiItem;
+          break;
+      }
+  }
+
+  if(eventDefinition === null){
+      return null;
+  }
+
+  let eventSignature = web3.eth.abi.encodeEventSignature(eventDefinition);
+
+  for(let log of receipt.logs){
+      if(log.topics[0] === eventSignature){
+          return web3.eth.abi.decodeLog(eventDefinition.inputs, log.data, log.topics.slice(1));
+      }
+  }
+
+  return null;
+
+}
