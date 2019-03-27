@@ -1,6 +1,6 @@
-import { ethPN, appPN, user, callbacks, puppet, cita, web3_10 } from "../main";
-import { myEcsignToHex, sendEthTx, getLCB, delay } from "../utils/common";
-import { TRANSFER_EVENT, CITA_TX_BLOCK_INTERVAL } from "../utils/constants";
+import { ethPN, appPN, user, callbacks, puppet, cita, web3_10 } from '../main';
+import { myEcsignToHex, sendEthTx, getLCB, delay } from '../utils/common';
+import { TRANSFER_EVENT, CITA_TX_BLOCK_INTERVAL } from '../utils/constants';
 
 /**
  * the transaction options for submiting cita transaction
@@ -11,7 +11,7 @@ export const tx = {
   chainId: 1,
   version: 1,
   validUntilBlock: 999999,
-  value: "0x0"
+  value: '0x0',
 };
 
 /**
@@ -20,9 +20,9 @@ export const tx = {
 export async function getAppTxOption() {
   return {
     ...tx,
-    validUntilBlock: await getLCB(cita.base, "cita"),
+    validUntilBlock: await getLCB(cita.base, 'cita'),
     from: puppet.getAccount().address,
-    privateKey: puppet.getAccount().privateKey
+    privateKey: puppet.getAccount().privateKey,
   };
 }
 
@@ -42,9 +42,9 @@ export const events = {
           confirmer,
           amount,
           lastCommitBlock,
-          isAllConfirmed
+          isAllConfirmed,
         },
-        transactionHash
+        transactionHash,
       } = event;
 
       // if UserWithdraw Proposal not confirmed by both provider and regulator, ignore the event.
@@ -52,14 +52,15 @@ export const events = {
         return;
       }
       console.log(
-        "Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx %s", transactionHash
+        'Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx %s',
+        transactionHash
       );
 
       // when both provider and regualtor confirmed UserWithdraw Proposal, user should submit eth tx to get his asset on chain
       await delay(CITA_TX_BLOCK_INTERVAL * 2);
       // await ethMethods.ethSubmitUserWithdraw(channelID, CITA_TX_BLOCK_INTERVAL);
       await ethMethods.ethSubmitUserWithdraw(channelID);
-    }
+    },
   },
 
   ConfirmCooperativeSettle: {
@@ -74,9 +75,9 @@ export const events = {
           confirmer,
           balance,
           lastCommitBlock: lcb,
-          isAllConfirmed
+          isAllConfirmed,
         },
-        transactionHash
+        transactionHash,
       } = event;
 
       // if CooperativeSettle Proposal not confirmed by both provider and regulator, ignore the event.
@@ -85,13 +86,14 @@ export const events = {
       }
 
       console.log(
-        "Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx %s", transactionHash
+        'Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx %s',
+        transactionHash
       );
 
       // when both provider and regualtor confirmed CooperativeSettle Proposal, user should submit eth tx to get his asset on chain
       await delay(CITA_TX_BLOCK_INTERVAL * 2);
       await ethMethods.ethSubmitCooperativeSettle(channelID);
-    }
+    },
   },
 
   Transfer: {
@@ -109,14 +111,18 @@ export const events = {
           balance,
           transferAmount,
           // nonce,
-          additionalHash
-        }
+          additionalHash,
+        },
       } = event;
 
-      console.log("Receive Transfer event", event);
+      console.log('Receive Transfer event', event);
 
       // emit the Transfer event to sdk caller
-      if (callbacks.get("Transfer") && additionalHash === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+      if (
+        callbacks.get('Transfer') &&
+        additionalHash ===
+          '0x0000000000000000000000000000000000000000000000000000000000000000'
+      ) {
         let { token } = await appPN.methods.channelMap(channelID).call();
         let amount = transferAmount;
         let transferEvent: TRANSFER_EVENT = {
@@ -125,16 +131,16 @@ export const events = {
           token,
           amount,
           additionalHash,
-          totalTransferredAmount: balance
+          totalTransferredAmount: balance,
         };
-        callbacks.get("Transfer")(null, transferEvent);
+        callbacks.get('Transfer')(null, transferEvent);
       }
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
-      await delay(CITA_TX_BLOCK_INTERVAL* 2);
+      await delay(CITA_TX_BLOCK_INTERVAL * 2);
       await appMethods.appSubmitGuardProof(channelID, to);
-    }
-  }
+    },
+  },
 };
 
 export const ethMethods = {
@@ -153,22 +159,22 @@ export const ethMethods = {
         providerSignature,
         regulatorSignature,
         lastCommitBlock,
-        receiver
-      }
+        receiver,
+      },
     ] = await Promise.all([
-      appPN.methods.userWithdrawProofMap(channelID).call()
+      appPN.methods.userWithdrawProofMap(channelID).call(),
     ]);
 
-    console.log("userWithdrawProofMap is ", {
+    console.log('userWithdrawProofMap is ', {
       isConfirmed,
       withdraw,
       providerSignature,
       regulatorSignature,
       lastCommitBlock,
-      receiver
+      receiver,
     });
     if (!isConfirmed) {
-      console.log("userWithdrawProofMap not confirmed");
+      console.log('userWithdrawProofMap not confirmed');
       return;
     }
 
@@ -178,11 +184,11 @@ export const ethMethods = {
         .toBN(currentBlockNumber)
         .gt(web3_10.utils.toBN(lastCommitBlock))
     ) {
-      console.log("unlock user withdraw now");
+      console.log('unlock user withdraw now');
       let tx = await getAppTxOption();
       let res = await appPN.methods.unlockUserWithdrawProof(channelID).send(tx);
     } else {
-      console.log("submit user withdraw now");
+      console.log('submit user withdraw now');
       // TODO: check the eth tx has been submited before
       let txData = ethPN.methods
         .userWithdraw(
@@ -209,20 +215,20 @@ export const ethMethods = {
       balance: settleBalance,
       lastCommitBlock,
       providerSignature,
-      regulatorSignature
+      regulatorSignature,
     } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
-    console.log("cooperativeSettleProof", {
+    console.log('cooperativeSettleProof', {
       channelID,
       isConfirmed,
       balance: settleBalance,
       lastCommitBlock,
       providerSignature,
-      regulatorSignature
+      regulatorSignature,
     });
 
     if (!isConfirmed) {
-      console.log("cooperativeSettleProof not confirmed");
+      console.log('cooperativeSettleProof not confirmed');
       return;
     }
 
@@ -252,7 +258,7 @@ export const ethMethods = {
   ethSettleChannel: async (channelID: string) => {
     let txData = ethPN.methods.settleChannel(channelID).encodeABI();
     sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
-  }
+  },
 };
 
 export const appMethods = {
@@ -270,35 +276,35 @@ export const appMethods = {
       nonce,
       additionalHash,
       signature,
-      consignorSignature
+      consignorSignature,
     } = await appPN.methods.balanceProofMap(channelID, to).call();
 
-    console.log("balanceProof is", {
+    console.log('balanceProof is', {
       balance,
       nonce,
       additionalHash,
       signature,
-      consignorSignature
+      consignorSignature,
     });
     // check if user has uploaded his guard proof
     if (consignorSignature != null) {
-      console.log("balance proof already signed now");
+      console.log('balance proof already signed now');
       return;
     }
 
-    if (balance === "0") {
-      console.log("no balance proof now");
+    if (balance === '0') {
+      console.log('no balance proof now');
       return;
     }
 
     // sign the received transfer
     let messageHash = web3_10.utils.soliditySha3(
-      { t: "address", v: ethPN.options.address },
-      { t: "bytes32", v: channelID },
-      { t: "uint256", v: balance },
-      { t: "uint256", v: nonce },
-      { t: "bytes32", v: additionalHash },
-      { t: "bytes", v: signature }
+      { t: 'address', v: ethPN.options.address },
+      { t: 'bytes32', v: channelID },
+      { t: 'uint256', v: balance },
+      { t: 'uint256', v: nonce },
+      { t: 'bytes32', v: additionalHash },
+      { t: 'bytes', v: signature }
     );
 
     consignorSignature = myEcsignToHex(
@@ -309,13 +315,13 @@ export const appMethods = {
 
     let appTx = await getAppTxOption();
 
-    console.log("guardBalanceProof params", {
+    console.log('guardBalanceProof params', {
       channelID,
       balance,
       nonce,
       additionalHash,
       signature,
-      consignorSignature
+      consignorSignature,
     });
     let res = await appPN.methods
       .guardBalanceProof(
@@ -332,10 +338,10 @@ export const appMethods = {
     if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if (receipt.errorMessage) {
-        console.error("[CITA] - guardBalanceProof", receipt.errorMessage);
+        console.error('[CITA] - guardBalanceProof', receipt.errorMessage);
       } else {
-        console.log("submit cita tx success");
+        console.log('submit cita tx success');
       }
     }
-  }
+  },
 };

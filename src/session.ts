@@ -1,9 +1,9 @@
 import {
   ADDRESS_ZERO,
   SESSION_STATUS,
-  CHANNEL_STATUS
-} from "./utils/constants";
-import { Contract } from "web3/node_modules/web3-eth-contract";
+  CHANNEL_STATUS,
+} from './utils/constants';
+import { Contract } from 'web3/node_modules/web3-eth-contract';
 import {
   appSession,
   appPN,
@@ -13,10 +13,10 @@ import {
   puppet,
   web3_outer,
   cita,
-  cp
-} from "./main";
-import { myEcsignToHex, prepareSignatureForTransfer } from "./utils/common";
-import { getAppTxOption } from "./service/cita";
+  cp,
+} from './main';
+import { myEcsignToHex, prepareSignatureForTransfer } from './utils/common';
+import { getAppTxOption } from './service/cita';
 
 /**
  * Session manager
@@ -87,7 +87,7 @@ export default class L2Session {
   static async getMessagesBySessionId(_sessionId: string): Promise<Array<any>> {
     // let messages = await appSession.methods.messages(_sessionId).call();
     let messages = await appSession.methods.exportSession(_sessionId).call();
-    console.log("session message is ", messages);
+    console.log('session message is ', messages);
     return [];
   }
 
@@ -102,7 +102,7 @@ export default class L2Session {
     _sessionId: string
   ): Promise<Array<string>> {
     let players = await appSession.methods.players(_sessionId).call();
-    console.log("session players is ", players);
+    console.log('session players is ', players);
     return [];
   }
 
@@ -128,7 +128,7 @@ export default class L2Session {
       provider,
       game,
       paymentContract,
-      data
+      data,
     } = await appSession.methods.sessions(this.sessionId).call();
     this.status = Number(status);
     this.game = game;
@@ -155,24 +155,24 @@ export default class L2Session {
     to: string,
     type: string,
     content: string,
-    amount: string = "0",
+    amount: string = '0',
     token: string = ADDRESS_ZERO
   ): Promise<string> {
     // check session status
     let { status } = await appSession.methods.sessions(this.sessionId).call();
     if (Number(status) !== SESSION_STATUS.SESSION_STATUS_OPEN) {
-      throw new Error("session is not open");
+      throw new Error('session is not open');
     }
 
     // build session message
     let from = user;
 
     let messageHash = web3_10.utils.soliditySha3(
-      { t: "address", v: from },
-      { t: "address", v: to },
-      { t: "bytes32", v: this.sessionId },
-      { t: "string", v: type },
-      { t: "bytes", v: content }
+      { t: 'address', v: from },
+      { t: 'address', v: to },
+      { t: 'bytes32', v: this.sessionId },
+      { t: 'string', v: type },
+      { t: 'bytes', v: content }
     );
     let signature = myEcsignToHex(
       web3_10,
@@ -180,18 +180,18 @@ export default class L2Session {
       puppet.getAccount().privateKey
     );
 
-    let channelID = "0x0";
-    let balance = "0";
-    let nonce = "0";
-    let additionalHash = "0x0";
-    let paymentSignature = "0x0";
+    let channelID = '0x0';
+    let balance = '0';
+    let nonce = '0';
+    let additionalHash = '0x0';
+    let paymentSignature = '0x0';
     if (Number(amount) > 0) {
       channelID = await ethPN.methods.getChannelID(from, token).call();
       let channel = await appPN.methods.channelMap(channelID).call();
 
       // check channel status
       if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-        throw new Error("app channel status is not open, can not transfer now");
+        throw new Error('app channel status is not open, can not transfer now');
       }
       // check user's balance is enough
       if (
@@ -250,11 +250,11 @@ export default class L2Session {
       if (receipt.errorMessage) {
         throw new Error(receipt.errorMessage);
       } else {
-        console.log("submit sendMessage success");
+        console.log('submit sendMessage success');
         return res.hash;
       }
     } else {
-      throw new Error("submit sendMessage failed");
+      throw new Error('submit sendMessage failed');
     }
   }
 
@@ -264,7 +264,7 @@ export default class L2Session {
    *
    */
   async onMessage(callback: (error: Error, res: any) => void) {
-    this.callbacks.set("message", callback);
+    this.callbacks.set('message', callback);
   }
 
   /**
@@ -272,6 +272,6 @@ export default class L2Session {
    * @param callback
    */
   async onSessionClose(callback: (error: Error, res: any) => void) {
-    this.callbacks.set("close", callback);
+    this.callbacks.set('close', callback);
   }
 }

@@ -1,14 +1,14 @@
 /**
  * 签名相关的工具函数
  */
-import { ecsign, toRpcSig } from "ethereumjs-util";
-import { AbiItem } from "web3/node_modules/web3-utils";
+import { ecsign, toRpcSig } from 'ethereumjs-util';
+import { AbiItem } from 'web3/node_modules/web3-utils';
 import {
   ETH_MESSAGE_COMMIT_BLOCK_EXPERITION,
-  CITA_TX_COMMIT_BLOCK_EXPERITION
-} from "./constants";
-import { Contract } from "web3/node_modules/web3-eth-contract";
-import { EIP712_TYPES } from "../config/TypedData";
+  CITA_TX_COMMIT_BLOCK_EXPERITION,
+} from './constants';
+import { Contract } from 'web3/node_modules/web3-eth-contract';
+import { EIP712_TYPES } from '../config/TypedData';
 
 /**
  * 用私钥签署消息
@@ -39,8 +39,8 @@ export function myEcsignToHex(
   messageHash: string,
   privateKey: string
 ): string {
-  let privateKeyBuffer = new Buffer(privateKey.replace("0x", ""), "hex");
-  let messageHashBuffer = new Buffer(messageHash.replace("0x", ""), "hex");
+  let privateKeyBuffer = new Buffer(privateKey.replace('0x', ''), 'hex');
+  let messageHashBuffer = new Buffer(messageHash.replace('0x', ''), 'hex');
   let signatureObj = ecsign(messageHashBuffer, privateKeyBuffer);
   let signatureHexString = toRpcSig(
     signatureObj.v,
@@ -71,7 +71,7 @@ export async function sendEthTx(
     web3.eth.sendTransaction(
       { from, to, value, data, gasPrice: 1e10 },
       function(err: any, result: any) {
-        console.log("send Transaction", err, result);
+        console.log('send Transaction', err, result);
         if (err) {
           reject(err);
         } else {
@@ -107,17 +107,17 @@ export async function signMessage(
   // }else {
   let params = [from, JSON.stringify(typedData)];
   console.dir(params);
-  let method = "eth_signTypedData_v3";
+  let method = 'eth_signTypedData_v3';
 
   return new Promise<string>((resolve, reject) => {
     web3.currentProvider.sendAsync(
       {
         method,
         params,
-        from
+        from,
       },
       async (err: any, result: any) => {
-        console.log("sign Result", err, result);
+        console.log('sign Result', err, result);
         if (err) {
           reject(err);
         } else if (result.error) {
@@ -159,7 +159,7 @@ export function abi2jsonInterface(abi: string): AbiItem[] | undefined {
  */
 export async function getLCB(base: any, chain: string) {
   let current = await base.getBlockNumber();
-  if (chain === "eth") {
+  if (chain === 'eth') {
     return current + ETH_MESSAGE_COMMIT_BLOCK_EXPERITION;
   } else {
     return current + CITA_TX_COMMIT_BLOCK_EXPERITION;
@@ -202,67 +202,74 @@ export async function prepareSignatureForTransfer(
   // build typed data for transfer message
   let typedData = {
     types: EIP712_TYPES,
-    primaryType: "Transfer",
+    primaryType: 'Transfer',
     domain: {
-      name: "litexlayer2",
-      version: "1",
+      name: 'litexlayer2',
+      version: '1',
       chainId: 4,
-      verifyingContract: ethPNAddress
+      verifyingContract: ethPNAddress,
     },
     message: {
       channelID: channelID,
       balance,
       nonce,
-      additionalHash
-    }
+      additionalHash,
+    },
   };
 
-  console.log("typedData ", typedData);
+  console.log('typedData ', typedData);
 
-  let signature = "";
+  let signature = '';
   try {
     signature = await signMessage(web3_outer, user, typedData);
   } catch (err) {
-    console.log("user reject the sign action");
+    console.log('user reject the sign action');
     throw err;
   }
 
   return signature;
 }
 
-
 /**
  * extract event from transaction receipt
- * 
- * @param receipt 
- * @param contract contract definition 
+ *
+ * @param receipt
+ * @param contract contract definition
  * @param name event name
- * 
+ *
  * @returns event object
  */
-export function extractEventFromReceipt(web3: any, receipt: any, contract: Contract, name: string ){
+export function extractEventFromReceipt(
+  web3: any,
+  receipt: any,
+  contract: Contract,
+  name: string
+) {
   let abiItems = contract.options.jsonInterface;
 
   let eventDefinition = null;
-  for(let abiItem of abiItems){
-      if(abiItem.type === 'event' && abiItem.name === name){
-          eventDefinition = abiItem;
-          break;
-      }
+  for (let abiItem of abiItems) {
+    if (abiItem.type === 'event' && abiItem.name === name) {
+      eventDefinition = abiItem;
+      break;
+    }
   }
 
-  if(eventDefinition === null){
-      return null;
+  if (eventDefinition === null) {
+    return null;
   }
 
   let eventSignature = web3.eth.abi.encodeEventSignature(eventDefinition);
 
-  for(let log of receipt.logs){
-      if(log.topics[0] === eventSignature){
-          return web3.eth.abi.decodeLog(eventDefinition.inputs, log.data, log.topics.slice(1));
-      }
+  for (let log of receipt.logs) {
+    if (log.topics[0] === eventSignature) {
+      return web3.eth.abi.decodeLog(
+        eventDefinition.inputs,
+        log.data,
+        log.topics.slice(1)
+      );
+    }
   }
 
   return null;
-
 }

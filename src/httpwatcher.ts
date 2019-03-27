@@ -1,4 +1,4 @@
-import { Contract } from "web3/node_modules/web3-eth-contract";
+import { Contract } from 'web3/node_modules/web3-eth-contract';
 
 export default class HttpWatcher {
   private enabled: boolean;
@@ -35,12 +35,12 @@ export default class HttpWatcher {
     let events = await contract.getPastEvents(eventName, {
       filter: eventSetting.filter(),
       fromBlock: fromBlockNumber,
-      toBlock: toBlockNumber
+      toBlock: toBlockNumber,
     });
 
     for (let event of events) {
-      console.log("eventName is ", eventName, eventSetting.filter());
-      console.log("event", event);
+      console.log('eventName is ', eventName, eventSetting.filter());
+      console.log('event', event);
       // process event
       await eventSetting.handler(event);
     }
@@ -51,9 +51,9 @@ export default class HttpWatcher {
     let currentBlockNumber = await this.base.getBlockNumber();
     lastBlockNumber = lastBlockNumber || currentBlockNumber - 10;
 
-    console.log("start syncing process", lastBlockNumber, currentBlockNumber);
+    console.log('start syncing process', lastBlockNumber, currentBlockNumber);
     while (lastBlockNumber <= currentBlockNumber) {
-      console.log("watchList", this.watchList);
+      console.log('watchList', this.watchList);
       for (let watchItem of this.watchList) {
         for (let eventName in watchItem.listener) {
           await this.processEvent(
@@ -75,7 +75,7 @@ export default class HttpWatcher {
     }
 
     // finish sync process;
-    console.log("finish syncing process", currentBlockNumber);
+    console.log('finish syncing process', currentBlockNumber);
 
     while (true) {
       await this.delay(this.blockInterval);
@@ -106,10 +106,10 @@ export default class HttpWatcher {
           }
         }
       } catch (err) {
-        console.error("watch error:", err);
+        console.error('watch error:', err);
       }
-  }  
-}
+    }
+  }
 
   async stop() {
     this.enabled = false;

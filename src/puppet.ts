@@ -2,18 +2,16 @@
  * model class of payment network
  */
 import SimpleCrypto from 'simple-crypto-js';
-import { cita } from './main'
-import { sha3 } from 'web3/node_modules/web3-utils'
+import { cita } from './main';
+import { sha3 } from 'web3/node_modules/web3-utils';
 import { Account } from 'web3/node_modules/web3-eth-accounts';
 
 export default class Puppet {
-
   private account: Account;
 
-  private constructor() {};
+  private constructor() {}
 
   static create(masterAddress: string): Puppet {
-
     let puppet = new Puppet();
 
     let key = cita.base.accounts.create().privateKey;
@@ -28,7 +26,6 @@ export default class Puppet {
   }
 
   static get(masterAddress: string): Puppet | null {
-
     let key = localStorage.getItem(sha3(masterAddress));
 
     if (!key) {

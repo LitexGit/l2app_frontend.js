@@ -1,15 +1,15 @@
-export type SOL_TYPE = "address" | "uint256" | "bytes32" | "bytes";
+export type SOL_TYPE = 'address' | 'uint256' | 'bytes32' | 'bytes';
 
 export const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 250;
 export const CITA_TX_COMMIT_BLOCK_EXPERITION = 88;
 export const CITA_TX_BLOCK_INTERVAL = 1000;
 export const SETTLE_WINDOW = 5;
-export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
 export enum PUPPET_STATUS {
   NULL,
   ENABLED,
-  DISABLED
+  DISABLED,
 }
 
 export enum CHANNEL_STATUS {
@@ -17,13 +17,13 @@ export enum CHANNEL_STATUS {
   CHANNEL_STATUS_OPEN,
   CHANNEL_STATUS_CLOSE,
   CHANNEL_STATUS_SETTLE,
-  CHANNEL_STATUS_PENDING_CO_SETTLE
+  CHANNEL_STATUS_PENDING_CO_SETTLE,
 }
 
 export enum SESSION_STATUS {
   SESSION_STATUS_INIT = 0,
   SESSION_STATUS_OPEN,
-  SESSION_STATUS_CLOSE
+  SESSION_STATUS_CLOSE,
 }
 
 /**
@@ -31,11 +31,11 @@ export enum SESSION_STATUS {
  * all properties need outside, will be exposed in L2.ts
  */
 export type L2_EVENT =
-  | "Deposit"
-  | "Withdraw"
-  | "ForceWithdraw"
-  | "Transfer"
-  | "PuppetChanged";
+  | 'Deposit'
+  | 'Withdraw'
+  | 'ForceWithdraw'
+  | 'Transfer'
+  | 'PuppetChanged';
 
 export type DEPOSIT_EVENT = {
   user: string;
