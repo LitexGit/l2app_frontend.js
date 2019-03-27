@@ -501,14 +501,14 @@ export class L2 {
     );
   }
 
-  async testCreateSession(sessionId: string, game: string, data: string) {
+  async testCreateSession(sessionID: string, game: string, data: string) {
     let tx = await getAppTxOption();
     tx.from = '0xa08105d7650Fe007978a291CcFECbB321fC21ffe';
     tx.privateKey =
       '6A22D7D5D87EFC4A1375203B7E54FBCF35FAA84975891C5E3D12BE86C579A6E5';
     let res = await appSession.methods
       .initSession(
-        sessionId,
+        sessionID,
         cp,
         game,
         [user, cp],
@@ -531,12 +531,12 @@ export class L2 {
     }
   }
 
-  async testCloseSession(sessionId: string) {
+  async testCloseSession(sessionID: string) {
     let tx = await getAppTxOption();
     tx.from = '0xa08105d7650Fe007978a291CcFECbB321fC21ffe';
     tx.privateKey =
       '6A22D7D5D87EFC4A1375203B7E54FBCF35FAA84975891C5E3D12BE86C579A6E5';
-    let res = await appSession.methods.closeSession(sessionId).send(tx);
+    let res = await appSession.methods.closeSession(sessionID).send(tx);
 
     if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
@@ -554,12 +554,12 @@ export class L2 {
 
   /** * ---------- Session APIs ---------- */
 
-  async startSession(sessionId: string): Promise<L2Session> {
+  async startSession(sessionID: string): Promise<L2Session> {
     this.checkInitialized();
     let repeatTimes = 10;
     let session: L2Session;
     for (let i = 0; i < repeatTimes; i++) {
-      session = await L2Session.getSessionById(sessionId);
+      session = await L2Session.getSessionById(sessionID);
       if (session) {
         break;
       }
@@ -574,16 +574,16 @@ export class L2 {
 
   /** * ---------- Query APIs ---------- */
 
-  async getSessionBySessionId(sessionId: string): Promise<L2Session> {
-    return await L2Session.getSessionById(sessionId);
+  async getSessionBySessionID(sessionID: string): Promise<L2Session> {
+    return await L2Session.getSessionById(sessionID);
   }
 
-  async getMessagesBySessionId(sessionId: string) {
-    return await L2Session.getMessagesBySessionId(sessionId);
+  async getMessagesBySessionID(sessionID: string) {
+    return await L2Session.getMessagesBySessionID(sessionID);
   }
 
-  async getPlayersBySessionId(sessionId: string) {
-    return await L2Session.getPlayersBySessionId(sessionId);
+  async getPlayersBySessionID(sessionID: string) {
+    return await L2Session.getPlayersBySessionID(sessionID);
   }
 
   /**
@@ -791,12 +791,9 @@ export class L2 {
     );
 
     for (let event of allChannelOpenedEvent) {
-      // @ts-ignore-start
-      let {
-        returnValues: { channelID },
-      } = event;
-      // @ts-ignore-end
 
+      let returnValues: any = event.returnValues
+      let { channelID } = returnValues;
       let channel = await ethPN.methods.channels(channelID).call();
 
       if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {

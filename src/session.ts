@@ -23,7 +23,7 @@ import { getAppTxOption } from './service/cita';
  */
 export default class L2Session {
   /**-----------------Public Attributes------------------------ */
-  sessionId: string;
+  sessionID: string;
   status: SESSION_STATUS;
   //   players: Array<string>;
   game: string;
@@ -38,25 +38,25 @@ export default class L2Session {
   /**
    * get session by session id
    *
-   * @param {} _sessionId
+   * @param {} _sessionID
    * @param {} fromChain  OPTIONAL load session from cita chain. default: true
    *
    * @returns {Promise<L2Session}
    */
   static async getSessionById(
-    _sessionId: string,
+    _sessionID: string,
     fromChain: boolean = true
   ): Promise<L2Session> {
-    let session = L2Session.sessionList.get(_sessionId);
+    let session = L2Session.sessionList.get(_sessionID);
     if (!session) {
-      let sessionExist = await L2Session.isExists(_sessionId);
+      let sessionExist = await L2Session.isExists(_sessionID);
       if (!sessionExist) {
         return null;
       }
 
-      session = new L2Session(_sessionId);
+      session = new L2Session(_sessionID);
       await session.initialize();
-      L2Session.sessionList.set(_sessionId, session);
+      L2Session.sessionList.set(_sessionID, session);
     }
     return session;
   }
@@ -64,12 +64,12 @@ export default class L2Session {
   /**
    * check session is initialized on appchain
    *
-   * @param {string} _sessionId
+   * @param {string} _sessionID
    *
    * @returns {Promise<boolean>}
    */
-  static async isExists(_sessionId: string): Promise<boolean> {
-    let session = await appSession.methods.sessions(_sessionId).call();
+  static async isExists(_sessionID: string): Promise<boolean> {
+    let session = await appSession.methods.sessions(_sessionID).call();
     if (Number(session.status) === SESSION_STATUS.SESSION_STATUS_INIT) {
       return false;
     }
@@ -80,13 +80,13 @@ export default class L2Session {
   /**
    * get all messages of the session
    *
-   * @param {string} _sessionId
+   * @param {string} _sessionID
    *
    * @returns {Promise<Array<any>>}
    */
-  static async getMessagesBySessionId(_sessionId: string): Promise<Array<any>> {
-    // let messages = await appSession.methods.messages(_sessionId).call();
-    let messages = await appSession.methods.exportSession(_sessionId).call();
+  static async getMessagesBySessionID(_sessionID: string): Promise<Array<any>> {
+    // let messages = await appSession.methods.messages(_sessionID).call();
+    let messages = await appSession.methods.exportSession(_sessionID).call();
     console.log('session message is ', messages);
     return [];
   }
@@ -94,14 +94,14 @@ export default class L2Session {
   /**
    * get all players join in the session
    *
-   * @param {string} _sessionId
+   * @param {string} _sessionID
    *
    * @returns {Promise<Array<string>>}
    */
-  static async getPlayersBySessionId(
-    _sessionId: string
+  static async getPlayersBySessionID(
+    _sessionID: string
   ): Promise<Array<string>> {
-    let players = await appSession.methods.players(_sessionId).call();
+    let players = await appSession.methods.players(_sessionID).call();
     console.log('session players is ', players);
     return [];
   }
@@ -111,11 +111,11 @@ export default class L2Session {
   /**
    * constructor of L2Session
    *
-   * @param {string} _sessionId
+   * @param {string} _sessionID
    * @param {Contract} _sessionContract
    */
-  private constructor(_sessionId: string) {
-    this.sessionId = _sessionId;
+  private constructor(_sessionID: string) {
+    this.sessionID = _sessionID;
   }
 
   /**
@@ -129,7 +129,7 @@ export default class L2Session {
       game,
       paymentContract,
       data,
-    } = await appSession.methods.sessions(this.sessionId).call();
+    } = await appSession.methods.sessions(this.sessionID).call();
     this.status = Number(status);
     this.game = game;
     this.data = data;
@@ -159,7 +159,7 @@ export default class L2Session {
     token: string = ADDRESS_ZERO
   ): Promise<string> {
     // check session status
-    let { status } = await appSession.methods.sessions(this.sessionId).call();
+    let { status } = await appSession.methods.sessions(this.sessionID).call();
     if (Number(status) !== SESSION_STATUS.SESSION_STATUS_OPEN) {
       throw new Error('session is not open');
     }
@@ -170,7 +170,7 @@ export default class L2Session {
     let messageHash = web3_10.utils.soliditySha3(
       { t: 'address', v: from },
       { t: 'address', v: to },
-      { t: 'bytes32', v: this.sessionId },
+      { t: 'bytes32', v: this.sessionID },
       { t: 'string', v: type },
       { t: 'bytes', v: content }
     );
@@ -233,7 +233,7 @@ export default class L2Session {
       .sendMessage(
         from,
         to,
-        this.sessionId,
+        this.sessionID,
         type,
         content,
         signature,

@@ -26,7 +26,7 @@ export const events = {
         returnValues: {
           from,
           to,
-          sessionID: sessionId,
+          sessionID: sessionID,
           mType: type,
           content,
           channelID,
@@ -35,7 +35,7 @@ export const events = {
         },
         transactionHash,
       } = event;
-      let session = await L2Session.getSessionById(sessionId, false);
+      let session = await L2Session.getSessionById(sessionID, false);
       if (!session) {
         return;
       }
@@ -68,7 +68,7 @@ export const events = {
         session.callbacks.get('message')(null, {
           from,
           to,
-          sessionId,
+          sessionID,
           type,
           content,
           amount,
@@ -82,10 +82,10 @@ export const events = {
     },
     handler: async (event: any) => {
       let {
-        returnValues: { sessionID: sessionId },
+        returnValues: { sessionID: sessionID },
       } = event;
 
-      let session = await L2Session.getSessionById(sessionId, false);
+      let session = await L2Session.getSessionById(sessionID, false);
       if (!session) {
         return;
       }

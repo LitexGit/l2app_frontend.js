@@ -177,7 +177,7 @@
       await main();
     });
 
-    let sessionId = '';
+    let sessionID = '';
     let session;
 
     window.L2 = l2js.default;
@@ -390,11 +390,11 @@
         .getElementById('startSession')
         .addEventListener('click', async event => {
           console.log('startSession button clicked');
-          $.get(SERVER_URL + 'getSessionId', async function(data) {
+          $.get(SERVER_URL + 'getSessionID', async function(data) {
             console.log('DATA FROM SERVER', data);
-            sessionId = data.data.sessionId;
+            sessionID = data.data.sessionID;
 
-            session = await L2.getInstance().startSession(sessionId);
+            session = await L2.getInstance().startSession(sessionID);
             console.log('startSession result', session);
 
             session.onMessage((error, res) => {
@@ -442,7 +442,7 @@
           $.get(
             SERVER_URL + 'closeSession',
             {
-              sessionId: sessionId,
+              sessionID: sessionID,
             },
             async function(data) {
               console.log('CLOSE SESSION DATA FROM SERVER', data);
@@ -454,7 +454,7 @@
         .getElementById('getSessionPlayers')
         .addEventListener('click', async event => {
           console.log('getSessionPlayers button clicked');
-          let result = await L2.getInstance().getPlayersBySessionId(sessionId);
+          let result = await L2.getInstance().getPlayersBySessionID(sessionID);
           console.log('getSessionPlayers result', result);
         });
 
@@ -462,7 +462,7 @@
         .getElementById('getSessionMessages')
         .addEventListener('click', async event => {
           console.log('getSessionMessages button clicked');
-          let result = await L2.getInstance().getMessagesBySessionId(sessionId);
+          let result = await L2.getInstance().getMessagesBySessionID(sessionID);
           console.log('getSessionMessages result', result);
         });
     }
