@@ -40,7 +40,7 @@ export default class HttpWatcher {
 
     for (let event of events) {
       console.log('eventName is ', eventName, eventSetting.filter());
-      console.log('event', event);
+      // console.log('event', event);
       // process event
       await eventSetting.handler(event);
     }
@@ -49,11 +49,11 @@ export default class HttpWatcher {
 
   async start(lastBlockNumber: number = 0) {
     let currentBlockNumber = await this.base.getBlockNumber();
-    lastBlockNumber = lastBlockNumber || currentBlockNumber - 10;
+    lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
 
     console.log('start syncing process', lastBlockNumber, currentBlockNumber);
     while (lastBlockNumber <= currentBlockNumber) {
-      console.log('watchList', this.watchList);
+      // console.log('watchList', this.watchList);
       for (let watchItem of this.watchList) {
         for (let eventName in watchItem.listener) {
           await this.processEvent(

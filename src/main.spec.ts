@@ -1,29 +1,186 @@
-// import L2, { PN } from '.';
-// import { ethers, utils } from 'ethers';
+import L2 from './index';
+import {
+  mock_sendEthTx,
+  mock_prepareSignatureForTransfer,
+} from '../testcase/mock_metamask';
+import * as common from './utils/common';
+import { cp } from './main';
 
+const Web3 = require('web3');
 
-// const ganache0 = {
-//   address: '0xBD8F47aC03d2aCbDAd76C79a3C55Cf0116118F03',
-//   privateKey: 'f331dabb7f644e8f15988fdb57df7fd7cec99aa50b9b9a3a2d4a02bd3a9354ac'
-// };
-// const testProvider = new ethers.providers.JsonRpcProvider('HTTP://127.0.0.1:8545');
-// const testWallet = new ethers.Wallet(ganache0.privateKey, testProvider);
+const ethPNAddress = '0x276B5d0202967D1aa26C86e135A94B3A0852bFdb';
+const appPNAddress = '0x8C4391F387B6d20d4F38b7e5449D755fC0B7DB0E';
+const appSessionAddress = '0x418bDb873b3e8B200662571a643F65f7D90B468e';
+let appRpcUrl = 'ws://wallet.milewan.com:4337';
+let token = '0x0000000000000000000000000000000000000000';
 
-// const socketUrl = 'localhost';
-// const ethPN = new PN('0xCb64dDA8476BA95e0473C3C7601bd7db406ee634', `[{"constant":true,"inputs":[],"name":"provider","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"},{"name":"puppet","type":"address"},{"name":"settleWindow","type":"uint256"}],"name":"openChannel","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"},{"name":"balance","type":"uint256"},{"name":"lastCommitBlock","type":"uint256"},{"name":"providerSignature","type":"bytes"},{"name":"regulatorSignature","type":"bytes"}],"name":"cooperativeSettle","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"withdraw","type":"uint256"},{"name":"lastCommitBlock","type":"uint256"},{"name":"providerSignature","type":"bytes"},{"name":"regulatorSignature","type":"bytes"},{"name":"receiver","type":"address"}],"name":"participantWithdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"puppet","type":"address"},{"name":"lastCommitBlock","type":"uint256"},{"name":"providerSignature","type":"bytes"},{"name":"regulatorSignature","type":"bytes"}],"name":"setPuppet","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"},{"name":"balance","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"additionalHash","type":"bytes32"},{"name":"partnerSignature","type":"bytes"},{"name":"inAmount","type":"uint256"},{"name":"inNonce","type":"uint256"},{"name":"regulatorSignature","type":"bytes"},{"name":"inProviderSignature","type":"bytes"},{"name":"outAmount","type":"uint256"},{"name":"outNonce","type":"uint256"},{"name":"participantSignature","type":"bytes"},{"name":"outProviderSignature","type":"bytes"}],"name":"closeChannel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"},{"name":"inAmount","type":"uint256"},{"name":"inNonce","type":"uint256"},{"name":"regulatorSignature","type":"bytes"},{"name":"inProviderSignature","type":"bytes"},{"name":"outAmount","type":"uint256"},{"name":"outNonce","type":"uint256"},{"name":"participantSignature","type":"bytes"},{"name":"outProviderSignature","type":"bytes"}],"name":"regulatorUpdateProof","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"counter","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"participant","type":"address"}],"name":"getChannelIdentifier","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"}],"name":"identifier_to_channel","outputs":[{"name":"status","type":"uint8"},{"name":"isCloser","type":"bool"},{"name":"settleBlock","type":"uint256"},{"name":"puppet","type":"address"},{"name":"deposit","type":"uint256"},{"name":"withdraw","type":"uint256"},{"name":"participantBalance","type":"uint256"},{"name":"participantNonce","type":"uint256"},{"name":"providerBalance","type":"uint256"},{"name":"providerNonce","type":"uint256"},{"name":"inAmount","type":"uint256"},{"name":"inNonce","type":"uint256"},{"name":"outAmount","type":"uint256"},{"name":"outNonce","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"}],"name":"setTotalDeposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"}],"name":"settleChannel","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"providerBalance","outputs":[{"name":"","type":"int256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"providerSetDeposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[],"name":"settleWindowMax","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"balance","type":"int256"},{"name":"lastCommitBlock","type":"uint256"},{"name":"regulatorSignature","type":"bytes"}],"name":"providerWithdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"participant","type":"address"},{"name":"balance","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"additionalHash","type":"bytes32"},{"name":"partnerSignature","type":"bytes"},{"name":"consignorSignature","type":"bytes"}],"name":"partnerUpdateProof","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"bytes32"},{"name":"","type":"address"}],"name":"verifyPuppet","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"settleWindowMin","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"regulator","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"participant_to_counter","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[{"name":"_regulator","type":"address"},{"name":"_provider","type":"address"},{"name":"_settleWindowMin","type":"uint256"},{"name":"_settleWindowMax","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"puppet","type":"address"},{"indexed":false,"name":"settleWindow","type":"uint256"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"channelIdentifier","type":"bytes32"}],"name":"ChannelOpened","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"puppet","type":"address"},{"indexed":false,"name":"lastCommitBlock","type":"uint256"}],"name":"PuppetChanged","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"newDeposit","type":"uint256"},{"indexed":false,"name":"totalDeposit","type":"uint256"}],"name":"ChannelNewDeposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"withdraw","type":"uint256"},{"indexed":false,"name":"lastCommitBlock","type":"uint256"}],"name":"ParticipantWithdraw","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"balance","type":"uint256"},{"indexed":false,"name":"lastCommitBlock","type":"uint256"}],"name":"CooperativeSettled","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"closing","type":"address"},{"indexed":false,"name":"balance","type":"uint256"},{"indexed":false,"name":"nonce","type":"uint256"},{"indexed":false,"name":"inAmount","type":"uint256"},{"indexed":false,"name":"inNonce","type":"uint256"},{"indexed":false,"name":"outAmount","type":"uint256"},{"indexed":false,"name":"outNonce","type":"uint256"}],"name":"ChannelClosed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"participantBalance","type":"uint256"},{"indexed":false,"name":"participantNonce","type":"uint256"},{"indexed":false,"name":"providerBalance","type":"uint256"},{"indexed":false,"name":"providerNonce","type":"uint256"}],"name":"PartnerUpdateProof","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"inAmount","type":"uint256"},{"indexed":false,"name":"inNonce","type":"uint256"},{"indexed":false,"name":"outAmount","type":"uint256"},{"indexed":false,"name":"outNonce","type":"uint256"}],"name":"RegulatorUpdateProof","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"channelIdentifier","type":"bytes32"},{"indexed":true,"name":"participant","type":"address"},{"indexed":false,"name":"transferToParticipantAmount","type":"uint256"},{"indexed":false,"name":"transferToProviderAmount","type":"uint256"}],"name":"ChannelSettled","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"balance","type":"int256"}],"name":"ProviderNewDeposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"balance","type":"int256"},{"indexed":false,"name":"lastCommitBlock","type":"uint256"}],"name":"ProviderWithdraw","type":"event"}]`);
-// const pnList = [ ethPN ];
+const ethRpcUrl = 'http://54.250.21.165:8545';
+// const  ethRpcUrl = "http://127.0.0.1:7545";
+const ethProvider = new Web3.providers.HttpProvider(ethRpcUrl);
 
-// describe('main account message signature test', () => {
+let userAddress = '0x56d77fcb5e4Fd52193805EbaDeF7a9D75325bdC0';
+let privateKey =
+  '118538D2E2B08396D49AB77565F3038510B033A74C7D920C1C9C7E457276A3FB';
+jest.setTimeout(600000);
+Object.defineProperty(common, 'sendEthTx', {
+  value: jest.fn(
+    async (
+      web3: any,
+      from: string,
+      to: string,
+      value: number | string,
+      data: string
+    ): Promise<string> => {
+      console.log('mock sendEthTx');
+      let res = await mock_sendEthTx(web3, from, to, value, data, privateKey);
+      return res;
+    }
+  ),
+});
+Object.defineProperty(common, 'prepareSignatureForTransfer', {
+  value: jest.fn(
+    async (
+      web3_outer: any,
+      ethPNAddress: string,
+      channelID: string,
+      balance: string,
+      nonce: string,
+      additionalHash: string,
+      user: string
+    ): Promise<string> => {
+      console.log('mock prepareSignatureForTransfer', new Date().getTime());
+      let res = await mock_prepareSignatureForTransfer(
+        web3_outer,
+        ethPNAddress,
+        channelID,
+        balance,
+        nonce,
+        additionalHash,
+        user,
+        privateKey
+      );
+      console.log('mock prepareSignatureForTransfer end', new Date().getTime());
+      return res;
+    }
+  ),
+});
 
-//   const msg = 'hello world';
-//   const mmsig = '0x6c4525d6234e172d9148b756670cd0ff8c74cf00b504ce87169289d2263c5c0d3b0803ea22329edd4d4a15aa222fc25fec53669485000370069d43ce3311d2bf1b';
+async function closeChannelIfExist(l2: L2) {
+  let balance = await l2.getBalance();
+  if (balance === '0') {
+    return;
+  } else {
+    Promise.all([
+      await l2.withdraw(balance),
+      await new Promise((resolve, reject) => {
+        l2.on('Withdraw', (err, res) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(res);
+          }
+        });
+      }),
+    ]);
+    return;
+  }
+}
 
-//   it('signature should the same as MetaMask', async () => {
-//     let sig = await testWallet.signMessage(msg);
-//     expect(sig).toEqual(mmsig);
-//   });
-// });
+describe('L2 unit Tests', () => {
+  let l2: L2;
+  beforeAll(async () => {
+    let outerWeb3 = new Web3(ethProvider);
+    let accounts = await outerWeb3.eth.getAccounts();
+    console.log('accounts', accounts);
+    l2 = L2.getInstance();
+    Promise.all([
+      await l2.init(
+        userAddress,
+        outerWeb3,
+        ethPNAddress,
+        appRpcUrl,
+        appPNAddress,
+        appSessionAddress
+      ),
+      await new Promise((resolve, reject) => {
+        l2.on('PuppetChanged', (err, res) => {
+          console.log('Received PuppetChanged', res);
+          resolve(res);
+        });
+      }),
+    ]);
 
-// describe('payment network tests', () => {
-//   const pn
-// });
+    await closeChannelIfExist(l2);
+
+    let depositAmount = 1e14 + '';
+
+    Promise.all([
+      await l2.deposit(depositAmount),
+      await new Promise((resolve, reject) => {
+        l2.on('Deposit', async (err: any, res: any) => {
+          resolve(res);
+        });
+      }),
+    ]);
+
+    return;
+  });
+
+  afterAll(async () => {
+    await closeChannelIfExist(l2);
+    return;
+  });
+
+  it('deposit should success', async () => {
+    let beforeBalance = await l2.getBalance();
+    console.log('beforeBalance', beforeBalance);
+
+    let depositAmount = 1e14 + '';
+    let depositPromise = new Promise((resolve, reject) => {
+      l2.on('Deposit', async (err: any, res: any) => {
+        let afterBalance = await l2.getBalance();
+        console.log('beforeBalance', beforeBalance);
+        console.log('afterBalance', afterBalance);
+        expect(Number(afterBalance) - Number(beforeBalance)).toBe(
+          Number(depositAmount)
+        );
+        resolve(afterBalance);
+      });
+    });
+    Promise.all([await l2.deposit(depositAmount), await depositPromise]);
+  });
+
+  it('transfer should success', async () => {
+    let beforeBalance = await l2.getBalance();
+    await l2.transfer(cp, Number(beforeBalance) / 2 + '');
+    let afterBalance = await l2.getBalance();
+    expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
+
+    // await l2.transfer(cp, Number(afterBalance) / 2 + '');
+    // // await common.delay(1000);
+    // let afterBalance2 = await l2.getBalance();
+    // expect(Number(afterBalance2)).toBe(Number(afterBalance) / 2);
+  });
+
+  it('withdraw should success', async () => {
+    let balance = await l2.getBalance();
+    if (balance === '0') {
+      expect(false).toBe(true);
+    } else {
+      Promise.all([
+        await l2.withdraw(balance),
+        await new Promise((resolve, reject) => {
+          l2.on('Withdraw', async (err, res) => {
+            if (err) {
+              expect(false).toBe(true);
+            } else {
+              let afterBalance = await l2.getBalance();
+              expect(afterBalance).toBe('0');
+              resolve(res);
+            }
+          });
+        }),
+      ]);
+    }
+  });
+});

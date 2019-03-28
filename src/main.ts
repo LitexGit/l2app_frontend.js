@@ -20,8 +20,8 @@
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import CITASDK from '@cryptape/cita-sdk';
 
-// const Web3 = require('web3');
-import * as Web3 from 'web3';
+const Web3 = require('web3');
+// import * as Web3 from 'web3';
 import Puppet from './puppet';
 import HttpWatcher from './httpwatcher';
 import {
@@ -134,8 +134,8 @@ export class L2 {
     web3_10 = new Web3(ethProvider);
     let blockNumber = await web3_10.eth.getBlockNumber();
     console.log('blockNumber is ', blockNumber);
-    console.log('Contract is ', Contract);
-    console.log('ethPaymentNetwork', ethPaymentNetwork);
+    // console.log('Contract is ', Contract);
+    // console.log('ethPaymentNetwork', ethPaymentNetwork);
 
     ethPN = new Contract(
       ethProvider,
@@ -182,6 +182,8 @@ export class L2 {
     await this.initMissingEvent();
 
     this.initialized = true;
+
+    return true;
   }
 
   /** * ---------- Payment APIs ---------- */
@@ -200,7 +202,7 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await ethPN.methods.channels(channelID).call();
 
-    console.log('channel is ', channel);
+    // console.log('channel is ', channel);
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
       let appChannel = await appPN.methods.channelMap(channelID).call();
@@ -283,10 +285,6 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
 
-    if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-      throw new Error('channel status is not open');
-    }
-
     // withdraw amount must less than user balance
     if (
       web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
@@ -301,6 +299,9 @@ export class L2 {
     if (
       web3_10.utils.toBN(channel.userBalance).gt(web3_10.utils.toBN(amount))
     ) {
+      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        throw new Error('channel status is not open');
+      }
       console.log('will call userProposeWithdraw');
       res = await appPN.methods
         .userProposeWithdraw(
@@ -311,6 +312,12 @@ export class L2 {
         )
         .send(tx);
     } else {
+      // if (
+      //   Number(channel.status) ===
+      //   CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
+      // ) {
+      //   return await ethMethods.ethSubmitCooperativeSettle(channelID);
+      // }
       console.log('will call proposeCooperativeSettle', amount);
       res = await appPN.methods
         .proposeCooperativeSettle(
@@ -791,8 +798,7 @@ export class L2 {
     );
 
     for (let event of allChannelOpenedEvent) {
-
-      let returnValues: any = event.returnValues
+      let returnValues: any = event.returnValues;
       let { channelID } = returnValues;
       let channel = await ethPN.methods.channels(channelID).call();
 

@@ -209,7 +209,7 @@ export const ethMethods = {
    *  1. find provider and regulator's confirmation from appchain
    *  2. embrace provider and regualtor's signature in the cooperativeSettle request to eth payment contract
    */
-  ethSubmitCooperativeSettle: async (channelID: string) => {
+  ethSubmitCooperativeSettle: async (channelID: string): Promise<string> => {
     let {
       isConfirmed,
       balance: settleBalance,
@@ -229,7 +229,7 @@ export const ethMethods = {
 
     if (!isConfirmed) {
       console.log('cooperativeSettleProof not confirmed');
-      return;
+      return null;
     }
 
     let currentBlockNumber = await web3_10.eth.getBlockNumber();
@@ -240,6 +240,7 @@ export const ethMethods = {
     ) {
       let tx = await getAppTxOption();
       let res = await appPN.methods.unlockCooperativeSettle(channelID).send(tx);
+      return res;
     } else {
       // TODO: check the eth tx has been submited before
       let txData = ethPN.methods
@@ -251,7 +252,8 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      let res = await sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      return res;
     }
   },
 
