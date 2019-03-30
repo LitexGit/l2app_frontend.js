@@ -1,6 +1,13 @@
 import { ethPN, appPN, user, callbacks, puppet, cita, web3_10 } from '../main';
 import { myEcsignToHex, sendEthTx, getLCB, delay } from '../utils/common';
-import { TRANSFER_EVENT, CITA_TX_BLOCK_INTERVAL } from '../utils/constants';
+import {
+  TRANSFER_EVENT,
+  CITA_TX_BLOCK_INTERVAL,
+  PUPPETCHANGED_EVENT,
+  DEPOSIT_EVENT,
+  WITHDRAW_EVENT,
+  FORCEWITHDRAW_EVENT,
+} from '../utils/constants';
 
 /**
  * the transaction options for submiting cita transaction
@@ -35,17 +42,34 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA ConfirmUserWithdraw--------------------'
+      );
       let {
         returnValues: {
           channelID,
-          user: eventUser,
+          user,
           confirmer,
           amount,
           lastCommitBlock,
           isAllConfirmed,
+          providerSignature,
+          regulatorSignature,
         },
         transactionHash,
       } = event;
+
+      console.log(
+        ' channelID: [%s], user: [%s], confirmer: [%s], amount: [%s], lastCommitBlock: [%s], isAllConfirmed: [%s], providerSignature: [%s], regulatorSignature: [%s]',
+        channelID,
+        user,
+        confirmer,
+        amount,
+        lastCommitBlock,
+        isAllConfirmed,
+        providerSignature,
+        regulatorSignature
+      );
 
       // if UserWithdraw Proposal not confirmed by both provider and regulator, ignore the event.
       if (isAllConfirmed === false) {
@@ -56,10 +80,17 @@ export const events = {
         transactionHash
       );
 
-      // when both provider and regualtor confirmed UserWithdraw Proposal, user should submit eth tx to get his asset on chain
-      await delay(CITA_TX_BLOCK_INTERVAL * 2);
-      // await ethMethods.ethSubmitUserWithdraw(channelID, CITA_TX_BLOCK_INTERVAL);
-      await ethMethods.ethSubmitUserWithdraw(channelID);
+      let txData = ethPN.methods
+        .userWithdraw(
+          channelID,
+          amount,
+          lastCommitBlock,
+          providerSignature,
+          regulatorSignature,
+          user
+        )
+        .encodeABI();
+      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
     },
   },
 
@@ -68,17 +99,34 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA ConfirmCooperativeSettle--------------------'
+      );
       let {
         returnValues: {
           channelID,
           user,
           confirmer,
           balance,
-          lastCommitBlock: lcb,
+          lastCommitBlock,
           isAllConfirmed,
+          providerSignature,
+          regulatorSignature,
         },
         transactionHash,
       } = event;
+
+      console.log(
+        ' channelID: [%s], user: [%s], confirmer: [%s], balance: [%s], lastCommitBlock: [%s], isAllConfirmed: [%s], providerSignature: [%s], regulatorSignature: [%s] ',
+        channelID,
+        user,
+        confirmer,
+        balance,
+        lastCommitBlock,
+        isAllConfirmed,
+        providerSignature,
+        regulatorSignature
+      );
 
       // if CooperativeSettle Proposal not confirmed by both provider and regulator, ignore the event.
       if (isAllConfirmed === false) {
@@ -86,13 +134,26 @@ export const events = {
       }
 
       console.log(
-        'Receive ConfirmCooperativeSettle event, will try to submit eth withdraw tx %s',
+        'Receive ConfirmCooperativeSettle event, will try to submit eth settle tx %s',
         transactionHash
       );
-
-      // when both provider and regualtor confirmed CooperativeSettle Proposal, user should submit eth tx to get his asset on chain
-      await delay(CITA_TX_BLOCK_INTERVAL * 2);
-      await ethMethods.ethSubmitCooperativeSettle(channelID);
+      let txData = ethPN.methods
+        .cooperativeSettle(
+          channelID,
+          balance,
+          lastCommitBlock,
+          providerSignature,
+          regulatorSignature
+        )
+        .encodeABI();
+      let res = await sendEthTx(
+        web3_10,
+        user,
+        ethPN.options.address,
+        0,
+        txData
+      );
+      return;
     },
   },
 
@@ -101,8 +162,9 @@ export const events = {
       return { to: user };
     },
     handler: async (event: any) => {
-      // console.log("Transfer user is ", user);
-
+      console.log(
+        '--------------------Handle CITA Transfer--------------------'
+      );
       let {
         returnValues: {
           from,
@@ -110,12 +172,19 @@ export const events = {
           channelID,
           balance,
           transferAmount,
-          // nonce,
           additionalHash,
         },
       } = event;
 
-      console.log('Receive Transfer event', event);
+      console.log(
+        ' from: [%s], to: [%s], channelID: [%s], balance: [%s], transferAmount: [%s], additionalHash: [%s] ',
+        from,
+        to,
+        channelID,
+        balance,
+        transferAmount,
+        additionalHash
+      );
 
       // emit the Transfer event to sdk caller
       if (
@@ -139,6 +208,218 @@ export const events = {
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
       await delay(CITA_TX_BLOCK_INTERVAL * 2);
       await appMethods.appSubmitGuardProof(channelID, to);
+    },
+  },
+  /****************************onchain Event(operator emit)************************************/
+  OnchainAddPuppet: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainAddPuppet--------------------'
+      );
+      let {
+        returnValues: { user, puppet },
+      } = event;
+      console.log('user: [%s], puppet: [%s]', user, puppet);
+      let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 1 };
+      callbacks.get('PuppetChanged') &&
+        callbacks.get('PuppetChanged')(null, puppetChangeEvent);
+    },
+  },
+  OnchainDisablePuppet: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainDisablePuppet--------------------'
+      );
+      let {
+        returnValues: { user, puppet },
+      } = event;
+      console.log('user: [%s], puppet: [%s]', user, puppet);
+      let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 2 };
+      callbacks.get('PuppetChanged') &&
+        callbacks.get('PuppetChanged')(null, puppetChangeEvent);
+    },
+  },
+  OnchainOpenChannel: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainOpenChannel--------------------'
+      );
+      let {
+        returnValues: { user, token, amount, channelID },
+        transactionHash,
+      } = event;
+      console.log(
+        ' user: [%s], token: [%s], amount: [%s], channelID: [%s] ',
+        user,
+        token,
+        amount,
+        channelID
+      );
+      let depositEvent: DEPOSIT_EVENT = {
+        user: user,
+        type: 1,
+        token,
+        amount: amount,
+        totalDeposit: amount,
+        txhash: transactionHash,
+      };
+      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+    },
+  },
+  OnchainUserDeposit: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainUserDeposit--------------------'
+      );
+      let {
+        returnValues: { channelID, user, deposit, totalDeposit },
+        transactionHash,
+      } = event;
+
+      console.log(
+        ' channelID: [%s], user: [%s], deposit: [%s], totalDeposit: [%s] ',
+        channelID,
+        user,
+        deposit,
+        totalDeposit
+      );
+
+      let { token } = await ethPN.methods.channels(channelID).call();
+
+      let depositEvent: DEPOSIT_EVENT = {
+        user: user,
+        type: 2,
+        token,
+        amount: deposit,
+        totalDeposit,
+        txhash: transactionHash,
+      };
+      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+    },
+  },
+  OnchainUserWithdraw: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainUserWithdraw--------------------'
+      );
+      let {
+        returnValues: {
+          channelID,
+          user,
+          amount,
+          withdraw: totalWithdraw,
+          lastCommitBlock,
+        },
+        transactionHash,
+      } = event;
+
+      console.log(
+        ' channelID: [%s], user: [%s], amount: [%s], totalWithdraw: [%s], lastCommitBlock: [%s], ',
+        channelID,
+        user,
+        amount,
+        totalWithdraw,
+        lastCommitBlock
+      );
+
+      let { token } = await ethPN.methods.channels(channelID).call();
+
+      let withdrawEvent: WITHDRAW_EVENT = {
+        user: user,
+        type: 1,
+        token,
+        amount,
+        totalWithdraw,
+        txhash: transactionHash,
+      };
+      callbacks.get('Withdraw') &&
+        callbacks.get('Withdraw')(null, withdrawEvent);
+    },
+  },
+  OnchainCooperativeSettleChannel: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainCooperativeSettleChannel--------------------'
+      );
+      let {
+        returnValues: { channelID, user, token, balance, lastCommitBlock },
+        transactionHash,
+      } = event;
+      console.log(
+        ' channelID: [%s], user: [%s], token: [%s], balance: [%s], lastCommitBlock: [%s] ',
+        channelID,
+        user,
+        token,
+        balance,
+        lastCommitBlock
+      );
+      let withdrawEvent: WITHDRAW_EVENT = {
+        user: user,
+        type: 2,
+        token,
+        amount: balance,
+        totalWithdraw: '',
+        txhash: transactionHash,
+      };
+      callbacks.get('Withdraw') &&
+        callbacks.get('Withdraw')(null, withdrawEvent);
+    },
+  },
+  OnchainSettleChannel: {
+    filter: () => {
+      return { user };
+    },
+    handler: async (event: any) => {
+      console.log(
+        '--------------------Handle CITA OnchainSettleChannel--------------------'
+      );
+      let {
+        returnValues: {
+          channelID,
+          user,
+          token,
+          userSettleAmount: transferTouserAmount,
+          providerSettleAmount: transferToProviderAmount,
+        },
+        transactionHash,
+      } = event;
+      console.log(
+        ' channelID: [%s], user: [%s], token: [%s], transferTouserAmount: [%s], transferToProviderAmount: [%s], ',
+        channelID,
+        user,
+        token,
+        transferTouserAmount,
+        transferToProviderAmount
+      );
+
+      let { closer } = await appPN.methods.closingChannelMap(channelID).call();
+      let forceWithdrawEvent: FORCEWITHDRAW_EVENT = {
+        closer,
+        token,
+        userSettleAmount: transferTouserAmount,
+        providerSettleAmount: transferToProviderAmount,
+        txhash: transactionHash,
+      };
+      callbacks.get('ForceWithdraw') &&
+        callbacks.get('ForceWithdraw')(null, forceWithdrawEvent);
     },
   },
 };
@@ -165,14 +446,15 @@ export const ethMethods = {
       appPN.methods.userWithdrawProofMap(channelID).call(),
     ]);
 
-    console.log('userWithdrawProofMap is ', {
+    console.log(
+      'userWithdrawProofMap: isConfirmed: [%s], withdraw: [%s], providerSignature: [%s], regulatorSignature: [%s], lastCommitBlock: [%s], receiver: [%s]',
       isConfirmed,
       withdraw,
       providerSignature,
       regulatorSignature,
       lastCommitBlock,
-      receiver,
-    });
+      receiver
+    );
     if (!isConfirmed) {
       console.log('userWithdrawProofMap not confirmed');
       return;
@@ -218,14 +500,15 @@ export const ethMethods = {
       regulatorSignature,
     } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
-    console.log('cooperativeSettleProof', {
+    console.log(
+      'cooperativeSettleProof: channelID: [%s], isConfirmed: [%s], balance: [%s], lastCommitBlock: [%s], providerSignature: [%s], regulatorSignature: [%s]',
       channelID,
       isConfirmed,
-      balance: settleBalance,
+      settleBalance,
       lastCommitBlock,
       providerSignature,
-      regulatorSignature,
-    });
+      regulatorSignature
+    );
 
     if (!isConfirmed) {
       console.log('cooperativeSettleProof not confirmed');
@@ -252,7 +535,13 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      let res = await sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      let res = await sendEthTx(
+        web3_10,
+        user,
+        ethPN.options.address,
+        0,
+        txData
+      );
       return res;
     }
   },
@@ -281,13 +570,14 @@ export const appMethods = {
       consignorSignature,
     } = await appPN.methods.balanceProofMap(channelID, to).call();
 
-    console.log('balanceProof is', {
+    console.log(
+      'balanceProof:  balance: [%s], nonce: [%s], additionalHash: [%s], signature: [%s], consignorSignature: [%s]',
       balance,
       nonce,
       additionalHash,
       signature,
-      consignorSignature,
-    });
+      consignorSignature
+    );
     // check if user has uploaded his guard proof
     if (consignorSignature != null) {
       console.log('balance proof already signed now');
@@ -317,14 +607,15 @@ export const appMethods = {
 
     let appTx = await getAppTxOption();
 
-    console.log('guardBalanceProof params', {
+    console.log(
+      'guardBalanceProof params: channelID: [%s], balance: [%s], nonce: [%s], additionalHash: [%s], signature: [%s], consignorSignature: [%s]',
       channelID,
       balance,
       nonce,
       additionalHash,
       signature,
-      consignorSignature,
-    });
+      consignorSignature
+    );
     let res = await appPN.methods
       .guardBalanceProof(
         channelID,

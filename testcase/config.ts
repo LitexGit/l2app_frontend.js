@@ -1,7 +1,7 @@
-export let config =  {
-  ethPNAddress: '0x276B5d0202967D1aa26C86e135A94B3A0852bFdb',
-  appPNAddress: '0x8C4391F387B6d20d4F38b7e5449D755fC0B7DB0E',
-  appSessionAddress: '0x418bDb873b3e8B200662571a643F65f7D90B468e',
+export let config = {
+  ethPNAddress: '0x0B3B88bAa51100D58A4710E3a2A2657fe3ca38e2',
+  appPNAddress: '0x436c5403eA2769948d6e1Cd90D78DA54D8982daa',
+  appSessionAddress: '0xFAdec7E5b28bcFc6BB133Fcc76e45764EC7aF4Fb',
 
   // let appRpcUrl : "http://wallet.milewan.com:8090",
   appRpcUrl: 'ws://wallet.milewan.com:4337',
@@ -13,4 +13,22 @@ export let config =  {
   // ],
 
   token: '0x0000000000000000000000000000000000000000',
+};
+
+let oldlog = console.log;
+console.log = (message?: any, ...optionalParams: any[]) => {
+  let timestamp = new Date().toISOString();
+  if (optionalParams.length >= 1) {
+    if (typeof message === 'string') {
+      oldlog(timestamp + "-------  " + message, ...optionalParams);
+    } else {
+      oldlog(timestamp + "-------  ", message, ...optionalParams);
+    }
+  } else {
+    if (typeof message === 'string') {
+      oldlog(timestamp + "-------  " + message);
+    } else {
+      oldlog(timestamp + "-------  ", message);
+    }
+  }
 };

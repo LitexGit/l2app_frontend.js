@@ -50,7 +50,7 @@
       },
       {
         "name": "mType",
-        "type": "string"
+        "type": "uint8"
       },
       {
         "name": "content",
@@ -70,6 +70,10 @@
       },
       {
         "name": "nonce",
+        "type": "uint256"
+      },
+      {
+        "name": "amount",
         "type": "uint256"
       },
       {
@@ -191,7 +195,7 @@
       {
         "indexed": false,
         "name": "mType",
-        "type": "string"
+        "type": "uint8"
       },
       {
         "indexed": false,
@@ -216,6 +220,11 @@
       {
         "indexed": false,
         "name": "nonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
         "type": "uint256"
       },
       {
@@ -313,7 +322,7 @@
       },
       {
         "name": "mType",
-        "type": "string"
+        "type": "uint8"
       },
       {
         "name": "content",
@@ -324,23 +333,11 @@
         "type": "bytes"
       },
       {
-        "name": "channelID",
-        "type": "bytes32"
+        "name": "protoData",
+        "type": "bytes"
       },
       {
-        "name": "balance",
-        "type": "uint256"
-      },
-      {
-        "name": "nonce",
-        "type": "uint256"
-      },
-      {
-        "name": "additionalHash",
-        "type": "bytes32"
-      },
-      {
-        "name": "paymentSignature",
+        "name": "paymentSig",
         "type": "bytes"
       }
     ],
@@ -365,7 +362,26 @@
     "type": "function"
   },
   {
-    "constant": false,
+    "constant": true,
+    "inputs": [
+      {
+        "name": "sessionID",
+        "type": "bytes32"
+      }
+    ],
+    "name": "exportSessionBytes",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [
       {
         "name": "sessionID",
@@ -390,7 +406,7 @@
           },
           {
             "name": "mType",
-            "type": "string"
+            "type": "uint8"
           },
           {
             "name": "content",
@@ -413,6 +429,10 @@
             "type": "uint256"
           },
           {
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
             "name": "additionalHash",
             "type": "bytes32"
           },
@@ -426,7 +446,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {

@@ -1,15 +1,23 @@
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 
+/**
+ * because appchain can not suppport event subscription.
+ * httpWatcher using http way to poll new event from blockchain, instead of websocket subscription
+ */
 export default class HttpWatcher {
   private enabled: boolean;
-
   private base: any;
   private blockInterval: number;
-  private contract: Contract;
   private watchList: any;
 
+  /**
+   * constructor of HttpWatcher
+   *
+   * @param base  web3.eth/cita.base
+   * @param blockInterval the interval time to poll event
+   * @param watchList the contract and setting list to watch
+   */
   constructor(base: any, blockInterval: number, watchList: any) {
-    //   this.contract = contract;
     this.base = base;
     this.blockInterval = blockInterval;
     this.watchList = watchList;
@@ -17,10 +25,24 @@ export default class HttpWatcher {
     this.enabled = true;
   }
 
+  /**
+   * delay time for duration
+   *
+   * @param duration duration time, unit: miliseconds
+   */
   async delay(duration: number) {
     return new Promise(resolve => setTimeout(resolve, duration));
   }
 
+  /**
+   * search a specified event of contract from blockchain, and handle it
+   *
+   * @param fromBlockNumber start blockNumber
+   * @param toBlockNumber end blockNumber
+   * @param contract contract instance
+   * @param eventName event name
+   * @param eventSetting event setting, include filter and handler
+   */
   async processEvent(
     fromBlockNumber: number,
     toBlockNumber: number,
@@ -28,10 +50,6 @@ export default class HttpWatcher {
     eventName: string,
     eventSetting: any
   ) {
-    // console.log(this.contract);
-
-    //   console.log('eventName is ', eventName, eventSetting.filter());
-
     let events = await contract.getPastEvents(eventName, {
       filter: eventSetting.filter(),
       fromBlock: fromBlockNumber,
@@ -39,21 +57,21 @@ export default class HttpWatcher {
     });
 
     for (let event of events) {
-      console.log('eventName is ', eventName, eventSetting.filter());
-      // console.log('event', event);
-      // process event
       await eventSetting.handler(event);
     }
-    //   console.log("get events ", events.length);
   }
 
+  /**
+   * start httpwatcher to watch blockchain
+   *
+   * @param lastBlockNumber start block number
+   */
   async start(lastBlockNumber: number = 0) {
     let currentBlockNumber = await this.base.getBlockNumber();
     lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
 
     console.log('start syncing process', lastBlockNumber, currentBlockNumber);
     while (lastBlockNumber <= currentBlockNumber) {
-      // console.log('watchList', this.watchList);
       for (let watchItem of this.watchList) {
         for (let eventName in watchItem.listener) {
           await this.processEvent(
@@ -84,8 +102,6 @@ export default class HttpWatcher {
         lastBlockNumber = currentBlockNumber + 1;
         currentBlockNumber = await this.base.getBlockNumber();
 
-        // console.log("watching event", lastBlockNumber, currentBlockNumber);
-
         if (lastBlockNumber > currentBlockNumber) {
           continue;
         }
@@ -111,6 +127,9 @@ export default class HttpWatcher {
     }
   }
 
+  /**
+   * stop http watcher
+   */
   async stop() {
     this.enabled = false;
   }

@@ -125,7 +125,7 @@ export class L2 {
       address: appSessionAddress,
     };
 
-    console.log('start init');
+    console.log('start L2.init');
 
     web3_outer = outerWeb3;
     let ethProvider = outerWeb3.currentProvider;
@@ -182,6 +182,7 @@ export class L2 {
     await this.initMissingEvent();
 
     this.initialized = true;
+    console.log('finish L2.init');
 
     return true;
   }
@@ -202,11 +203,11 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await ethPN.methods.channels(channelID).call();
 
-    // console.log('channel is ', channel);
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
       let appChannel = await appPN.methods.channelMap(channelID).call();
       if (Number(appChannel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        console.log('appChannel', appChannel);
         throw new Error('channel status of appchain is not open');
       }
 
@@ -376,7 +377,8 @@ export class L2 {
     regulatorSignature = regulatorSignature || '0x0';
     providerSignature = providerSignature || '0x0';
 
-    console.log('force-close params', {
+    console.log(
+      'force-close params: channelID: [%s], balance: [%s], nonce: [%s], additionalHash: [%s], partnerSignature: [%s], inAmount: [%s], inNonce: [%s], regulatorSignature: [%s], providerSignature: [%s] ',
       channelID,
       balance,
       nonce,
@@ -385,8 +387,8 @@ export class L2 {
       inAmount,
       inNonce,
       regulatorSignature,
-      providerSignature,
-    });
+      providerSignature
+    );
 
     let data = ethPN.methods
       .closeChannel(
@@ -460,17 +462,21 @@ export class L2 {
       user
     );
 
+    console.log('start Submit Transfer');
     let tx = await getAppTxOption();
     let res = await appPN.methods
       .transfer(to, channelID, balance, nonce, additionalHash, signature)
       .send(tx);
 
+    console.log('submit Transfer success');
+
     if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+      console.log('confirm Transfer');
       if (receipt.errorMessage) {
         throw new Error(receipt.errorMessage);
       } else {
-        console.log('submit transfer success', receipt);
+        console.log('submit transfer success');
         return res.hash;
       }
     } else {
@@ -763,9 +769,9 @@ export class L2 {
     // before start new watcher, stop the old watcher
     this.ethWatcher && this.ethWatcher.stop();
 
-    let ethWatchList = [{ contract: ethPN, listener: ethEvents }];
-    this.ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethWatchList);
-    this.ethWatcher.start();
+    // let ethWatchList = [{ contract: ethPN, listener: ethEvents }];
+    // this.ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethWatchList);
+    // this.ethWatcher.start();
 
     // before start new watcher, stop the old watcher
     this.appWatcher && this.appWatcher.stop();

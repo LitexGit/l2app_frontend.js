@@ -715,6 +715,11 @@
       },
       {
         "indexed": false,
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "name": "receiver",
         "type": "address"
       },
@@ -759,6 +764,16 @@
         "indexed": false,
         "name": "isAllConfirmed",
         "type": "bool"
+      },
+      {
+        "indexed": false,
+        "name": "providerSignature",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "name": "regulatorSignature",
+        "type": "bytes"
       }
     ],
     "name": "ConfirmUserWithdraw",
@@ -803,6 +818,11 @@
         "indexed": false,
         "name": "lastCommitBlock",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "signature",
+        "type": "bytes"
       }
     ],
     "name": "ConfirmProviderWithdraw",
@@ -867,6 +887,16 @@
         "indexed": false,
         "name": "isAllConfirmed",
         "type": "bool"
+      },
+      {
+        "indexed": false,
+        "name": "providerSignature",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "name": "regulatorSignature",
+        "type": "bytes"
       }
     ],
     "name": "ConfirmCooperativeSettle",
@@ -924,6 +954,339 @@
       }
     ],
     "name": "ConfirmRebalance",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainOpenChannel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "puppet",
+        "type": "address"
+      }
+    ],
+    "name": "OnchainAddPuppet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "puppet",
+        "type": "address"
+      }
+    ],
+    "name": "OnchainDisablePuppet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "deposit",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "totalDeposit",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainUserDeposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainProviderDeposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "withdraw",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "lastCommitBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainUserWithdraw",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "lastCommitBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainProviderWithdraw",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "lastCommitBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainCooperativeSettleChannel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "closer",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "nonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "inAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainCloseChannel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "userBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "userNonce",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "providerBalance",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "providerNonce",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainPartnerUpdateProof",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "inAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainRegulatorUpdateProof",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "name": "userSettleAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "providerSettleAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainSettleChannel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      }
+    ],
+    "name": "UnlockUserWithdrawProof",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "channelID",
+        "type": "bytes32"
+      }
+    ],
+    "name": "UnlockCooperativeSettle",
     "type": "event"
   },
   {
@@ -1533,7 +1896,7 @@
     "type": "function"
   },
   {
-    "constant": false,
+    "constant": true,
     "inputs": [
       {
         "name": "user",
@@ -1552,7 +1915,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   }
 ]

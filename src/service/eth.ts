@@ -1,10 +1,4 @@
-import { callbacks, user, ethPN, appPN } from '../main';
-import {
-  PUPPETCHANGED_EVENT,
-  DEPOSIT_EVENT,
-  WITHDRAW_EVENT,
-  FORCEWITHDRAW_EVENT,
-} from '../utils/constants';
+import { user } from '../main';
 
 export const events = {
   PuppetAdded: {
@@ -12,14 +6,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('PuppetAdd event', event);
-
-      let {
-        returnValues: { user, puppet },
-      } = event;
-      let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 1 };
-      callbacks.get('PuppetChanged') &&
-        callbacks.get('PuppetChanged')(null, puppetChangeEvent);
+      // console.log('PuppetAdd event', event);
     },
   },
 
@@ -28,14 +15,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('PuppetDisabled event', event);
-
-      let {
-        returnValues: { user, puppet },
-      } = event;
-      let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 2 };
-      callbacks.get('PuppetChanged') &&
-        callbacks.get('PuppetChanged')(null, puppetChangeEvent);
+      // console.log('PuppetDisabled event', event);
     },
   },
 
@@ -44,29 +24,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('ChannelOpened event', event);
-
-      let {
-        returnValues: {
-          sender,
-          user,
-          token,
-          puppet,
-          amount,
-          settleWindow,
-          channelID,
-        },
-        transactionHash,
-      } = event;
-      let depositEvent: DEPOSIT_EVENT = {
-        user: user,
-        type: 1,
-        token,
-        amount: amount,
-        totalDeposit: amount,
-        txhash: transactionHash,
-      };
-      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+      // console.log('ChannelOpened event', event);
     },
   },
   UserNewDeposit: {
@@ -74,24 +32,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('UserNewDeposit event', event);
-
-      let {
-        returnValues: { channelID, user, newDeposit, totalDeposit },
-        transactionHash,
-      } = event;
-
-      let { token } = await ethPN.methods.channels(channelID).call();
-
-      let depositEvent: DEPOSIT_EVENT = {
-        user: user,
-        type: 2,
-        token,
-        amount: newDeposit,
-        totalDeposit: totalDeposit,
-        txhash: transactionHash,
-      };
-      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+      // console.log('UserNewDeposit event', event);
     },
   },
   UserWithdraw: {
@@ -99,31 +40,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('UserWithdraw event', event);
-
-      let {
-        returnValues: {
-          channelID,
-          user,
-          amount,
-          totalWithdraw,
-          lastCommitBlock,
-        },
-        transactionHash,
-      } = event;
-
-      let { token } = await ethPN.methods.channels(channelID).call();
-
-      let withdrawEvent: WITHDRAW_EVENT = {
-        user: user,
-        type: 1,
-        token,
-        amount,
-        totalWithdraw,
-        txhash: transactionHash,
-      };
-      callbacks.get('Withdraw') &&
-        callbacks.get('Withdraw')(null, withdrawEvent);
+      // console.log('UserWithdraw event', event);
     },
   },
 
@@ -132,22 +49,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('CooperativeSettled event', event);
-
-      let {
-        returnValues: { channelID, user, token, balance, lastCommitBlock },
-        transactionHash,
-      } = event;
-      let withdrawEvent: WITHDRAW_EVENT = {
-        user: user,
-        type: 2,
-        token,
-        amount: balance,
-        totalWithdraw: '',
-        txhash: transactionHash,
-      };
-      callbacks.get('Withdraw') &&
-        callbacks.get('Withdraw')(null, withdrawEvent);
+      // console.log('CooperativeSettled event', event);
     },
   },
   ChannelClosed: {
@@ -155,7 +57,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('ChannelClosed event', event);
+      // console.log('ChannelClosed event', event);
     },
   },
   ChannelSettled: {
@@ -163,29 +65,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log('ChannelSettled event', event);
-
-      let {
-        returnValues: {
-          channelID,
-          user,
-          token,
-          transferTouserAmount,
-          transferToProviderAmount,
-        },
-        transactionHash,
-      } = event;
-
-      let { closer } = await appPN.methods.closingChannelMap(channelID).call();
-      let forceWithdrawEvent: FORCEWITHDRAW_EVENT = {
-        closer,
-        token,
-        userSettleAmount: transferTouserAmount,
-        providerSettleAmount: transferToProviderAmount,
-        txhash: transactionHash,
-      };
-      callbacks.get('ForceWithdraw') &&
-        callbacks.get('ForceWithdraw')(null, forceWithdrawEvent);
+      // console.log('ChannelSettled event', event);
     },
   },
 };

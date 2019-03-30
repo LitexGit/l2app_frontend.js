@@ -3,7 +3,6 @@ import {
   SESSION_STATUS,
   CHANNEL_STATUS,
 } from './utils/constants';
-import { Contract } from 'web3/node_modules/web3-eth-contract';
 import {
   appSession,
   appPN,
@@ -17,6 +16,8 @@ import {
 } from './main';
 import { myEcsignToHex, prepareSignatureForTransfer } from './utils/common';
 import { getAppTxOption } from './service/cita';
+import * as protobuf from 'protobufjs';
+protobuf.common('google/protobuf/descriptor.proto', {});
 
 /**
  * Session manager
@@ -88,7 +89,7 @@ export default class L2Session {
     // let messages = await appSession.methods.messages(_sessionID).call();
     let messages = await appSession.methods.exportSession(_sessionID).call();
     console.log('session message is ', messages);
-    return [];
+    return messages;
   }
 
   /**
@@ -144,7 +145,7 @@ export default class L2Session {
    * send message to the session contract
    *
    * @param {string} to the destination of the message
-   * @param {string} type the type of message encoding
+   * @param {number} type the type of message encoding
    * @param {string} content encoded message content
    * @param {string} amount token amount transferred to other player
    * @param {string} token token address, default: '0x0000000000000000000000000000000000000000'
@@ -153,7 +154,7 @@ export default class L2Session {
    */
   async sendMessage(
     to: string,
-    type: string,
+    type: number,
     content: string,
     amount: string = '0',
     token: string = ADDRESS_ZERO
@@ -167,11 +168,13 @@ export default class L2Session {
     // build session message
     let from = user;
 
+    // type = 1;
+
     let messageHash = web3_10.utils.soliditySha3(
       { t: 'address', v: from },
       { t: 'address', v: to },
       { t: 'bytes32', v: this.sessionID },
-      { t: 'string', v: type },
+      { t: 'uint8', v: type },
       { t: 'bytes', v: content }
     );
     let signature = myEcsignToHex(
@@ -180,53 +183,12 @@ export default class L2Session {
       puppet.getAccount().privateKey
     );
 
-    let channelID = '0x0';
-    let balance = '0';
-    let nonce = '0';
-    let additionalHash = '0x0';
-    let paymentSignature = '0x0';
-    if (Number(amount) > 0) {
-      channelID = await ethPN.methods.getChannelID(from, token).call();
-      let channel = await appPN.methods.channelMap(channelID).call();
-
-      // check channel status
-      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-        throw new Error('app channel status is not open, can not transfer now');
-      }
-      // check user's balance is enough
-      if (
-        web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
-      ) {
-        throw new Error("user's balance is less than transfer amount");
-      }
-
-      // build transfer message
-      // get balance proof from eth contract
-      let balanceProof = await appPN.methods
-        .balanceProofMap(channelID, cp)
-        .call();
-
-      balance = web3_10.utils
-        .toBN(amount)
-        .add(web3_10.utils.toBN(balanceProof.balance))
-        .toString();
-      nonce = web3_10.utils
-        .toBN(balanceProof.nonce)
-        .add(web3_10.utils.toBN(1))
-        .toString();
-      additionalHash = messageHash;
-
-      paymentSignature = await prepareSignatureForTransfer(
-        web3_outer,
-        ethPN.options.address,
-        channelID,
-        balance,
-        nonce,
-        additionalHash,
-        user
-      );
-    }
-
+    let { transferData, paymentSignature } = await this.buildTransferData(
+      from,
+      amount,
+      token,
+      messageHash
+    );
     // call appSession's sendMessage
     let tx = await getAppTxOption();
     let res = await appSession.methods
@@ -237,10 +199,7 @@ export default class L2Session {
         type,
         content,
         signature,
-        channelID,
-        balance,
-        nonce,
-        additionalHash,
+        transferData,
         paymentSignature
       )
       .send(tx);
@@ -273,5 +232,97 @@ export default class L2Session {
    */
   async onSessionClose(callback: (error: Error, res: any) => void) {
     this.callbacks.set('close', callback);
+  }
+
+  private async buildTransferData(
+    from: string,
+    amount: string,
+    token: string,
+    messageHash: string
+  ): Promise<any> {
+    let { hexToBytes, numberToHex, soliditySha3 } = web3_10.utils;
+    let channelID =
+      '0x0000000000000000000000000000000000000000000000000000000000000000';
+    let balance = '0';
+    let nonce = '0';
+    let additionalHash =
+      '0x0000000000000000000000000000000000000000000000000000000000000000';
+    let paymentSignature = '0x0';
+    if (Number(amount) > 0) {
+      channelID = await ethPN.methods.getChannelID(from, token).call();
+      let channel = await appPN.methods.channelMap(channelID).call();
+
+      // check channel status
+      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        throw new Error('app channel status is not open, can not transfer now');
+      }
+      // check user's balance is enough
+      if (
+        web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
+      ) {
+        throw new Error("user's balance is less than transfer amount");
+      }
+
+      // build transfer message
+      // get balance proof from eth contract
+      let balanceProof = await appPN.methods
+        .balanceProofMap(channelID, cp)
+        .call();
+
+      balance = web3_10.utils
+        .toBN(amount)
+        .add(web3_10.utils.toBN(balanceProof.balance))
+        .toString();
+      nonce = web3_10.utils
+        .toBN(balanceProof.nonce)
+        .add(web3_10.utils.toBN(1))
+        .toString();
+      additionalHash = soliditySha3(
+        { t: 'bytes32', v: messageHash },
+        { t: 'uint256', v: amount }
+      );
+
+      paymentSignature = await prepareSignatureForTransfer(
+        web3_outer,
+        ethPN.options.address,
+        channelID,
+        balance,
+        nonce,
+        additionalHash,
+        user
+      );
+    }
+
+    let transferPB = protobuf.Root.fromJSON(require('./config/transfer.json'));
+
+    // Obtain a message type
+    let Transfer = transferPB.lookupType('TransferData.Transfer');
+
+    // Exemplary payload
+    let payload = {
+      channelID: hexToBytes(channelID),
+      balance: hexToBytes(numberToHex(balance)),
+      nonce: hexToBytes(numberToHex(nonce)),
+      amount: hexToBytes(numberToHex(amount)),
+      // balance: [0],
+      // nonce: [0],
+      // amount: [0],
+      additionalHash: hexToBytes(additionalHash),
+    };
+
+    console.log('payload', payload);
+    // Verify the payload if necessary (i.e. when possibly incomplete or invalid)
+    let errMsg = Transfer.verify(payload);
+    if (errMsg) throw Error(errMsg);
+    // Create a new message
+    let message = Transfer.create(payload); // or use .fromObject if conversion is necessary
+    // Encode a message to an Uint8Array (browser) or Buffer (node)
+    let buffer = Transfer.encode(message).finish();
+    console.log('buildTransferData', {
+      transferData: buffer,
+      paymentSignature,
+    });
+
+    return { transferData: buffer, paymentSignature };
   }
 }
