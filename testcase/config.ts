@@ -1,7 +1,7 @@
 export let config = {
-  ethPNAddress: '0x0B3B88bAa51100D58A4710E3a2A2657fe3ca38e2',
-  appPNAddress: '0x436c5403eA2769948d6e1Cd90D78DA54D8982daa',
-  appSessionAddress: '0xFAdec7E5b28bcFc6BB133Fcc76e45764EC7aF4Fb',
+  ethPNAddress: '0xdCbd4E045096Ef980d635381Cd183120F46825d3',
+  appPNAddress: '0xB30d792F5c705cAe7Ec3Fc57A12408745fd0CE7F',
+  appSessionAddress: '0x6923C31b8ab980217bE283DEF58013355537C39D',
 
   // let appRpcUrl : "http://wallet.milewan.com:8090",
   appRpcUrl: 'ws://wallet.milewan.com:4337',

@@ -33,12 +33,7 @@ import {
   PUPPET_STATUS,
   ContractInfo,
 } from './utils/constants';
-import {
-  getAppTxOption,
-  events as appEvents,
-  ethMethods,
-  appMethods,
-} from './service/cita';
+import { events as appEvents, ethMethods, appMethods } from './service/cita';
 import { events as ethEvents } from './service/eth';
 import { events as sessionEvents } from './service/session';
 import {
@@ -47,6 +42,7 @@ import {
   getLCB,
   delay,
   prepareSignatureForTransfer,
+  sendAppTx,
 } from './utils/common';
 import L2Session from './session';
 
@@ -111,79 +107,69 @@ export class L2 {
     appPaymentNetworkAddress: string,
     appSessionAddress: string
   ) {
-    let ethPaymentNetwork: ContractInfo = {
-      abi: JSON.stringify(require('./config/onchainPayment.json')),
+    let ethPNInfo: ContractInfo = {
+      abi: abi2jsonInterface(
+        JSON.stringify(require('./config/onchainPayment.json'))
+      ),
       address: ethPaymentNetworkAddress,
     };
-    let appPaymentNetwork: ContractInfo = {
-      abi: JSON.stringify(require('./config/offchainPayment.json')),
+    let appPNInfo: ContractInfo = {
+      abi: abi2jsonInterface(
+        JSON.stringify(require('./config/offchainPayment.json'))
+      ),
       address: appPaymentNetworkAddress,
     };
 
     let appSessionInfo: ContractInfo = {
-      abi: JSON.stringify(require('./config/offchainSession.json')),
+      abi: abi2jsonInterface(
+        JSON.stringify(require('./config/offchainSession.json'))
+      ),
       address: appSessionAddress,
     };
 
-    console.log('start L2.init');
+    console.log(
+      'start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]',
+      userAddress,
+      ethPaymentNetworkAddress,
+      appRpcUrl,
+      appPaymentNetworkAddress,
+      appSessionAddress
+    );
 
     web3_outer = outerWeb3;
-    let ethProvider = outerWeb3.currentProvider;
+    let provider = outerWeb3.currentProvider;
+    web3_10 = new Web3(provider);
 
-    // web3_10 = new Web3(Web3.givenProvider || ethProvider);
-    web3_10 = new Web3(ethProvider);
-    let blockNumber = await web3_10.eth.getBlockNumber();
-    console.log('blockNumber is ', blockNumber);
-    // console.log('Contract is ', Contract);
-    // console.log('ethPaymentNetwork', ethPaymentNetwork);
-
-    ethPN = new Contract(
-      ethProvider,
-      abi2jsonInterface(ethPaymentNetwork.abi),
-      ethPaymentNetwork.address
-    );
+    ethPN = new Contract(provider, ethPNInfo.abi, ethPNInfo.address);
     ethPN.options.from = user;
-    ethPN.options.address = ethPaymentNetwork.address;
+    ethPN.options.address = ethPNInfo.address;
 
-    ERC20 = new Contract(
-      ethProvider,
-      abi2jsonInterface(JSON.stringify(require('./config/ERC20.json')))
+    let ERC20Abi = abi2jsonInterface(
+      JSON.stringify(require('./config/ERC20.json'))
     );
+    ERC20 = new Contract(provider, ERC20Abi);
 
     user = userAddress;
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
     console.log('cp / l2 is ', cp, l2);
-    console.log('appRpcUrl', appRpcUrl);
 
     cita = CITASDK(appRpcUrl);
-    // console.log("cita is ", cita);
-
-    // console.log("app abi", appPaymentNetwork.abi);
-    appPN = new cita.base.Contract(
-      abi2jsonInterface(appPaymentNetwork.abi),
-      appPaymentNetwork.address
-    );
-    appPN.options.address = appPaymentNetwork.address;
+    appPN = new cita.base.Contract(appPNInfo.abi, appPNInfo.address);
+    appPN.options.address = appPNInfo.address;
 
     appSession = new cita.base.Contract(
-      abi2jsonInterface(appSessionInfo.abi),
+      appSessionInfo.abi,
       appSessionInfo.address
     );
 
-    // get puppet ready
     await this.initPuppet();
-
-    // init listeners on both chains
-    await this.initListeners();
-
-    // check not handled event
-    await this.initMissingEvent();
-
+    this.initListeners();
+    this.initMissingEvent();
     this.initialized = true;
-    console.log('finish L2.init');
 
+    console.log('finish L2.init');
     return true;
   }
 
@@ -192,17 +178,29 @@ export class L2 {
   /**
    * Deposit to channel. If there is no channel, open one
    *
-   * @param {string}  amount  amount to deposit, or initial balance for new channel
+   * @param {string | number}  amount  amount to deposit, or initial balance for new channel
    * @param {string}  token   OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    *
    * @returns {Promise<string>} transaction hash of the deposit tx
    */
-  async deposit(amount: string, token: string = ADDRESS_ZERO): Promise<string> {
+  async deposit(
+    amount: string | number,
+    token: string = ADDRESS_ZERO
+  ): Promise<string> {
     this.checkInitialized();
 
+    console.log(
+      'start deposit with params: amount: [%s], token: [%s]',
+      amount,
+      token
+    );
+    if (!web3_10.utils.isAddress(token)) {
+      throw new Error(`token: [${token}] is not a valid address`);
+    }
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await ethPN.methods.channels(channelID).call();
 
+    let ethPNAddress = ethPN.options.address;
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
       let appChannel = await appPN.methods.channelMap(channelID).call();
@@ -213,53 +211,28 @@ export class L2 {
 
       let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(
-          web3_10,
-          user,
-          ethPN.options.address,
-          amount,
-          data
-        );
+        return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
-        await sendEthTx(
-          web3_10,
-          user,
-          token,
-          0,
-          ERC20.methods.approve(ethPN.options.address, amount).encodeABI()
-        );
-        return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+        let data = ERC20.methods
+          .approve(ethPN.options.address, amount)
+          .encodeABI();
+        await sendEthTx(web3_10, user, token, 0, data);
+        return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
       }
     } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
       // open channel
+      let from = puppet.getAccount().address;
       let data = ethPN.methods
-        .openChannel(
-          user,
-          puppet.getAccount().address,
-          SETTLE_WINDOW,
-          token,
-          amount
-        )
+        .openChannel(user, from, SETTLE_WINDOW, token, amount)
         .encodeABI();
 
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(
-          web3_10,
-          user,
-          ethPN.options.address,
-          amount,
-          data
-        );
+        return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
         // Approve ERC20
-        await sendEthTx(
-          web3_10,
-          user,
-          token,
-          0,
-          ERC20.methods.approve(ethPN.options.address, amount).encodeABI()
-        );
-        return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+        let data = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+        await sendEthTx(web3_10, user, token, 0, data);
+        return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
       }
     } else {
       throw new Error(
@@ -271,21 +244,31 @@ export class L2 {
   /**
    * Withdraw from channel. If the withdraw amount == balance, then cooperative settle the channel.
    *
-   * @param {string} amount      amount to withdraw
+   * @param {string|number} amount      amount to withdraw
    * @param {string} token       OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    * @param {string} receiver    OPTIONAL, eth address to receive withdrawed asset, default: user's address
    *
    * @returns {Promise<string>}
    */
   async withdraw(
-    amount: string,
+    amount: string | number,
     token: string = ADDRESS_ZERO,
     receiver: string = user
   ): Promise<string> {
     this.checkInitialized();
+
+    console.log(
+      'start withdraw with params:  amount: [%s], token: [%s]',
+      amount,
+      token
+    );
+
+    if (!web3_10.utils.isAddress(token)) {
+      throw new Error(`token: [${token}] is not a valid address`);
+    }
+
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
-
     // withdraw amount must less than user balance
     if (
       web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
@@ -293,8 +276,6 @@ export class L2 {
       throw new Error('withdraw amount exceeds the balance');
     }
 
-    let tx = await getAppTxOption();
-    let res;
     // if withdraw balance < user's balance, then go walk with userwithdraw process.
     // if withdraw balance == user's balance, then go walk with cooperative settle process.
     if (
@@ -304,14 +285,14 @@ export class L2 {
         throw new Error('channel status is not open');
       }
       console.log('will call userProposeWithdraw');
-      res = await appPN.methods
-        .userProposeWithdraw(
+      return await sendAppTx(
+        appPN.methods.userProposeWithdraw(
           channelID,
           amount,
           user,
           await getLCB(web3_10.eth, 'eth')
         )
-        .send(tx);
+      );
     } else {
       // if (
       //   Number(channel.status) ===
@@ -320,25 +301,13 @@ export class L2 {
       //   return await ethMethods.ethSubmitCooperativeSettle(channelID);
       // }
       console.log('will call proposeCooperativeSettle', amount);
-      res = await appPN.methods
-        .proposeCooperativeSettle(
+      return await sendAppTx(
+        appPN.methods.proposeCooperativeSettle(
           channelID,
           amount,
           await getLCB(web3_10.eth, 'eth')
         )
-        .send(tx);
-    }
-
-    // watch cita transaction receipt, if no error, returns tx hash
-    if (res.hash) {
-      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if (receipt.errorMessage) {
-        throw new Error(receipt.errorMessage);
-      } else {
-        return res.hash;
-      }
-    } else {
-      throw new Error('submit tx error');
+      );
     }
   }
 
@@ -352,10 +321,14 @@ export class L2 {
   async forceWithdraw(token: string = ADDRESS_ZERO): Promise<string> {
     this.checkInitialized();
 
+    console.log('start forceWithdraw with params: token: [%s]', token);
+
+    if (!web3_10.utils.isAddress(token)) {
+      throw new Error(`token: [${token}] is not a valid address`);
+    }
+
     let channelID = await ethPN.methods.getChannelID(user, token).call();
-
     let channel = await ethPN.methods.channels(channelID).call();
-
     if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error('eth channel status is not open, can not force withdraw');
     }
@@ -410,30 +383,39 @@ export class L2 {
    * transfer asset offchain to specific address
    *
    * @param {string} to destination address of transaction
-   * @param {string} amount amount of transaction
+   * @param {string|number} amount amount of transaction
    * @param {string} token OPTIONAL, token contract address, default: '0x0000000000000000000000000000000000000000' for ETH
    *
    * @returns {Promise<string>}
    */
   async transfer(
     to: string,
-    amount: string,
+    amount: string | number,
     token: string = ADDRESS_ZERO
   ): Promise<string> {
     this.checkInitialized();
 
+    console.log(
+      'start transfer with params: to: [%s], amount: [%s], token: [%s]',
+      to,
+      amount,
+      token
+    );
+
+    let { isAddress, toBN } = web3_10.utils;
+
+    if (!isAddress(token)) {
+      throw new Error(`token: [${token}] is not a valid address`);
+    }
+
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
-
-    // check channel status
     if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error('app channel status is not open, can not transfer now');
     }
 
     // check user's balance is enough
-    if (
-      web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
-    ) {
+    if (toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
       throw new Error("user's balance is less than transfer amount");
     }
 
@@ -441,16 +423,13 @@ export class L2 {
     let { balance, nonce } = await appPN.methods
       .balanceProofMap(channelID, cp)
       .call();
-    balance = web3_10.utils
-      .toBN(amount)
-      .add(web3_10.utils.toBN(balance))
+    balance = toBN(amount)
+      .add(toBN(balance))
       .toString();
-    nonce = web3_10.utils
-      .toBN(nonce)
-      .add(web3_10.utils.toBN(1))
+    nonce = toBN(nonce)
+      .add(toBN(1))
       .toString();
     let additionalHash = '0x0';
-    // console.log('balance is', balance);
 
     let signature = await prepareSignatureForTransfer(
       web3_outer,
@@ -463,110 +442,27 @@ export class L2 {
     );
 
     console.log('start Submit Transfer');
-    let tx = await getAppTxOption();
-    let res = await appPN.methods
-      .transfer(to, channelID, balance, nonce, additionalHash, signature)
-      .send(tx);
-
-    console.log('submit Transfer success');
-
-    if (res.hash) {
-      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      console.log('confirm Transfer');
-      if (receipt.errorMessage) {
-        throw new Error(receipt.errorMessage);
-      } else {
-        console.log('submit transfer success');
-        return res.hash;
-      }
-    } else {
-      throw new Error('submit tx failed');
-    }
-  }
-
-  async testUnlockWithdraw(token: string = ADDRESS_ZERO) {
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    await ethMethods.ethSubmitUserWithdraw(channelID);
-  }
-
-  async testCoClose(token: string = ADDRESS_ZERO) {
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    await ethMethods.ethSubmitCooperativeSettle(channelID);
-  }
-
-  async testSettle(token: string = ADDRESS_ZERO) {
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    await ethMethods.ethSettleChannel(channelID);
-  }
-
-  async testGuardProof() {
-    // let channelID = await ethPN.methods.getChannelID(user, ADDRESS_ZERO).call();
-    // await appMethods.appSubmitGuardProof(channelID, user);
-
-    appPN.getPastEvents(
-      'Transfer',
-      {
-        filter: { to: user },
-        fromBlock: 0,
-        // toBlock: 'latest',
-      },
-      console.log
-    );
-  }
-
-  async testCreateSession(sessionID: string, game: string, data: string) {
-    let tx = await getAppTxOption();
-    tx.from = '0xa08105d7650Fe007978a291CcFECbB321fC21ffe';
-    tx.privateKey =
-      '6A22D7D5D87EFC4A1375203B7E54FBCF35FAA84975891C5E3D12BE86C579A6E5';
-    let res = await appSession.methods
-      .initSession(
-        sessionID,
-        cp,
-        game,
-        [user, cp],
-        appPN.options.address,
-        web3_10.utils.toHex(data)
+    return await sendAppTx(
+      appPN.methods.transfer(
+        to,
+        channelID,
+        balance,
+        nonce,
+        additionalHash,
+        signature
       )
-      .send(tx);
-
-    if (res.hash) {
-      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if (receipt.errorMessage) {
-        throw new Error(receipt.errorMessage);
-      } else {
-        console.log('submit initSession success', receipt);
-        return res.hash;
-      }
-    } else {
-      console.log(res);
-      throw new Error('submit initSession failed');
-    }
-  }
-
-  async testCloseSession(sessionID: string) {
-    let tx = await getAppTxOption();
-    tx.from = '0xa08105d7650Fe007978a291CcFECbB321fC21ffe';
-    tx.privateKey =
-      '6A22D7D5D87EFC4A1375203B7E54FBCF35FAA84975891C5E3D12BE86C579A6E5';
-    let res = await appSession.methods.closeSession(sessionID).send(tx);
-
-    if (res.hash) {
-      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if (receipt.errorMessage) {
-        throw new Error(receipt.errorMessage);
-      } else {
-        console.log('submit closeSession success', receipt);
-        return res.hash;
-      }
-    } else {
-      console.log(res);
-      throw new Error('submit closeSession failed');
-    }
+    );
   }
 
   /** * ---------- Session APIs ---------- */
 
+  /**
+   * fetch a session instance by sessionID
+   *
+   * @param sessionID
+   *
+   * @returns session
+   */
   async startSession(sessionID: string): Promise<L2Session> {
     this.checkInitialized();
     let repeatTimes = 10;

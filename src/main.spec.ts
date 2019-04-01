@@ -9,7 +9,6 @@ import { cp, appSession, appPN, cita, web3_10 } from './main';
 const Web3 = require('web3');
 
 import { config } from '../testcase/config';
-import { getAppTxOption } from './service/cita';
 let {
   ethPNAddress,
   appPNAddress,
@@ -104,7 +103,7 @@ async function createSession() {
   let user = userAddress;
   let data = 'my lord';
 
-  let tx = await getAppTxOption();
+  let tx = await common.getAppTxOption();
   tx.from = providerAddress;
   tx.privateKey = providerPrivateKey;
   let res = await appSession.methods
@@ -123,7 +122,7 @@ async function createSession() {
     if (receipt.errorMessage) {
       throw new Error(receipt.errorMessage);
     } else {
-      console.log('submit initSession success', receipt);
+      console.log('submit initSession success');
       return res.hash;
     }
   } else {
@@ -133,7 +132,7 @@ async function createSession() {
 }
 
 async function closeSession() {
-  let tx = await getAppTxOption();
+  let tx = await common.getAppTxOption();
   tx.from = providerAddress;
   tx.privateKey = providerPrivateKey;
   let res = await appSession.methods.closeSession(sessionID).send(tx);
@@ -143,7 +142,7 @@ async function closeSession() {
     if (receipt.errorMessage) {
       throw new Error(receipt.errorMessage);
     } else {
-      console.log('submit closeSession success', receipt);
+      console.log('submit closeSession success');
       return res.hash;
     }
   } else {

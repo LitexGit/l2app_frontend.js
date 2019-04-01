@@ -11,11 +11,13 @@ import {
   user,
   puppet,
   web3_outer,
-  cita,
   cp,
 } from './main';
-import { myEcsignToHex, prepareSignatureForTransfer } from './utils/common';
-import { getAppTxOption } from './service/cita';
+import {
+  myEcsignToHex,
+  prepareSignatureForTransfer,
+  sendAppTx,
+} from './utils/common';
 import * as protobuf from 'protobufjs';
 protobuf.common('google/protobuf/descriptor.proto', {});
 
@@ -86,9 +88,7 @@ export default class L2Session {
    * @returns {Promise<Array<any>>}
    */
   static async getMessagesBySessionID(_sessionID: string): Promise<Array<any>> {
-    // let messages = await appSession.methods.messages(_sessionID).call();
     let messages = await appSession.methods.exportSession(_sessionID).call();
-    console.log('session message is ', messages);
     return messages;
   }
 
@@ -102,9 +102,8 @@ export default class L2Session {
   static async getPlayersBySessionID(
     _sessionID: string
   ): Promise<Array<string>> {
-    let players = await appSession.methods.players(_sessionID).call();
-    console.log('session players is ', players);
-    return [];
+    let players = await appSession.methods.exportPlayer(_sessionID).call();
+    return players;
   }
 
   /**-----------------Private Constructor------------------------ */
@@ -147,7 +146,7 @@ export default class L2Session {
    * @param {string} to the destination of the message
    * @param {number} type the type of message encoding
    * @param {string} content encoded message content
-   * @param {string} amount token amount transferred to other player
+   * @param {string | number} amount token amount transferred to other player
    * @param {string} token token address, default: '0x0000000000000000000000000000000000000000'
    *
    * @returns {Promise<string>} the tx hash of the sendMessage transaction
@@ -156,20 +155,27 @@ export default class L2Session {
     to: string,
     type: number,
     content: string,
-    amount: string = '0',
+    amount: string | number = '0',
     token: string = ADDRESS_ZERO
   ): Promise<string> {
+    console.log(
+      'sendMessage start execute with params: to: [%s], type: [%s], content: [%s], amount: [%s], token: [%s]',
+      to,
+      type,
+      content,
+      amount,
+      token
+    );
+
+    // TODO check params valid
+
     // check session status
     let { status } = await appSession.methods.sessions(this.sessionID).call();
     if (Number(status) !== SESSION_STATUS.SESSION_STATUS_OPEN) {
       throw new Error('session is not open');
     }
-
     // build session message
     let from = user;
-
-    // type = 1;
-
     let messageHash = web3_10.utils.soliditySha3(
       { t: 'address', v: from },
       { t: 'address', v: to },
@@ -185,14 +191,13 @@ export default class L2Session {
 
     let { transferData, paymentSignature } = await this.buildTransferData(
       from,
-      amount,
+      web3_10.utils.toBN(amount).toString(),
       token,
       messageHash
     );
     // call appSession's sendMessage
-    let tx = await getAppTxOption();
-    let res = await appSession.methods
-      .sendMessage(
+    return await sendAppTx(
+      appSession.methods.sendMessage(
         from,
         to,
         this.sessionID,
@@ -202,19 +207,7 @@ export default class L2Session {
         transferData,
         paymentSignature
       )
-      .send(tx);
-
-    if (res.hash) {
-      let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
-      if (receipt.errorMessage) {
-        throw new Error(receipt.errorMessage);
-      } else {
-        console.log('submit sendMessage success');
-        return res.hash;
-      }
-    } else {
-      throw new Error('submit sendMessage failed');
-    }
+    );
   }
 
   /**
@@ -240,7 +233,7 @@ export default class L2Session {
     token: string,
     messageHash: string
   ): Promise<any> {
-    let { hexToBytes, numberToHex, soliditySha3 } = web3_10.utils;
+    let { hexToBytes, numberToHex, soliditySha3, toBN } = web3_10.utils;
     let channelID =
       '0x0000000000000000000000000000000000000000000000000000000000000000';
     let balance = '0';
@@ -257,9 +250,7 @@ export default class L2Session {
         throw new Error('app channel status is not open, can not transfer now');
       }
       // check user's balance is enough
-      if (
-        web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
-      ) {
+      if (toBN(channel.userBalance).lt(toBN(amount))) {
         throw new Error("user's balance is less than transfer amount");
       }
 
@@ -269,19 +260,16 @@ export default class L2Session {
         .balanceProofMap(channelID, cp)
         .call();
 
-      balance = web3_10.utils
-        .toBN(amount)
-        .add(web3_10.utils.toBN(balanceProof.balance))
+      balance = toBN(amount)
+        .add(toBN(balanceProof.balance))
         .toString();
-      nonce = web3_10.utils
-        .toBN(balanceProof.nonce)
-        .add(web3_10.utils.toBN(1))
+      nonce = toBN(balanceProof.nonce)
+        .add(toBN(1))
         .toString();
       additionalHash = soliditySha3(
-        { t: 'bytes32', v: messageHash },
-        { t: 'uint256', v: amount }
+        { t: 'uint256', v: amount },
+        { t: 'bytes32', v: messageHash }
       );
-
       paymentSignature = await prepareSignatureForTransfer(
         web3_outer,
         ethPN.options.address,
@@ -294,7 +282,6 @@ export default class L2Session {
     }
 
     let transferPB = protobuf.Root.fromJSON(require('./config/transfer.json'));
-
     // Obtain a message type
     let Transfer = transferPB.lookupType('TransferData.Transfer');
 
@@ -304,13 +291,10 @@ export default class L2Session {
       balance: hexToBytes(numberToHex(balance)),
       nonce: hexToBytes(numberToHex(nonce)),
       amount: hexToBytes(numberToHex(amount)),
-      // balance: [0],
-      // nonce: [0],
-      // amount: [0],
       additionalHash: hexToBytes(additionalHash),
     };
 
-    console.log('payload', payload);
+    // console.log('payload', payload);
     // Verify the payload if necessary (i.e. when possibly incomplete or invalid)
     let errMsg = Transfer.verify(payload);
     if (errMsg) throw Error(errMsg);
@@ -318,10 +302,10 @@ export default class L2Session {
     let message = Transfer.create(payload); // or use .fromObject if conversion is necessary
     // Encode a message to an Uint8Array (browser) or Buffer (node)
     let buffer = Transfer.encode(message).finish();
-    console.log('buildTransferData', {
-      transferData: buffer,
-      paymentSignature,
-    });
+    // console.log('buildTransferData', {
+    //   transferData: buffer,
+    //   paymentSignature,
+    // });
 
     return { transferData: buffer, paymentSignature };
   }

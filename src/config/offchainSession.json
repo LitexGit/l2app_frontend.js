@@ -362,6 +362,29 @@
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "sessionID",
+        "type": "bytes32"
+      },
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "isUserExist",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "constant": true,
     "inputs": [
       {

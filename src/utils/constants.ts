@@ -1,3 +1,5 @@
+import { AbiItem } from 'web3/node_modules/web3-utils';
+
 export type SOL_TYPE = 'address' | 'uint256' | 'bytes32' | 'bytes';
 
 export const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 250;
@@ -89,5 +91,5 @@ export type L2_CB = (
 ) => void;
 export type ContractInfo = {
   address: string;
-  abi: string;
+  abi: AbiItem[] | AbiItem;
 };

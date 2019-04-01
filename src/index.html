@@ -155,9 +155,9 @@
   <script>
     const SERVER_URL = 'http://localhost:9527/';
     let config = {
-      ethPNAddress: '0x0B3B88bAa51100D58A4710E3a2A2657fe3ca38e2',
-      appPNAddress: '0x436c5403eA2769948d6e1Cd90D78DA54D8982daa',
-      appSessionAddress: '0xFAdec7E5b28bcFc6BB133Fcc76e45764EC7aF4Fb',
+      ethPNAddress: '0xA2910CBf0E7D14a5853b269b068400b93E5DcEa5',
+      appPNAddress: '0xE8afEeb6D53eD594D0a8D270dbA49Fc4F1e0aA42',
+      appSessionAddress: '0x6923C31b8ab980217bE283DEF58013355537C39D',
     };
 
     let { ethPNAddress, appPNAddress, appSessionAddress } = config;
@@ -268,7 +268,7 @@
         .getElementById('deposit')
         .addEventListener('click', async event => {
           console.log('deposit button clicked');
-          let res = await L2.getInstance().deposit(1e16 + '', token);
+          let res = await L2.getInstance().deposit(1e16, token);
           console.log('deposit res ', res);
         });
 
@@ -392,21 +392,25 @@
         .getElementById('startSession')
         .addEventListener('click', async event => {
           console.log('startSession button clicked');
-          $.get(SERVER_URL + 'getSessionID', async function(data) {
-            console.log('DATA FROM SERVER', data);
-            sessionID = data.data.sessionID;
+          $.get(
+            SERVER_URL + 'getSessionID',
+            { user: defaultAccount },
+            async function(data) {
+              console.log('DATA FROM SERVER', data);
+              sessionID = data.data.sessionID;
 
-            session = await L2.getInstance().startSession(sessionID);
-            console.log('startSession result', session);
+              session = await L2.getInstance().startSession(sessionID);
+              console.log('startSession result', session);
 
-            session.onMessage((error, res) => {
-              console.log('Watch session message------', res);
-            });
+              session.onMessage((error, res) => {
+                console.log('Watch session message------', res);
+              });
 
-            session.onSessionClose((error, res) => {
-              console.log('Watch session closed------', res);
-            });
-          });
+              session.onSessionClose((error, res) => {
+                console.log('Watch session closed------', res);
+              });
+            }
+          );
         });
 
       document

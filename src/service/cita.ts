@@ -1,5 +1,11 @@
 import { ethPN, appPN, user, callbacks, puppet, cita, web3_10 } from '../main';
-import { myEcsignToHex, sendEthTx, getLCB, delay } from '../utils/common';
+import {
+  myEcsignToHex,
+  sendEthTx,
+  delay,
+  getAppTxOption,
+  sendAppTx,
+} from '../utils/common';
 import {
   TRANSFER_EVENT,
   CITA_TX_BLOCK_INTERVAL,
@@ -8,30 +14,6 @@ import {
   WITHDRAW_EVENT,
   FORCEWITHDRAW_EVENT,
 } from '../utils/constants';
-
-/**
- * the transaction options for submiting cita transaction
- */
-export const tx = {
-  nonce: 999999,
-  quota: 1000000,
-  chainId: 1,
-  version: 1,
-  validUntilBlock: 999999,
-  value: '0x0',
-};
-
-/**
- * build the valid tx options for submiting cita transaction
- */
-export async function getAppTxOption() {
-  return {
-    ...tx,
-    validUntilBlock: await getLCB(cita.base, 'cita'),
-    from: puppet.getAccount().address,
-    privateKey: puppet.getAccount().privateKey,
-  };
-}
 
 /**
  * Handle events from cita payment contract, only filter current user related event
@@ -146,13 +128,7 @@ export const events = {
           regulatorSignature
         )
         .encodeABI();
-      let res = await sendEthTx(
-        web3_10,
-        user,
-        ethPN.options.address,
-        0,
-        txData
-      );
+      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
       return;
     },
   },
@@ -206,8 +182,7 @@ export const events = {
       }
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
-      await delay(CITA_TX_BLOCK_INTERVAL * 2);
-      await appMethods.appSubmitGuardProof(channelID, to);
+      appMethods.appSubmitGuardProof(channelID, to);
     },
   },
   /****************************onchain Event(operator emit)************************************/
@@ -245,6 +220,7 @@ export const events = {
         callbacks.get('PuppetChanged')(null, puppetChangeEvent);
     },
   },
+
   OnchainOpenChannel: {
     filter: () => {
       return { user };
@@ -275,6 +251,7 @@ export const events = {
       callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
     },
   },
+
   OnchainUserDeposit: {
     filter: () => {
       return { user };
@@ -309,6 +286,7 @@ export const events = {
       callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
     },
   },
+
   OnchainUserWithdraw: {
     filter: () => {
       return { user };
@@ -351,6 +329,7 @@ export const events = {
         callbacks.get('Withdraw')(null, withdrawEvent);
     },
   },
+
   OnchainCooperativeSettleChannel: {
     filter: () => {
       return { user };
@@ -383,6 +362,7 @@ export const events = {
         callbacks.get('Withdraw')(null, withdrawEvent);
     },
   },
+
   OnchainSettleChannel: {
     filter: () => {
       return { user };
@@ -467,8 +447,8 @@ export const ethMethods = {
         .gt(web3_10.utils.toBN(lastCommitBlock))
     ) {
       console.log('unlock user withdraw now');
-      let tx = await getAppTxOption();
-      let res = await appPN.methods.unlockUserWithdrawProof(channelID).send(tx);
+
+      sendAppTx(appPN.methods.unlockUserWithdrawProof(channelID));
     } else {
       console.log('submit user withdraw now');
       // TODO: check the eth tx has been submited before
@@ -521,9 +501,7 @@ export const ethMethods = {
         .toBN(currentBlockNumber)
         .gt(web3_10.utils.toBN(lastCommitBlock))
     ) {
-      let tx = await getAppTxOption();
-      let res = await appPN.methods.unlockCooperativeSettle(channelID).send(tx);
-      return res;
+      return await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
     } else {
       // TODO: check the eth tx has been submited before
       let txData = ethPN.methods
@@ -535,14 +513,7 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      let res = await sendEthTx(
-        web3_10,
-        user,
-        ethPN.options.address,
-        0,
-        txData
-      );
-      return res;
+      return await sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
     }
   },
 
@@ -562,6 +533,7 @@ export const appMethods = {
    *
    */
   appSubmitGuardProof: async (channelID: string, to: string) => {
+    await delay(2 * CITA_TX_BLOCK_INTERVAL);
     let {
       balance,
       nonce,

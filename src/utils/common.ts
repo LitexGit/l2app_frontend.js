@@ -9,6 +9,7 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES } from '../config/TypedData';
+import { cita, puppet } from '../main';
 
 /**
  * 用私钥签署消息
@@ -169,7 +170,7 @@ export async function getLCB(base: any, chain: string) {
 /**
  * delay time for duation
  *
- * @param {number} duration
+ * @param {number} duration  unit: milisecond
  *
  * @returns {Promise<any>}
  */
@@ -272,4 +273,40 @@ export function extractEventFromReceipt(
   }
 
   return null;
+}
+
+/**
+ * build the valid tx options for submiting cita transaction
+ */
+export async function getAppTxOption() {
+  const tx = {
+    nonce: 999999,
+    quota: 1000000,
+    chainId: 1,
+    version: 1,
+    validUntilBlock: 999999,
+    value: '0x0',
+  };
+  return {
+    ...tx,
+    validUntilBlock: await getLCB(cita.base, 'cita'),
+    from: puppet.getAccount().address,
+    privateKey: puppet.getAccount().privateKey,
+  };
+}
+
+export async function sendAppTx(action: any): Promise<string> {
+  let tx = await getAppTxOption();
+  let res = await action.send(tx);
+  if (res.hash) {
+    let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+    if (receipt.errorMessage) {
+      throw new Error(receipt.errorMessage);
+    } else {
+      console.log('submit sendMessage success');
+      return res.hash;
+    }
+  } else {
+    throw new Error('submit sendMessage failed');
+  }
 }

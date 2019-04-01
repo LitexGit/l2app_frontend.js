@@ -1,4 +1,5 @@
 import { Contract } from 'web3/node_modules/web3-eth-contract';
+import { delay } from './utils/common';
 
 /**
  * because appchain can not suppport event subscription.
@@ -21,18 +22,9 @@ export default class HttpWatcher {
     this.base = base;
     this.blockInterval = blockInterval;
     this.watchList = watchList;
-
     this.enabled = true;
   }
 
-  /**
-   * delay time for duration
-   *
-   * @param duration duration time, unit: miliseconds
-   */
-  async delay(duration: number) {
-    return new Promise(resolve => setTimeout(resolve, duration));
-  }
 
   /**
    * search a specified event of contract from blockchain, and handle it
@@ -96,7 +88,7 @@ export default class HttpWatcher {
     console.log('finish syncing process', currentBlockNumber);
 
     while (true) {
-      await this.delay(this.blockInterval);
+      await delay(this.blockInterval);
 
       try {
         lastBlockNumber = currentBlockNumber + 1;
@@ -121,8 +113,10 @@ export default class HttpWatcher {
             return;
           }
         }
+        // console.log('currentBlockNumber', currentBlockNumber);
       } catch (err) {
         console.error('watch error:', err);
+        // this.base.setProvider('ws://wallet.milewan.com:4337');
       }
     }
   }
