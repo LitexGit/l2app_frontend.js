@@ -148,6 +148,7 @@ export default class HttpWatcher {
       } catch (err) {
         console.error('watch error:', err);
         // this.base.setProvider('ws://wallet.milewan.com:4337');
+        // alert 机制
       }
     }
   }
