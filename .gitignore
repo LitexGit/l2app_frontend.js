@@ -13,3 +13,4 @@ coverage/
 *-debug.log
 **.DS_Storedocs/
 docs/
+.vscode/
