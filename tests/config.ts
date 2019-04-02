@@ -1,3 +1,7 @@
+import mylog from '../src/utils/mylog';
+
+mylog();
+
 export let config = {
   ethPNAddress: '0x8220a551498dC9f1221dC63179D817Ea1814fc56',
   appPNAddress: '0xC0b2F7F36aD57f9F9C8e9821E18f4FEe3c19F994',
@@ -14,22 +18,4 @@ export let config = {
 
   // token: '0x0000000000000000000000000000000000000000',
   token: '0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928',
-};
-
-let oldlog = console.log;
-console.log = (message?: any, ...optionalParams: any[]) => {
-  let timestamp = new Date().toISOString();
-  if (optionalParams.length >= 1) {
-    if (typeof message === 'string') {
-      oldlog(timestamp + "-------  " + message, ...optionalParams);
-    } else {
-      oldlog(timestamp + "-------  ", message, ...optionalParams);
-    }
-  } else {
-    if (typeof message === 'string') {
-      oldlog(timestamp + "-------  " + message);
-    } else {
-      oldlog(timestamp + "-------  ", message);
-    }
-  }
 };

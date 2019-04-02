@@ -25,7 +25,6 @@ export default class HttpWatcher {
     this.enabled = true;
   }
 
-
   /**
    * search a specified event of contract from blockchain, and handle it
    *
@@ -54,6 +53,47 @@ export default class HttpWatcher {
   }
 
   /**
+   * watch all event of a contract, and handle them
+   *
+   * @param fromBlockNumber start blockNumber
+   * @param toBlockNumber end blockNumber
+   * @param watchItem watch event list and settings
+   */
+  async processAllEvent(
+    fromBlockNumber: number,
+    toBlockNumber: number,
+    watchItem: any
+  ) {
+    let events = await watchItem.contract.getPastEvents('allEvents', {
+      filter: {},
+      fromBlock: fromBlockNumber,
+      toBlock: toBlockNumber,
+    });
+
+    for (let event of events) {
+      let { event: eventName, returnValues } = event;
+
+      if (watchItem.listener[eventName]) {
+        let filter = watchItem.listener[eventName].filter();
+        let filterResult = true;
+        for (let k in filter) {
+          if (
+            !returnValues[k] ||
+            returnValues[k].toLowerCase() !== filter[k].toLowerCase()
+          ) {
+            filterResult = false;
+            break;
+          }
+        }
+
+        if (filterResult) {
+          watchItem.listener[eventName].handler(event);
+        }
+      }
+    }
+  }
+
+  /**
    * start httpwatcher to watch blockchain
    *
    * @param lastBlockNumber start block number
@@ -65,16 +105,11 @@ export default class HttpWatcher {
     console.log('start syncing process', lastBlockNumber, currentBlockNumber);
     while (lastBlockNumber <= currentBlockNumber) {
       for (let watchItem of this.watchList) {
-        for (let eventName in watchItem.listener) {
-          await this.processEvent(
-            lastBlockNumber,
-            currentBlockNumber,
-            watchItem.contract,
-            eventName,
-            watchItem.listener[eventName]
-          );
-        }
-
+        await this.processAllEvent(
+          lastBlockNumber,
+          currentBlockNumber,
+          watchItem
+        );
         if (this.enabled === false) {
           return;
         }
@@ -99,15 +134,11 @@ export default class HttpWatcher {
         }
 
         for (let watchItem of this.watchList) {
-          for (let eventName in watchItem.listener) {
-            await this.processEvent(
-              lastBlockNumber,
-              currentBlockNumber,
-              watchItem.contract,
-              eventName,
-              watchItem.listener[eventName]
-            );
-          }
+          await this.processAllEvent(
+            lastBlockNumber,
+            currentBlockNumber,
+            watchItem
+          );
 
           if (this.enabled === false) {
             return;

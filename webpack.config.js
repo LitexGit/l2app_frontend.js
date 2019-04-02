@@ -41,7 +41,7 @@ var config = {
   },
   // target: 'node',
   externals:[  
-    nodeExternals()
+    // nodeExternals()
  ],
   module: {
     rules: [

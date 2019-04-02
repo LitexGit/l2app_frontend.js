@@ -163,7 +163,7 @@ export default class L2Session {
       to,
       type,
       content,
-      amount,
+      amount + '',
       token
     );
 

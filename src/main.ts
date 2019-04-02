@@ -191,7 +191,7 @@ export class L2 {
 
     console.log(
       'start deposit with params: amount: [%s], token: [%s]',
-      amount,
+      amount + '',
       token
     );
     if (!web3_10.utils.isAddress(token)) {
@@ -200,6 +200,7 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await ethPN.methods.channels(channelID).call();
 
+    amount = web3_10.utils.toBN(amount).toString();
     let ethPNAddress = ethPN.options.address;
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
@@ -214,7 +215,7 @@ export class L2 {
         return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
         let approveData = ERC20.methods
-          .approve(ethPN.options.address, amount)
+          .approve(ethPNAddress, amount)
           .encodeABI();
         await sendEthTx(web3_10, user, token, 0, approveData);
         return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
@@ -230,7 +231,9 @@ export class L2 {
         return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
         // Approve ERC20
-        let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+        let approveData = ERC20.methods
+          .approve(ethPNAddress, amount)
+          .encodeABI();
         await sendEthTx(web3_10, user, token, 0, approveData);
         return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
       }
@@ -259,7 +262,7 @@ export class L2 {
 
     console.log(
       'start withdraw with params:  amount: [%s], token: [%s]',
-      amount,
+      amount + '',
       token
     );
 
@@ -267,6 +270,7 @@ export class L2 {
       throw new Error(`token: [${token}] is not a valid address`);
     }
 
+    amount = web3_10.utils.toBN(amount).toString();
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     // withdraw amount must less than user balance
@@ -398,7 +402,7 @@ export class L2 {
     console.log(
       'start transfer with params: to: [%s], amount: [%s], token: [%s]',
       to,
-      amount,
+      amount + '',
       token
     );
 
