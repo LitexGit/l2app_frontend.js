@@ -1,6 +1,6 @@
 export let config = {
-  ethPNAddress: '0xdCbd4E045096Ef980d635381Cd183120F46825d3',
-  appPNAddress: '0xB30d792F5c705cAe7Ec3Fc57A12408745fd0CE7F',
+  ethPNAddress: '0x8220a551498dC9f1221dC63179D817Ea1814fc56',
+  appPNAddress: '0xC0b2F7F36aD57f9F9C8e9821E18f4FEe3c19F994',
   appSessionAddress: '0x6923C31b8ab980217bE283DEF58013355537C39D',
 
   // let appRpcUrl : "http://wallet.milewan.com:8090",
@@ -12,7 +12,8 @@ export let config = {
   //   '0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928',
   // ],
 
-  token: '0x0000000000000000000000000000000000000000',
+  // token: '0x0000000000000000000000000000000000000000',
+  token: '0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928',
 };
 
 let oldlog = console.log;

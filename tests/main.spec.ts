@@ -1,14 +1,15 @@
-import L2 from './index';
+import L2 from '../src/index';
 import {
   mock_sendEthTx,
   mock_prepareSignatureForTransfer,
-} from '../testcase/mock_metamask';
-import * as common from './utils/common';
-import { cp, appSession, appPN, cita, web3_10 } from './main';
+} from './mock_metamask';
+import * as common from '../src/utils/common';
+import { cp, appSession, appPN, cita, web3_10 } from '../src/main';
 
 const Web3 = require('web3');
 
-import { config } from '../testcase/config';
+import { config } from './config';
+import { resolve } from 'url';
 let {
   ethPNAddress,
   appPNAddress,
@@ -17,7 +18,7 @@ let {
   token,
 } = config;
 
-const ethRpcUrl = 'http://54.250.21.165:8545';
+const ethRpcUrl = 'http://39.96.8.192:8545';
 // const  ethRpcUrl = "http://127.0.0.1:7545";
 const ethProvider = new Web3.providers.HttpProvider(ethRpcUrl);
 
@@ -27,6 +28,7 @@ let privateKey =
 let providerAddress = '0xa08105d7650Fe007978a291CcFECbB321fC21ffe';
 let providerPrivateKey =
   '6A22D7D5D87EFC4A1375203B7E54FBCF35FAA84975891C5E3D12BE86C579A6E5';
+
 let sessionID: string;
 
 jest.setTimeout(600000);
@@ -74,12 +76,12 @@ Object.defineProperty(common, 'prepareSignatureForTransfer', {
 });
 
 async function closeChannelIfExist(l2: L2) {
-  let balance = await l2.getBalance();
+  let balance = await l2.getBalance(token);
   if (balance === '0') {
     return;
   } else {
     Promise.all([
-      await l2.withdraw(balance),
+      await l2.withdraw(balance, token),
       await new Promise((resolve, reject) => {
         l2.on('Withdraw', (err, res) => {
           console.log('Received Withdraw', res);
@@ -182,7 +184,7 @@ describe('L2 unit tests', () => {
 
     // open a channel
     Promise.all([
-      await l2.deposit(depositAmount),
+      await l2.deposit(depositAmount, token),
       await new Promise((resolve, reject) => {
         l2.on('Deposit', async (err: any, res: any) => {
           expect(res.amount).toBe(depositAmount);
@@ -211,7 +213,7 @@ describe('L2 unit tests', () => {
   });
 
   it('deposit should success', async () => {
-    let beforeBalance = await l2.getBalance();
+    let beforeBalance = await l2.getBalance(token);
     // console.log('beforeBalance', beforeBalance);
 
     let depositAmount = 1e14 + '';
@@ -219,7 +221,7 @@ describe('L2 unit tests', () => {
       l2.on('Deposit', async (err: any, res: any) => {
         console.log('Received Deposit', res);
         expect(res.amount).toBe(depositAmount);
-        let afterBalance = await l2.getBalance();
+        let afterBalance = await l2.getBalance(token);
         console.log('beforeBalance, aterBalance', beforeBalance, afterBalance);
         expect(Number(afterBalance) - Number(beforeBalance)).toBe(
           Number(depositAmount)
@@ -227,16 +229,16 @@ describe('L2 unit tests', () => {
         resolve(afterBalance);
       });
     });
-    Promise.all([await l2.deposit(depositAmount), await depositPromise]);
+    Promise.all([await l2.deposit(depositAmount, token), await depositPromise]);
   });
 
   it('transfer should success', async () => {
-    let beforeBalance = await l2.getBalance();
+    let beforeBalance = await l2.getBalance(token);
     console.log('beforeBalance is', beforeBalance);
 
-    await l2.transfer(cp, Number(beforeBalance) / 2 + '');
+    await l2.transfer(cp, Number(beforeBalance) / 2 + '', token);
     await common.delay(2000);
-    let afterBalance = await l2.getBalance();
+    let afterBalance = await l2.getBalance(token);
     console.log('afterBalance is', afterBalance);
 
     expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
@@ -253,11 +255,11 @@ describe('L2 unit tests', () => {
   });
 
   it('send session message with asset success', async () => {
-    let balance = await l2.getBalance();
+    let balance = await l2.getBalance(token);
     let session = await l2.startSession(sessionID);
     let content = web3_10.utils.toHex('hello world 2');
     let transferBalance = Number(balance) / 2 + '';
-    await session.sendMessage(providerAddress, 1, content, transferBalance);
+    await session.sendMessage(providerAddress, 1, content, transferBalance, token);
     await common.delay(10000);
     let messages = await l2.getMessagesBySessionID(sessionID);
     expect(messages.length).toBeGreaterThan(0);
@@ -266,7 +268,7 @@ describe('L2 unit tests', () => {
   });
 
   it('withdraw should success', async () => {
-    let balance = await l2.getBalance();
+    let balance = await l2.getBalance(token);
 
     let withdrawAmount = Number(balance) / 2 + '';
     if (balance === '0') {
@@ -279,23 +281,23 @@ describe('L2 unit tests', () => {
             expect(false).toBe(true);
             reject(err);
           } else {
-            let afterBalance = await l2.getBalance();
+            let afterBalance = await l2.getBalance(token);
             expect(afterBalance).toBe(withdrawAmount);
             resolve(res);
           }
         });
       });
-      Promise.all([await l2.withdraw(withdrawAmount), await getResultPromise]);
+      Promise.all([await l2.withdraw(withdrawAmount, token), await getResultPromise]);
     }
   });
 
   it('cooperativeSettle should success', async () => {
-    let balance = await l2.getBalance();
+    let balance = await l2.getBalance(token);
     if (balance === '0') {
       expect(false).toBe(true);
     } else {
       Promise.all([
-        await l2.withdraw(balance),
+        await l2.withdraw(balance, token),
         await new Promise((resolve, reject) => {
           l2.on('Withdraw', async (err, res) => {
             console.log('Received Withdraw', res);
@@ -303,7 +305,7 @@ describe('L2 unit tests', () => {
             if (err) {
               expect(false).toBe(true);
             } else {
-              let afterBalance = await l2.getBalance();
+              let afterBalance = await l2.getBalance(token);
               expect(afterBalance).toBe('0');
               resolve(res);
             }
@@ -311,5 +313,30 @@ describe('L2 unit tests', () => {
         }),
       ]);
     }
+  });
+
+  it('forcewithdraw should success', async () => {
+    let depositAmount = 1e14 + '';
+    // open a channel
+    Promise.all([
+      await l2.deposit(depositAmount, token),
+      await new Promise((resolve, reject) => {
+        l2.on('Deposit', async (err: any, res: any) => {
+          expect(res.amount).toBe(depositAmount);
+
+          console.log('Received Deposit', res);
+          resolve(res);
+        });
+      }),
+    ]);
+    await common.delay(3000);
+    let watchForceWithdraw = new Promise((resolve, reject) => {
+      l2.on('ForceWithdraw', async (err, res) => {
+        expect(true).toBe(true);
+        console.log('Received ForceWithdraw', res);
+        resolve(res);
+      });
+    });
+    await Promise.all([watchForceWithdraw, l2.forceWithdraw(token)]);
   });
 });

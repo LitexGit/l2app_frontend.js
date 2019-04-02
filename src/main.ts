@@ -213,10 +213,10 @@ export class L2 {
       if (token === ADDRESS_ZERO) {
         return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
-        let data = ERC20.methods
+        let approveData = ERC20.methods
           .approve(ethPN.options.address, amount)
           .encodeABI();
-        await sendEthTx(web3_10, user, token, 0, data);
+        await sendEthTx(web3_10, user, token, 0, approveData);
         return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
       }
     } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
@@ -230,8 +230,8 @@ export class L2 {
         return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
       } else {
         // Approve ERC20
-        let data = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
-        await sendEthTx(web3_10, user, token, 0, data);
+        let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+        await sendEthTx(web3_10, user, token, 0, approveData);
         return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
       }
     } else {
