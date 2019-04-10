@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <title>
+      Typescript Webpack Starter
+    </title>
+
+    <meta name="description" content="Typescript Webpack Starter" />
+    <!-- <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.js"></script> -->
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+
+    <style>
+      button {
+        margin: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      You have successfully started your Typescript application using Webpack.
+      Open your console to see your printed message from the index.ts file
+    </div>
+    <p>By <a href="https://twitter.com/renaudin_yann">@renaudin_yann</a></p>
+
+    <div id="token"></div>
+    <button id="switch" type="button" class="btn btn-success">
+      switch ERC20/ETH
+    </button>
+
+    <br />
+    <br />
+    <br />
+    <br />
+    <h2>USER ACTIONS</h2>
+    <div id="info" style="word-break: break-word"></div>
+    <div class="d-flex justify-content-md-start flex-wrap" style="padding: 5px">
+      <button id="refresh" type="button" class="btn btn-info">refresh</button>
+      <button id="init" type="button" class="btn btn-info">InitL2</button>
+      <button id="deposit" type="button" class="btn btn-info">
+        User Deposit
+      </button>
+      <button id="withdraw" type="button" class="btn btn-info">
+        User Withdraw
+      </button>
+      <button
+        id="withdraw2"
+        type="button"
+        class="btn btn-danger"
+        style="visibility: block"
+      >
+        Submit/Unlock Withdraw
+      </button>
+      <button id="coclose" type="button" class="btn btn-info">
+        User Cooperative Settle
+      </button>
+      <button
+        id="coclose2"
+        type="button"
+        class="btn btn-danger"
+        style="visibility: block"
+      >
+        Submit/Unlock CoSettle
+      </button>
+    </div>
+
+    <div class="d-flex justify-content-md-start flex-wrap">
+      <button id="forceClose" type="button" class="btn btn-info">
+        forceClose
+      </button>
+      <button id="settle" type="button" class="btn btn-danger">settle</button>
+      <button id="transfer" type="button" class="btn btn-info">transfer</button>
+      <button id="guardTransfer" type="button" class="btn btn-info">
+        guardTransfer
+      </button>
+      <button id="getAllTxs" type="button" class="btn btn-info">
+        getAllTxs
+      </button>
+      <button id="getAllPuppets" type="button" class="btn btn-info">
+        getAllPuppets
+      </button>
+      <button id="disablePuppet" type="button" class="btn btn-info">
+        disablePuppet
+      </button>
+    </div>
+
+    <div class="d-flex justify-content-start flex-wrap">
+      <!-- <button id="createSession" type="button" class="btn btn-info">createSession</button> -->
+      <button id="startSession" type="button" class="btn btn-info">
+        startSession
+      </button>
+      <button id="sendMessage" type="button" class="btn btn-info">
+        sendMessage
+      </button>
+      <button id="sendMessageWithAsset" type="button" class="btn btn-info">
+        sendMessageWithAsset
+      </button>
+      <button id="closeSession" type="button" class="btn btn-warning">
+        closeSession
+      </button>
+
+      <button id="getSessionPlayers" type="button" class="btn btn-warning">
+        getSessionPlayers
+      </button>
+      <button id="getSessionMessages" type="button" class="btn btn-warning">
+        getSessionMessages
+      </button>
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+    <h2>SERVER ACTIONS</h2>
+
+    <div class="d-flex justify-content-start flex-wrap">
+      <button id="server_get_tx" type="button" class="btn btn-info">
+        getTransactions
+      </button>
+      <button id="server_provider_withdraw" type="button" class="btn btn-info">
+        providerWithdraw
+      </button>
+      <button id="server_provider_deposit" type="button" class="btn btn-info">
+        providerDeposit
+      </button>
+      <button id="server_rebalance" type="button" class="btn btn-info">
+        rebalance
+      </button>
+      <button id="server_force_close" type="button" class="btn btn-info">
+        forceClose
+      </button>
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+    <h2>OPERATOR ACTIONS</h2>
+
+    <div class="d-flex justify-content-start flex-wrap">
+      <button id="operator_set_fee" type="button" class="btn btn-info">
+        setTokenFee
+      </button>
+    </div>
+  <script type="text/javascript" src="app.bundle.js"></script></body>
+
+  <script>
+    const SERVER_URL = 'http://localhost:9527/';
+    let config = {
+      ethPNAddress: '0xb661DB91C0EB7ff242871BB2787690BF51959DDA',
+      appPNAddress: '0xa097122AcdC2dEc8532985dAeEE5020F25086ED7',
+      appSessionAddress: '0xD8eA3Cfe187b2C98Bc6e379454CCa432C36F72b9',
+      appOperatorAddress: '0x637CC5997eF214Ed34603a09846a3849CaA9B090',
+      appRpcUrl: 'ws://18.179.21.124:4337',
+      ethRpcUrl: 'http://39.96.8.192:8545',
+      // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
+      token: '0x0000000000000000000000000000000000000000',
+    };
+
+    let { ethPNAddress, appPNAddress, appSessionAddress, appRpcUrl } = config;
+    // let appRpcUrl = "http://wallet.milewan.com:8090";
+    // let appRpcUrl = "https://node.cryptape.com";
+
+    let tokenList = [
+      '0x0000000000000000000000000000000000000000',
+      '0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928',
+    ];
+
+    let token = '0x0000000000000000000000000000000000000000';
+    let tokenRound = 0;
+    // let token = "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928";
+
+    var defaultAccount = '';
+    window.addEventListener('load', async () => {
+      await main();
+    });
+
+    let sessionID = '';
+    let session;
+
+    window.L2 = l2js.default;
+
+    async function main() {
+      if (typeof window.ethereum !== 'undefined') {
+        // window.web3 = new Web3(ethereum);
+        try {
+          console.log('start enable');
+          // window.web3 = new Web3(ethereum);
+          await window.ethereum.enable();
+          defaultAccount = ethereum.selectedAddress;
+        } catch (error) {
+          console.log(error);
+        }
+      } else if (window.web3) {
+        // window.web3 = new Web3(web3.currentProvider);
+        var accounts = await web3.eth.getAccounts();
+        defaultAccount = accounts[0];
+      } else {
+        return;
+      }
+
+      document.getElementById('token').innerHTML = 'token Address: ' + token;
+
+      document.getElementById('switch').addEventListener('click', event => {
+        tokenRound++;
+        token = tokenList[tokenRound % 2];
+        document.getElementById('token').innerHTML = 'token Address: ' + token;
+      });
+
+      L2.getInstance().on('Deposit', (err, res) => {
+        console.log('Deposit from L2', err, res);
+        refresh();
+      });
+
+      L2.getInstance().on('Withdraw', (err, res) => {
+        console.log('Withdraw from L2', err, res);
+        refresh();
+      });
+
+      L2.getInstance().on('PuppetChanged', (err, res) => {
+        console.log('PuppetChanged from L2', err, res);
+        refresh();
+      });
+
+      L2.getInstance().on('ForceWithdraw', (err, res) => {
+        console.log('ForceWithdraw from L2', err, res);
+        refresh();
+      });
+
+      L2.getInstance().on('Transfer', (err, res) => {
+        console.log('Transfer from L2', err, res);
+        refresh();
+      });
+
+      initUser();
+      initServer();
+      initOperator();
+    }
+
+    function initUser() {
+      /******************************************The First Line******************************************************/
+
+      document
+        .getElementById('refresh')
+        .addEventListener('click', async event => {
+          console.log('refresh clicked');
+          refresh();
+        });
+      document.getElementById('init').addEventListener('click', async event => {
+        console.log('init button clicked');
+        let res = await L2.getInstance().init(
+          defaultAccount,
+          window.web3,
+          ethPNAddress,
+          appRpcUrl,
+          appPNAddress,
+          appSessionAddress
+        );
+        console.log('int res ', res);
+        console.log('web3 version', web3.version);
+      });
+
+      document
+        .getElementById('deposit')
+        .addEventListener('click', async event => {
+          console.log('deposit button clicked');
+          let res = await L2.getInstance().deposit(1e16, token);
+          console.log('deposit res ', res);
+        });
+
+      document
+        .getElementById('withdraw')
+        .addEventListener('click', async event => {
+          console.log('withdraw button clicked');
+          let res = await L2.getInstance().withdraw(1e15 + '', token);
+          console.log('withdraw res ', res);
+        });
+
+      document
+        .getElementById('withdraw2')
+        .addEventListener('click', async event => {
+          console.log('withdraw button clicked');
+          let res = await L2.getInstance().testUnlockWithdraw(token);
+          console.log('withdraw res ', res);
+        });
+
+      document
+        .getElementById('coclose')
+        .addEventListener('click', async event => {
+          console.log('coclose button clicked');
+          let channel = await L2.getInstance().getChannelInfo(token);
+          console.log('channel is ', channel);
+
+          let balance = await L2.getInstance().getBalance(token);
+          console.log('balance is', balance);
+          let res = L2.getInstance().withdraw(balance, token);
+          console.log('coclose res', res);
+        });
+
+      document
+        .getElementById('coclose2')
+        .addEventListener('click', async event => {
+          console.log('coclose2 button clicked');
+          let res = await L2.getInstance().testCoClose(token);
+        });
+
+      /***********************************The Second Line ********************************************/
+      document
+        .getElementById('forceClose')
+        .addEventListener('click', async event => {
+          console.log('forceClose button clicked');
+          let res = await L2.getInstance().forceWithdraw(token);
+          console.log('forcewithdraw res', res);
+        });
+
+      document
+        .getElementById('settle')
+        .addEventListener('click', async event => {
+          console.log('settle button clicked');
+          let res = await L2.getInstance().testSettle(token);
+          console.log('settle res', res);
+        });
+
+      document
+        .getElementById('transfer')
+        .addEventListener('click', async event => {
+          console.log('transfer button clicked');
+          let res = await L2.getInstance().transfer(
+            '0xa08105d7650Fe007978a291CcFECbB321fC21ffe',
+            1e15 + '',
+            token
+          );
+          console.log('transfer res', res);
+          refresh();
+
+          var msg =
+            '0x879a053d4800c6354e76c7985a865d2922c82fb5b3f4577b2fe08b998954f2e0';
+          var from = defaultAccount;
+        });
+
+      document
+        .getElementById('guardTransfer')
+        .addEventListener('click', async event => {
+          console.log('guardTransfer button clicked');
+          let res = await L2.getInstance().testGuardProof();
+          console.log('guardproof res ', res);
+        });
+
+      document
+        .getElementById('getAllTxs')
+        .addEventListener('click', async event => {
+          console.log('getAllTxs button clicked');
+          let result = await L2.getInstance().getAllTXs(token);
+          console.log('getAllTxs result', result);
+        });
+
+      document
+        .getElementById('getAllPuppets')
+        .addEventListener('click', async event => {
+          console.log('getAllPuppets button clicked');
+          let result = await L2.getInstance().getAllPuppets();
+          console.log('getAllPuppets result', result);
+        });
+
+      document
+        .getElementById('disablePuppet')
+        .addEventListener('click', async event => {
+          console.log('disablePuppet button clicked');
+
+          let puppetList = await L2.getInstance().getAllPuppets();
+
+          if (puppetList.length > 0) {
+            let hash = await L2.getInstance().disablePuppet(
+              puppetList[0].address
+            );
+            console.log('disablePuppet result', hash);
+          } else {
+            console.log('no puppet now');
+          }
+        });
+
+      /***********************************The Third Line ********************************************/
+      // document.getElementById("createSession").addEventListener("click", async (event)=>{
+
+      // });
+
+      document
+        .getElementById('startSession')
+        .addEventListener('click', async event => {
+          console.log('startSession button clicked');
+          $.get(
+            SERVER_URL + 'getSessionID',
+            { user: defaultAccount },
+            async function(data) {
+              console.log('DATA FROM SERVER', data);
+              sessionID = data.data.sessionID;
+
+              session = await L2.getInstance().startSession(sessionID);
+              console.log('startSession result', session);
+
+              session.onMessage((error, res) => {
+                console.log('Watch session message------', res);
+              });
+
+              session.onSessionClose((error, res) => {
+                console.log('Watch session closed------', res);
+              });
+            }
+          );
+        });
+
+      document
+        .getElementById('sendMessage')
+        .addEventListener('click', async event => {
+          console.log('sendMessage button clicked');
+
+          let result = await session.sendMessage(
+            session.provider,
+            1,
+            window.web3.toHex('you know what I say')
+          );
+
+          console.log('sendMessage result', result);
+        });
+
+      document
+        .getElementById('sendMessageWithAsset')
+        .addEventListener('click', async event => {
+          console.log('sendMessageWithAsset button clicked');
+          let result = await session.sendMessage(
+            session.provider,
+            2,
+            window.web3.toHex('you know what I say, here you are'),
+            1e14 + '',
+            token
+          );
+          console.log('sendMessageWithAsset result', result);
+        });
+
+      document
+        .getElementById('closeSession')
+        .addEventListener('click', async event => {
+          console.log('closeSession button clicked');
+          $.get(
+            SERVER_URL + 'closeSession',
+            {
+              sessionID: sessionID,
+            },
+            async function(data) {
+              console.log('CLOSE SESSION DATA FROM SERVER', data);
+            }
+          );
+        });
+
+      document
+        .getElementById('getSessionPlayers')
+        .addEventListener('click', async event => {
+          console.log('getSessionPlayers button clicked');
+          let result = await L2.getInstance().getPlayersBySessionID(sessionID);
+          console.log('getSessionPlayers result', result);
+        });
+
+      document
+        .getElementById('getSessionMessages')
+        .addEventListener('click', async event => {
+          console.log('getSessionMessages button clicked');
+          let result = await L2.getInstance().getMessagesBySessionID(sessionID);
+          console.log('getSessionMessages result', result);
+        });
+    }
+
+    function initServer() {
+      $('#server_get_tx').click(function() {
+        console.log('server get tx clicked');
+      });
+
+      $('#server_provider_withdraw').click(function() {
+        console.log('server provider withdraw clicked');
+      });
+
+      $('#server_provider_deposit').click(function() {
+        console.log('provider deposit clicked');
+      });
+
+      $('#server_rebalance').click(function() {
+        console.log('provider rebalance clicked');
+      });
+
+      $('#server_force_close').click(function() {
+        console.log('provider force close clicked');
+      });
+    }
+
+    function initOperator() {
+      $('#operator_set_fee').click(function() {
+        console.log('provider withdraw clicked');
+      });
+    }
+
+    async function refresh() {
+      // console.log("hello", l2js.L2);
+
+      document.getElementById('info').innerHTML = 'Loading...';
+      let balance = await L2.getInstance().getChannelInfo(token);
+
+      document.getElementById('info').innerHTML =
+        '<br>Address: ' + defaultAccount + '</br>';
+      document.getElementById('info').innerHTML +=
+        '<br>channel Balance: ' + JSON.stringify(balance) + '</br>';
+    }
+  </script>
+</html>
