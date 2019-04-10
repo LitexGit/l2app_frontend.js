@@ -236,8 +236,8 @@
     "name": "providerWithdrawProofMap",
     "outputs": [
       {
-        "name": "balance",
-        "type": "int256"
+        "name": "amount",
+        "type": "uint256"
       },
       {
         "name": "lastCommitBlock",
@@ -288,6 +288,10 @@
       },
       {
         "name": "providerTotalSettled",
+        "type": "int256"
+      },
+      {
+        "name": "onchainFeeWithdraw",
         "type": "uint256"
       },
       {
@@ -789,8 +793,8 @@
       },
       {
         "indexed": false,
-        "name": "balance",
-        "type": "int256"
+        "name": "amount",
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -811,8 +815,8 @@
       },
       {
         "indexed": false,
-        "name": "balance",
-        "type": "int256"
+        "name": "amount",
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -1109,7 +1113,7 @@
       {
         "indexed": false,
         "name": "balance",
-        "type": "uint256"
+        "type": "int256"
       },
       {
         "indexed": false,
@@ -1259,10 +1263,27 @@
       {
         "indexed": false,
         "name": "providerSettleAmount",
-        "type": "uint256"
+        "type": "int256"
       }
     ],
     "name": "OnchainSettleChannel",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnchainRegulatorWithdraw",
     "type": "event"
   },
   {
@@ -1457,8 +1478,8 @@
         "type": "address"
       },
       {
-        "name": "balance",
-        "type": "int256"
+        "name": "amount",
+        "type": "uint256"
       },
       {
         "name": "lastCommitBlock",
@@ -1714,7 +1735,7 @@
       },
       {
         "name": "balance",
-        "type": "uint256"
+        "type": "int256"
       },
       {
         "name": "lastCommitBlock",
@@ -1741,6 +1762,10 @@
       {
         "name": "balance",
         "type": "uint256"
+      },
+      {
+        "name": "providerRegain",
+        "type": "int256"
       },
       {
         "name": "lastCommitBlock",
@@ -1843,11 +1868,29 @@
         "type": "uint256"
       },
       {
-        "name": "providerSettleAmount",
-        "type": "uint256"
+        "name": "providerRegain",
+        "type": "int256"
       }
     ],
     "name": "onchainSettleChannel",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "onchainRegulatorWithdraw",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",

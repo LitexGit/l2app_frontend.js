@@ -17,24 +17,24 @@
               }
             },
             "balance": {
-              "type": "bytes",
+              "type": "uint64",
               "id": 2,
               "options": {
-                "(soltype)": "uint256"
+                "(soltype)": "uint"
               }
             },
             "nonce": {
-              "type": "bytes",
+              "type": "uint64",
               "id": 3,
               "options": {
-                "(soltype)": "uint256"
+                "(soltype)": "uint"
               }
             },
             "amount": {
-              "type": "bytes",
+              "type": "uint64",
               "id": 4,
               "options": {
-                "(soltype)": "uint256"
+                "(soltype)": "uint"
               }
             },
             "additionalHash": {

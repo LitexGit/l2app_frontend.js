@@ -47,6 +47,25 @@
       {
         "name": "",
         "type": "address"
+      }
+    ],
+    "name": "providerWithdrawMap",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
       },
       {
         "name": "",
@@ -161,6 +180,25 @@
   },
   {
     "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "providerDepositMap",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [],
     "name": "settleWindowMax",
     "outputs": [
@@ -251,6 +289,25 @@
       {
         "name": "",
         "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "providerRegainMap",
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256"
       }
     ],
     "payable": false,
@@ -539,6 +596,11 @@
       },
       {
         "indexed": false,
+        "name": "providerRegain",
+        "type": "int256"
+      },
+      {
+        "indexed": false,
         "name": "lastCommitBlock",
         "type": "uint256"
       }
@@ -652,13 +714,13 @@
       },
       {
         "indexed": false,
-        "name": "transferTouserAmount",
+        "name": "transferToUserAmount",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "name": "transferToProviderAmount",
-        "type": "uint256"
+        "name": "providerRegain",
+        "type": "int256"
       }
     ],
     "name": "ChannelSettled",
@@ -800,8 +862,8 @@
         "type": "address"
       },
       {
-        "name": "balance",
-        "type": "int256"
+        "name": "amount",
+        "type": "uint256"
       },
       {
         "name": "lastCommitBlock",

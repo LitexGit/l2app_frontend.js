@@ -180,7 +180,7 @@ describe('L2 unit tests', () => {
 
     await closeChannelIfExist(l2);
 
-    let depositAmount = 1e14 + '';
+    let depositAmount = 2e17 + '';
 
     // open a channel
     Promise.all([
@@ -212,84 +212,97 @@ describe('L2 unit tests', () => {
     await common.delay(1000);
   });
 
-  it('deposit should success', async () => {
-    let beforeBalance = await l2.getBalance(token);
-    // console.log('beforeBalance', beforeBalance);
+  // it('deposit should success', async () => {
+  //   let beforeBalance = await l2.getBalance(token);
+  //   // console.log('beforeBalance', beforeBalance);
 
-    let depositAmount = 1e14 + '';
-    let depositPromise = new Promise((resolve, reject) => {
-      l2.on('Deposit', async (err: any, res: any) => {
-        console.log('Received Deposit', res);
-        expect(res.amount).toBe(depositAmount);
-        let afterBalance = await l2.getBalance(token);
-        console.log('beforeBalance, aterBalance', beforeBalance, afterBalance);
-        expect(Number(afterBalance) - Number(beforeBalance)).toBe(
-          Number(depositAmount)
-        );
-        resolve(afterBalance);
-      });
-    });
-    Promise.all([await l2.deposit(depositAmount, token), await depositPromise]);
-  });
+  //   let depositAmount = 1e14 + '';
+  //   let depositPromise = new Promise((resolve, reject) => {
+  //     l2.on('Deposit', async (err: any, res: any) => {
+  //       console.log('Received Deposit', res);
+  //       expect(res.amount).toBe(depositAmount);
+  //       let afterBalance = await l2.getBalance(token);
+  //       console.log('beforeBalance, aterBalance', beforeBalance, afterBalance);
+  //       expect(Number(afterBalance) - Number(beforeBalance)).toBe(
+  //         Number(depositAmount)
+  //       );
+  //       resolve(afterBalance);
+  //     });
+  //   });
+  //   Promise.all([await l2.deposit(depositAmount, token), await depositPromise]);
+  // });
 
-  it('transfer should success', async () => {
-    let beforeBalance = await l2.getBalance(token);
-    console.log('beforeBalance is', beforeBalance);
+  // it('transfer should success', async () => {
+  //   let beforeBalance = await l2.getBalance(token);
+  //   console.log('beforeBalance is', beforeBalance);
 
-    await l2.transfer(cp, Number(beforeBalance) / 2 + '', token);
-    await common.delay(2000);
-    let afterBalance = await l2.getBalance(token);
-    console.log('afterBalance is', afterBalance);
+  //   // for (let i = 0; i < 2; i++) {
+  //     await l2.transfer(cp, Number(beforeBalance) / 2 + '', token);
+  //     await common.delay(1000);
+  //   // }
 
-    expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
-  });
+  //   // await common.delay(2000);
+  //   let afterBalance = await l2.getBalance(token);
+  //   console.log('afterBalance is', afterBalance);
 
-  it('send session message success', async () => {
-    let session = await l2.startSession(sessionID);
-    let content = web3_10.utils.toHex('hello world');
-    await session.sendMessage(providerAddress, 1, content);
-    await common.delay(10000);
-    let messages = await l2.getMessagesBySessionID(sessionID);
-    expect(messages.length).toBeGreaterThan(0);
-    expect(messages[messages.length - 1].content).toBe(content);
-  });
+  //   expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
+  // });
+
+  // it('send session message success', async () => {
+  //   let session = await l2.startSession(sessionID);
+  //   let content = web3_10.utils.toHex('hello world');
+  //   await session.sendMessage(providerAddress, 1, content);
+  //   await common.delay(10000);
+  //   let messages = await l2.getMessagesBySessionID(sessionID);
+  //   expect(messages.length).toBeGreaterThan(0);
+  //   expect(messages[messages.length - 1].content).toBe(content);
+  // });
 
   it('send session message with asset success', async () => {
     let balance = await l2.getBalance(token);
     let session = await l2.startSession(sessionID);
     let content = web3_10.utils.toHex('hello world 2');
     let transferBalance = Number(balance) / 2 + '';
-    await session.sendMessage(providerAddress, 1, content, transferBalance, token);
-    await common.delay(10000);
+    for (let i = 0; i < 2; i++) {
+      await session.sendMessage(
+        providerAddress,
+        1,
+        content,
+        transferBalance,
+        token
+      );
+      await common.delay(1000);
+    }
+    await common.delay(1000);
     let messages = await l2.getMessagesBySessionID(sessionID);
     expect(messages.length).toBeGreaterThan(0);
     expect(messages[messages.length - 1].content).toBe(content);
     expect(messages[messages.length - 1].amount).toBe(transferBalance);
   });
 
-  it('withdraw should success', async () => {
-    let balance = await l2.getBalance(token);
+  // it('withdraw should success', async () => {
+  //   let balance = await l2.getBalance(token);
 
-    let withdrawAmount = Number(balance) / 2 + '';
-    if (balance === '0') {
-      expect(false).toBe(true);
-    } else {
-      let getResultPromise = new Promise((resolve, reject) => {
-        l2.on('Withdraw', async (err, res) => {
-          console.log('Received Withdraw', res);
-          if (err) {
-            expect(false).toBe(true);
-            reject(err);
-          } else {
-            let afterBalance = await l2.getBalance(token);
-            expect(afterBalance).toBe(withdrawAmount);
-            resolve(res);
-          }
-        });
-      });
-      Promise.all([await l2.withdraw(withdrawAmount, token), await getResultPromise]);
-    }
-  });
+  //   let withdrawAmount = Number(balance) / 2 + '';
+  //   if (balance === '0') {
+  //     expect(false).toBe(true);
+  //   } else {
+  //     let getResultPromise = new Promise((resolve, reject) => {
+  //       l2.on('Withdraw', async (err, res) => {
+  //         console.log('Received Withdraw', res);
+  //         if (err) {
+  //           expect(false).toBe(true);
+  //           reject(err);
+  //         } else {
+  //           let afterBalance = await l2.getBalance(token);
+  //           expect(afterBalance).toBe(withdrawAmount);
+  //           resolve(res);
+  //         }
+  //       });
+  //     });
+  //     Promise.all([await l2.withdraw(withdrawAmount, token), await getResultPromise]);
+  //   }
+  // });
 
   it('cooperativeSettle should success', async () => {
     let balance = await l2.getBalance(token);
@@ -315,28 +328,28 @@ describe('L2 unit tests', () => {
     }
   });
 
-  it('forcewithdraw should success', async () => {
-    let depositAmount = 1e14 + '';
-    // open a channel
-    Promise.all([
-      await l2.deposit(depositAmount, token),
-      await new Promise((resolve, reject) => {
-        l2.on('Deposit', async (err: any, res: any) => {
-          expect(res.amount).toBe(depositAmount);
+  // it('forcewithdraw should success', async () => {
+  //   let depositAmount = 1e14 + '';
+  //   // open a channel
+  //   Promise.all([
+  //     await l2.deposit(depositAmount, token),
+  //     await new Promise((resolve, reject) => {
+  //       l2.on('Deposit', async (err: any, res: any) => {
+  //         expect(res.amount).toBe(depositAmount);
 
-          console.log('Received Deposit', res);
-          resolve(res);
-        });
-      }),
-    ]);
-    await common.delay(3000);
-    let watchForceWithdraw = new Promise((resolve, reject) => {
-      l2.on('ForceWithdraw', async (err, res) => {
-        expect(true).toBe(true);
-        console.log('Received ForceWithdraw', res);
-        resolve(res);
-      });
-    });
-    await Promise.all([watchForceWithdraw, l2.forceWithdraw(token)]);
-  });
+  //         console.log('Received Deposit', res);
+  //         resolve(res);
+  //       });
+  //     }),
+  //   ]);
+  //   await common.delay(3000);
+  //   let watchForceWithdraw = new Promise((resolve, reject) => {
+  //     l2.on('ForceWithdraw', async (err, res) => {
+  //       expect(true).toBe(true);
+  //       console.log('Received ForceWithdraw', res);
+  //       resolve(res);
+  //     });
+  //   });
+  //   await Promise.all([watchForceWithdraw, l2.forceWithdraw(token)]);
+  // });
 });

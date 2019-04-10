@@ -122,7 +122,7 @@ export class L2 {
 
     let appSessionInfo: ContractInfo = {
       abi: abi2jsonInterface(
-        JSON.stringify(require('./config/offchainSession.json'))
+        JSON.stringify(require('./config/sessionPayment.json'))
       ),
       address: appSessionAddress,
     };
@@ -139,6 +139,13 @@ export class L2 {
     web3_outer = outerWeb3;
     let provider = outerWeb3.currentProvider;
     web3_10 = new Web3(provider);
+
+    console.log(
+      `outer web3 version:`,
+      outerWeb3.version,
+      `inner web3 version:`,
+      web3_10.version
+    );
 
     ethPN = new Contract(provider, ethPNInfo.abi, ethPNInfo.address);
     ethPN.options.from = user;
@@ -212,13 +219,13 @@ export class L2 {
 
       let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
+        return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
       } else {
         let approveData = ERC20.methods
           .approve(ethPNAddress, amount)
           .encodeABI();
-        await sendEthTx(web3_10, user, token, 0, approveData);
-        return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
+        await sendEthTx(web3_outer, user, token, 0, approveData);
+        return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
       }
     } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
       // open channel
@@ -228,14 +235,14 @@ export class L2 {
         .encodeABI();
 
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(web3_10, user, ethPNAddress, amount, data);
+        return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
       } else {
         // Approve ERC20
         let approveData = ERC20.methods
           .approve(ethPNAddress, amount)
           .encodeABI();
-        await sendEthTx(web3_10, user, token, 0, approveData);
-        return await sendEthTx(web3_10, user, ethPNAddress, 0, data);
+        await sendEthTx(web3_outer, user, token, 0, approveData);
+        return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
       }
     } else {
       throw new Error(
@@ -288,7 +295,7 @@ export class L2 {
       if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         throw new Error('channel status is not open');
       }
-      console.log('will call userProposeWithdraw');
+      console.log('call userProposeWithdraw');
       return await sendAppTx(
         appPN.methods.userProposeWithdraw(
           channelID,
@@ -298,13 +305,14 @@ export class L2 {
         )
       );
     } else {
-      // if (
-      //   Number(channel.status) ===
-      //   CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
-      // ) {
-      //   return await ethMethods.ethSubmitCooperativeSettle(channelID);
-      // }
-      console.log('will call proposeCooperativeSettle', amount);
+      if (
+        Number(channel.status) ===
+        CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
+      ) {
+        console.log('call ethSubmitCooperativeSettle');
+        return await ethMethods.ethSubmitCooperativeSettle(channelID);
+      }
+      console.log('call proposeCooperativeSettle', amount);
       return await sendAppTx(
         appPN.methods.proposeCooperativeSettle(
           channelID,
@@ -380,7 +388,7 @@ export class L2 {
         providerSignature
       )
       .encodeABI();
-    return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+    return await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }
 
   /**
@@ -607,7 +615,7 @@ export class L2 {
   async disablePuppet(puppet: string): Promise<string> {
     this.checkInitialized();
     let data = ethPN.methods.disablePuppet(puppet).encodeABI();
-    return await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+    return await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }
 
   /** ---------- Event API ---------- */
@@ -659,7 +667,7 @@ export class L2 {
      */
     puppet = Puppet.create(user);
     let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
-    await sendEthTx(web3_10, user, ethPN.options.address, 0, data);
+    await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }
 
   /**

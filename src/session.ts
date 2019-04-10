@@ -267,8 +267,8 @@ export default class L2Session {
         .add(toBN(1))
         .toString();
       additionalHash = soliditySha3(
-        { t: 'uint256', v: amount },
-        { t: 'bytes32', v: messageHash }
+        { t: 'bytes32', v: messageHash },
+        { t: 'uint256', v: amount }
       );
       paymentSignature = await prepareSignatureForTransfer(
         web3_outer,
@@ -288,13 +288,13 @@ export default class L2Session {
     // Exemplary payload
     let payload = {
       channelID: hexToBytes(channelID),
-      balance: hexToBytes(numberToHex(balance)),
-      nonce: hexToBytes(numberToHex(nonce)),
-      amount: hexToBytes(numberToHex(amount)),
+      balance: Number(balance),
+      nonce: Number(nonce),
+      amount: Number(amount),
       additionalHash: hexToBytes(additionalHash),
     };
 
-    // console.log('payload', payload);
+    console.log('payload', payload);
     // Verify the payload if necessary (i.e. when possibly incomplete or invalid)
     let errMsg = Transfer.verify(payload);
     if (errMsg) throw Error(errMsg);

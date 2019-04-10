@@ -1,4 +1,4 @@
-import { ethPN, appPN, user, callbacks, puppet, cita, web3_10 } from '../main';
+import { ethPN, appPN, user, callbacks, puppet, cita, web3_10, web3_outer } from '../main';
 import {
   myEcsignToHex,
   sendEthTx,
@@ -72,7 +72,7 @@ export const events = {
           user
         )
         .encodeABI();
-      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
     },
   },
 
@@ -128,7 +128,7 @@ export const events = {
           regulatorSignature
         )
         .encodeABI();
-      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
       return;
     },
   },
@@ -462,7 +462,7 @@ export const ethMethods = {
           receiver
         )
         .encodeABI();
-      sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
     }
   },
 
@@ -513,13 +513,13 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      return await sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+      return await sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
     }
   },
 
   ethSettleChannel: async (channelID: string) => {
     let txData = ethPN.methods.settleChannel(channelID).encodeABI();
-    sendEthTx(web3_10, user, ethPN.options.address, 0, txData);
+    sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
   },
 };
 

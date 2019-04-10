@@ -50,7 +50,7 @@
       },
       {
         "name": "mType",
-        "type": "uint8"
+        "type": "uint256"
       },
       {
         "name": "content",
@@ -172,6 +172,23 @@
       }
     ],
     "name": "JoinSession",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "sessionID",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "KickUser",
     "type": "event"
   },
   {
@@ -309,6 +326,24 @@
     "constant": false,
     "inputs": [
       {
+        "name": "sessionID",
+        "type": "bytes32"
+      },
+      {
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "kickUser",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
         "name": "from",
         "type": "address"
       },
@@ -392,25 +427,6 @@
         "type": "bytes32"
       }
     ],
-    "name": "exportSessionBytes",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "sessionID",
-        "type": "bytes32"
-      }
-    ],
     "name": "exportSession",
     "outputs": [
       {
@@ -429,7 +445,7 @@
           },
           {
             "name": "mType",
-            "type": "uint8"
+            "type": "uint256"
           },
           {
             "name": "content",
