@@ -1,4 +1,13 @@
-import { ethPN, appPN, user, callbacks, puppet, cita, web3_10, web3_outer } from '../main';
+import {
+  ethPN,
+  appPN,
+  user,
+  callbacks,
+  puppet,
+  cita,
+  web3_10,
+  web3_outer,
+} from '../main';
 import {
   myEcsignToHex,
   sendEthTx,
@@ -164,9 +173,10 @@ export const events = {
 
       // emit the Transfer event to sdk caller
       if (
-        callbacks.get('Transfer') &&
-        additionalHash ===
-          '0x0000000000000000000000000000000000000000000000000000000000000000'
+        callbacks.get('Transfer')
+        // &&
+        // additionalHash ===
+        //   '0x0000000000000000000000000000000000000000000000000000000000000000'
       ) {
         let { token } = await appPN.methods.channelMap(channelID).call();
         let amount = transferAmount;
@@ -513,7 +523,13 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      return await sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
+      return await sendEthTx(
+        web3_outer,
+        user,
+        ethPN.options.address,
+        0,
+        txData
+      );
     }
   },
 
