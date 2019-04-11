@@ -37,7 +37,7 @@ export declare class L2 {
     disablePuppet(puppet: string): Promise<string>;
     on(event: L2_EVENT, callback: L2_CB): void;
     private checkInitialized;
-    private initPuppet;
+    initPuppet(): Promise<void>;
     private initListeners;
     private initMissingEvent;
 }

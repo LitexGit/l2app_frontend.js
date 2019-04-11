@@ -248,15 +248,15 @@ describe('L2 unit tests', () => {
   //   expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
   // });
 
-  // it('send session message success', async () => {
-  //   let session = await l2.startSession(sessionID);
-  //   let content = web3_10.utils.toHex('hello world');
-  //   await session.sendMessage(providerAddress, 1, content);
-  //   await common.delay(10000);
-  //   let messages = await l2.getMessagesBySessionID(sessionID);
-  //   expect(messages.length).toBeGreaterThan(0);
-  //   expect(messages[messages.length - 1].content).toBe(content);
-  // });
+  it('send session message success', async () => {
+    let session = await l2.startSession(sessionID);
+    let content = web3_10.utils.toHex('hello world');
+    await session.sendMessage(providerAddress, 1, content);
+    await common.delay(10000);
+    let messages = await l2.getMessagesBySessionID(sessionID);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[messages.length - 1].content).toBe(content);
+  });
 
   it('send session message with asset success', async () => {
     let balance = await l2.getBalance(token);
