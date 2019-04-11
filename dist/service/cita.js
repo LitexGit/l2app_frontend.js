@@ -96,9 +96,7 @@ exports.events = {
                         console.log('--------------------Handle CITA Transfer--------------------');
                         _a = event.returnValues, from = _a.from, to = _a.to, channelID = _a.channelID, balance = _a.balance, transferAmount = _a.transferAmount, additionalHash = _a.additionalHash;
                         console.log(' from: [%s], to: [%s], channelID: [%s], balance: [%s], transferAmount: [%s], additionalHash: [%s] ', from, to, channelID, balance, transferAmount, additionalHash);
-                        if (!(main_1.callbacks.get('Transfer') &&
-                            additionalHash ===
-                                '0x0000000000000000000000000000000000000000000000000000000000000000')) return [3, 2];
+                        if (!main_1.callbacks.get('Transfer')) return [3, 2];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 1:
                         token = (_b.sent()).token;
