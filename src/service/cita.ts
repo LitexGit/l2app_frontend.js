@@ -191,10 +191,11 @@ export const events = {
           totalTransferredAmount: balance,
         };
 
+        let { toBN } = web3_10.utils;
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let channelInfo = await appPN.methods.balanceProofMap(channelID, to);
-          if (channelInfo.balance >= balance) {
+          let channelInfo = await appPN.methods.balanceProofMap(channelID, to).call();
+          if (toBN(channelInfo.balance).gte(toBN(balance))) {
             break;
           }
           await delay(1000);

@@ -84,7 +84,7 @@ exports.events = {
             return { to: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, from, to, channelID, balance, transferAmount, additionalHash, token, amount, transferEvent, time, channelInfo;
+            var _a, from, to, channelID, balance, transferAmount, additionalHash, token, amount, transferEvent, toBN, time, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -104,14 +104,15 @@ exports.events = {
                             additionalHash: additionalHash,
                             totalTransferredAmount: balance,
                         };
+                        toBN = main_1.web3_10.utils.toBN;
                         time = 0;
                         _b.label = 2;
                     case 2:
                         if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
-                        return [4, main_1.appPN.methods.balanceProofMap(channelID, to)];
+                        return [4, main_1.appPN.methods.balanceProofMap(channelID, to).call()];
                     case 3:
                         channelInfo = _b.sent();
-                        if (channelInfo.balance >= balance) {
+                        if (toBN(channelInfo.balance).gte(toBN(balance))) {
                             return [3, 5];
                         }
                         return [4, common_1.delay(1000)];
