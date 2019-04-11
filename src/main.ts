@@ -645,7 +645,7 @@ export class L2 {
   /**
    * init Puppet when L2 initializing
    */
-  private async initPuppet() {
+  async initPuppet() {
     puppet = Puppet.get(user);
 
     // get puppet from LocalStorage, check if it is valid on eth payment contract
