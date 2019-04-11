@@ -32,6 +32,7 @@ import {
   CHANNEL_STATUS,
   PUPPET_STATUS,
   ContractInfo,
+  CITA_SYNC_EVENT_TIMEOUT,
 } from './utils/constants';
 import { events as appEvents, ethMethods, appMethods } from './service/cita';
 import { events as ethEvents } from './service/eth';
@@ -322,7 +323,7 @@ export class L2 {
       );
 
       let repeatTime = 0;
-      while (repeatTime < 10) {
+      while (repeatTime < CITA_SYNC_EVENT_TIMEOUT) {
         await delay(1000);
 
         let { status } = await appPN.methods.channelMap(channelID).call();
@@ -330,6 +331,7 @@ export class L2 {
           Number(status) === CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
         ) {
           console.log('break loop', repeatTime);
+          res = await ethMethods.ethSubmitCooperativeSettle(channelID);
           break;
         }
         repeatTime++;

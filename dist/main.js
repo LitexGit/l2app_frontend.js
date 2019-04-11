@@ -249,20 +249,23 @@ var L2 = (function () {
                         repeatTime = 0;
                         _j.label = 10;
                     case 10:
-                        if (!(repeatTime < 10)) return [3, 13];
+                        if (!(repeatTime < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 15];
                         return [4, common_1.delay(1000)];
                     case 11:
                         _j.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 12:
                         status_1 = (_j.sent()).status;
-                        if (Number(status_1) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE) {
-                            console.log('break loop', repeatTime);
-                            return [3, 13];
-                        }
+                        if (!(Number(status_1) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE)) return [3, 14];
+                        console.log('break loop', repeatTime);
+                        return [4, cita_1.ethMethods.ethSubmitCooperativeSettle(channelID)];
+                    case 13:
+                        res = _j.sent();
+                        return [3, 15];
+                    case 14:
                         repeatTime++;
                         return [3, 10];
-                    case 13: return [2, res];
+                    case 15: return [2, res];
                 }
             });
         });

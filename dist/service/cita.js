@@ -67,7 +67,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, confirmer, balance, lastCommitBlock, isAllConfirmed, providerSignature, regulatorSignature, transactionHash, txData;
+            var _a, channelID, user, confirmer, balance, lastCommitBlock, isAllConfirmed, providerSignature, regulatorSignature, transactionHash;
             return __generator(this, function (_b) {
                 console.log('--------------------Handle CITA ConfirmCooperativeSettle--------------------');
                 _a = event.returnValues, channelID = _a.channelID, user = _a.user, confirmer = _a.confirmer, balance = _a.balance, lastCommitBlock = _a.lastCommitBlock, isAllConfirmed = _a.isAllConfirmed, providerSignature = _a.providerSignature, regulatorSignature = _a.regulatorSignature, transactionHash = event.transactionHash;
@@ -75,11 +75,6 @@ exports.events = {
                 if (isAllConfirmed === false) {
                     return [2];
                 }
-                console.log('Receive ConfirmCooperativeSettle event, will try to submit eth settle tx %s', transactionHash);
-                txData = main_1.ethPN.methods
-                    .cooperativeSettle(channelID, balance, lastCommitBlock, providerSignature, regulatorSignature)
-                    .encodeABI();
-                common_1.sendEthTx(main_1.web3_outer, user, main_1.ethPN.options.address, 0, txData);
                 return [2];
             });
         }); },
@@ -112,7 +107,7 @@ exports.events = {
                         time = 0;
                         _b.label = 2;
                     case 2:
-                        if (!(time < 5)) return [3, 5];
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
                         return [4, main_1.appPN.methods.balanceProofMap(channelID, to)];
                     case 3:
                         channelInfo = _b.sent();
@@ -173,7 +168,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, user, token, amount, channelID, transactionHash, depositEvent, toBN, time, channelInfo;
+            var _a, user, token, amount, channelID, transactionHash, depositEvent, toBN, time, ethChannelInfo, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -189,26 +184,30 @@ exports.events = {
                             txhash: transactionHash,
                         };
                         toBN = main_1.web3_10.utils.toBN;
-                        if (!main_1.callbacks.get('Deposit')) return [3, 5];
+                        if (!main_1.callbacks.get('Deposit')) return [3, 6];
                         time = 0;
                         _b.label = 1;
                     case 1:
-                        if (!(time < 5)) return [3, 4];
-                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
+                        return [4, main_1.ethPN.methods.channels(channelID).call()];
                     case 2:
+                        ethChannelInfo = _b.sent();
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 3:
                         channelInfo = _b.sent();
-                        if (toBN(channelInfo.userDeposit).gte(toBN(amount))) {
-                            return [3, 4];
+                        if (toBN(channelInfo.userDeposit).gte(toBN(amount)) &&
+                            Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+                            return [3, 5];
                         }
                         return [4, common_1.delay(1000)];
-                    case 3:
+                    case 4:
                         _b.sent();
                         time++;
                         return [3, 1];
-                    case 4:
+                    case 5:
                         main_1.callbacks.get('Deposit')(null, depositEvent);
-                        _b.label = 5;
-                    case 5: return [2];
+                        _b.label = 6;
+                    case 6: return [2];
                 }
             });
         }); },
@@ -241,7 +240,7 @@ exports.events = {
                         time = 0;
                         _b.label = 2;
                     case 2:
-                        if (!(time < 5)) return [3, 5];
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 3:
                         channelInfo = _b.sent();
@@ -289,7 +288,7 @@ exports.events = {
                         time = 0;
                         _b.label = 2;
                     case 2:
-                        if (!(time < 5)) return [3, 5];
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 3:
                         channelInfo = _b.sent();
@@ -314,7 +313,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, withdrawEvent, time, channelInfo;
+            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, withdrawEvent, time, ethChannelInfo, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -329,26 +328,31 @@ exports.events = {
                             totalWithdraw: '',
                             txhash: transactionHash,
                         };
-                        if (!main_1.callbacks.get('Withdraw')) return [3, 5];
+                        if (!main_1.callbacks.get('Withdraw')) return [3, 6];
                         time = 0;
                         _b.label = 1;
                     case 1:
-                        if (!(time < 5)) return [3, 4];
-                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
+                        return [4, main_1.ethPN.methods.channels(channelID).call()];
                     case 2:
+                        ethChannelInfo = _b.sent();
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 3:
                         channelInfo = _b.sent();
-                        if (Number(channelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
-                            return [3, 4];
+                        if (Number(channelInfo.status) ===
+                            constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE &&
+                            Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
+                            return [3, 5];
                         }
                         return [4, common_1.delay(1000)];
-                    case 3:
+                    case 4:
                         _b.sent();
                         time++;
                         return [3, 1];
-                    case 4:
+                    case 5:
                         main_1.callbacks.get('Withdraw')(null, withdrawEvent);
-                        _b.label = 5;
-                    case 5: return [2];
+                        _b.label = 6;
+                    case 6: return [2];
                 }
             });
         }); },

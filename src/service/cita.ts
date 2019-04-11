@@ -23,6 +23,7 @@ import {
   WITHDRAW_EVENT,
   FORCEWITHDRAW_EVENT,
   CHANNEL_STATUS,
+  CITA_SYNC_EVENT_TIMEOUT,
 } from '../utils/constants';
 
 /**
@@ -125,21 +126,21 @@ export const events = {
         return;
       }
 
-      console.log(
-        'Receive ConfirmCooperativeSettle event, will try to submit eth settle tx %s',
-        transactionHash
-      );
-      let txData = ethPN.methods
-        .cooperativeSettle(
-          channelID,
-          balance,
-          lastCommitBlock,
-          providerSignature,
-          regulatorSignature
-        )
-        .encodeABI();
-      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
-      return;
+      // console.log(
+      //   'Receive ConfirmCooperativeSettle event, will try to submit eth settle tx %s',
+      //   transactionHash
+      // );
+      // let txData = ethPN.methods
+      //   .cooperativeSettle(
+      //     channelID,
+      //     balance,
+      //     lastCommitBlock,
+      //     providerSignature,
+      //     regulatorSignature
+      //   )
+      //   .encodeABI();
+      // sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
+      // return;
     },
   },
 
@@ -191,7 +192,7 @@ export const events = {
         };
 
         let time = 0;
-        while (time < 5) {
+        while (time < CITA_SYNC_EVENT_TIMEOUT) {
           let channelInfo = await appPN.methods.balanceProofMap(channelID, to);
           if (channelInfo.balance >= balance) {
             break;
@@ -274,9 +275,14 @@ export const events = {
 
       if (callbacks.get('Deposit')) {
         let time = 0;
-        while (time < 5) {
+        while (time < CITA_SYNC_EVENT_TIMEOUT) {
+          let ethChannelInfo = await ethPN.methods.channels(channelID).call();
+          // console.log('ethChannelInfo', ethChannelInfo);
           let channelInfo = await appPN.methods.channelMap(channelID).call();
-          if (toBN(channelInfo.userDeposit).gte(toBN(amount))) {
+          if (
+            toBN(channelInfo.userDeposit).gte(toBN(amount)) &&
+            Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN
+          ) {
             break;
           }
           await delay(1000);
@@ -322,7 +328,7 @@ export const events = {
       let { toBN } = web3_10.utils;
       if (callbacks.get('Deposit')) {
         let time = 0;
-        while (time < 5) {
+        while (time < CITA_SYNC_EVENT_TIMEOUT) {
           let channelInfo = await appPN.methods.channelMap(channelID).call();
           if (toBN(channelInfo.userDeposit).gte(totalDeposit)) {
             break;
@@ -377,7 +383,7 @@ export const events = {
       let { toBN } = web3_10.utils;
       if (callbacks.get('Withdraw')) {
         let time = 0;
-        while (time < 5) {
+        while (time < CITA_SYNC_EVENT_TIMEOUT) {
           let channelInfo = await appPN.methods.channelMap(channelID).call();
           if (toBN(channelInfo.userWithdraw).gte(toBN(totalWithdraw))) {
             break;
@@ -420,10 +426,13 @@ export const events = {
       };
       if (callbacks.get('Withdraw')) {
         let time = 0;
-        while (time < 5) {
+        while (time < CITA_SYNC_EVENT_TIMEOUT) {
+          let ethChannelInfo = await ethPN.methods.channels(channelID).call();
           let channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
-            Number(channelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE
+            Number(channelInfo.status) ===
+              CHANNEL_STATUS.CHANNEL_STATUS_SETTLE &&
+            Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT
           ) {
             break;
           }
