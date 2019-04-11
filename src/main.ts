@@ -313,13 +313,29 @@ export class L2 {
         return await ethMethods.ethSubmitCooperativeSettle(channelID);
       }
       console.log('call proposeCooperativeSettle', amount);
-      return await sendAppTx(
+      let res = await sendAppTx(
         appPN.methods.proposeCooperativeSettle(
           channelID,
           amount,
           await getLCB(web3_10.eth, 'eth')
         )
       );
+
+      let repeatTime = 0;
+      while (repeatTime < 10) {
+        await delay(1000);
+
+        let { status } = await appPN.methods.channelMap(channelID).call();
+        if (
+          Number(status) === CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
+        ) {
+          console.log('break loop', repeatTime);
+          break;
+        }
+        repeatTime++;
+      }
+
+      return res;
     }
   }
 

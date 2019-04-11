@@ -198,7 +198,7 @@ var L2 = (function () {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         if (receiver === void 0) { receiver = exports.user; }
         return __awaiter(this, void 0, void 0, function () {
-            var channelID, channel, _a, _b, _c, _d, _e, _f, _g, _h;
+            var channelID, channel, _a, _b, _c, _d, res, _e, _f, _g, _h, repeatTime, status_1;
             return __generator(this, function (_j) {
                 switch (_j.label) {
                     case 0:
@@ -244,7 +244,25 @@ var L2 = (function () {
                             amount];
                         return [4, common_1.getLCB(exports.web3_10.eth, 'eth')];
                     case 8: return [4, _e.apply(void 0, [_g.apply(_f, _h.concat([_j.sent()]))])];
-                    case 9: return [2, _j.sent()];
+                    case 9:
+                        res = _j.sent();
+                        repeatTime = 0;
+                        _j.label = 10;
+                    case 10:
+                        if (!(repeatTime < 10)) return [3, 13];
+                        return [4, common_1.delay(1000)];
+                    case 11:
+                        _j.sent();
+                        return [4, exports.appPN.methods.channelMap(channelID).call()];
+                    case 12:
+                        status_1 = (_j.sent()).status;
+                        if (Number(status_1) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE) {
+                            console.log('break loop', repeatTime);
+                            return [3, 13];
+                        }
+                        repeatTime++;
+                        return [3, 10];
+                    case 13: return [2, res];
                 }
             });
         });

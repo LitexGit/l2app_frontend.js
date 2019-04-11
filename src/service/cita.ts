@@ -22,6 +22,7 @@ import {
   DEPOSIT_EVENT,
   WITHDRAW_EVENT,
   FORCEWITHDRAW_EVENT,
+  CHANNEL_STATUS,
 } from '../utils/constants';
 
 /**
@@ -188,6 +189,17 @@ export const events = {
           additionalHash,
           totalTransferredAmount: balance,
         };
+
+        let time = 0;
+        while (time < 5) {
+          let channelInfo = await appPN.methods.balanceProofMap(channelID, to);
+          if (channelInfo.balance >= balance) {
+            break;
+          }
+          await delay(1000);
+          time++;
+        }
+
         callbacks.get('Transfer')(null, transferEvent);
       }
 
@@ -258,7 +270,20 @@ export const events = {
         totalDeposit: amount,
         txhash: transactionHash,
       };
-      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+      let { toBN } = web3_10.utils;
+
+      if (callbacks.get('Deposit')) {
+        let time = 0;
+        while (time < 5) {
+          let channelInfo = await appPN.methods.channelMap(channelID).call();
+          if (toBN(channelInfo.userDeposit).gte(toBN(amount))) {
+            break;
+          }
+          await delay(1000);
+          time++;
+        }
+        callbacks.get('Deposit')(null, depositEvent);
+      }
     },
   },
 
@@ -293,7 +318,20 @@ export const events = {
         totalDeposit,
         txhash: transactionHash,
       };
-      callbacks.get('Deposit') && callbacks.get('Deposit')(null, depositEvent);
+
+      let { toBN } = web3_10.utils;
+      if (callbacks.get('Deposit')) {
+        let time = 0;
+        while (time < 5) {
+          let channelInfo = await appPN.methods.channelMap(channelID).call();
+          if (toBN(channelInfo.userDeposit).gte(totalDeposit)) {
+            break;
+          }
+          await delay(1000);
+          time++;
+        }
+        callbacks.get('Deposit')(null, depositEvent);
+      }
     },
   },
 
@@ -335,8 +373,20 @@ export const events = {
         totalWithdraw,
         txhash: transactionHash,
       };
-      callbacks.get('Withdraw') &&
+
+      let { toBN } = web3_10.utils;
+      if (callbacks.get('Withdraw')) {
+        let time = 0;
+        while (time < 5) {
+          let channelInfo = await appPN.methods.channelMap(channelID).call();
+          if (toBN(channelInfo.userWithdraw).gte(toBN(totalWithdraw))) {
+            break;
+          }
+          await delay(1000);
+          time++;
+        }
         callbacks.get('Withdraw')(null, withdrawEvent);
+      }
     },
   },
 
@@ -368,8 +418,20 @@ export const events = {
         totalWithdraw: '',
         txhash: transactionHash,
       };
-      callbacks.get('Withdraw') &&
+      if (callbacks.get('Withdraw')) {
+        let time = 0;
+        while (time < 5) {
+          let channelInfo = await appPN.methods.channelMap(channelID).call();
+          if (
+            Number(channelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE
+          ) {
+            break;
+          }
+          await delay(1000);
+          time++;
+        }
         callbacks.get('Withdraw')(null, withdrawEvent);
+      }
     },
   },
 

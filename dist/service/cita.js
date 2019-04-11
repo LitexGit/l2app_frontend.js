@@ -89,14 +89,14 @@ exports.events = {
             return { to: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, from, to, channelID, balance, transferAmount, additionalHash, token, amount, transferEvent;
+            var _a, from, to, channelID, balance, transferAmount, additionalHash, token, amount, transferEvent, time, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
                         console.log('--------------------Handle CITA Transfer--------------------');
                         _a = event.returnValues, from = _a.from, to = _a.to, channelID = _a.channelID, balance = _a.balance, transferAmount = _a.transferAmount, additionalHash = _a.additionalHash;
                         console.log(' from: [%s], to: [%s], channelID: [%s], balance: [%s], transferAmount: [%s], additionalHash: [%s] ', from, to, channelID, balance, transferAmount, additionalHash);
-                        if (!main_1.callbacks.get('Transfer')) return [3, 2];
+                        if (!main_1.callbacks.get('Transfer')) return [3, 6];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 1:
                         token = (_b.sent()).token;
@@ -109,9 +109,25 @@ exports.events = {
                             additionalHash: additionalHash,
                             totalTransferredAmount: balance,
                         };
-                        main_1.callbacks.get('Transfer')(null, transferEvent);
+                        time = 0;
                         _b.label = 2;
                     case 2:
+                        if (!(time < 5)) return [3, 5];
+                        return [4, main_1.appPN.methods.balanceProofMap(channelID, to)];
+                    case 3:
+                        channelInfo = _b.sent();
+                        if (channelInfo.balance >= balance) {
+                            return [3, 5];
+                        }
+                        return [4, common_1.delay(1000)];
+                    case 4:
+                        _b.sent();
+                        time++;
+                        return [3, 2];
+                    case 5:
+                        main_1.callbacks.get('Transfer')(null, transferEvent);
+                        _b.label = 6;
+                    case 6:
                         exports.appMethods.appSubmitGuardProof(channelID, to);
                         return [2];
                 }
@@ -157,21 +173,43 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, user, token, amount, channelID, transactionHash, depositEvent;
+            var _a, user, token, amount, channelID, transactionHash, depositEvent, toBN, time, channelInfo;
             return __generator(this, function (_b) {
-                console.log('--------------------Handle CITA OnchainOpenChannel--------------------');
-                _a = event.returnValues, user = _a.user, token = _a.token, amount = _a.amount, channelID = _a.channelID, transactionHash = event.transactionHash;
-                console.log(' user: [%s], token: [%s], amount: [%s], channelID: [%s] ', user, token, amount, channelID);
-                depositEvent = {
-                    user: user,
-                    type: 1,
-                    token: token,
-                    amount: amount,
-                    totalDeposit: amount,
-                    txhash: transactionHash,
-                };
-                main_1.callbacks.get('Deposit') && main_1.callbacks.get('Deposit')(null, depositEvent);
-                return [2];
+                switch (_b.label) {
+                    case 0:
+                        console.log('--------------------Handle CITA OnchainOpenChannel--------------------');
+                        _a = event.returnValues, user = _a.user, token = _a.token, amount = _a.amount, channelID = _a.channelID, transactionHash = event.transactionHash;
+                        console.log(' user: [%s], token: [%s], amount: [%s], channelID: [%s] ', user, token, amount, channelID);
+                        depositEvent = {
+                            user: user,
+                            type: 1,
+                            token: token,
+                            amount: amount,
+                            totalDeposit: amount,
+                            txhash: transactionHash,
+                        };
+                        toBN = main_1.web3_10.utils.toBN;
+                        if (!main_1.callbacks.get('Deposit')) return [3, 5];
+                        time = 0;
+                        _b.label = 1;
+                    case 1:
+                        if (!(time < 5)) return [3, 4];
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 2:
+                        channelInfo = _b.sent();
+                        if (toBN(channelInfo.userDeposit).gte(toBN(amount))) {
+                            return [3, 4];
+                        }
+                        return [4, common_1.delay(1000)];
+                    case 3:
+                        _b.sent();
+                        time++;
+                        return [3, 1];
+                    case 4:
+                        main_1.callbacks.get('Deposit')(null, depositEvent);
+                        _b.label = 5;
+                    case 5: return [2];
+                }
             });
         }); },
     },
@@ -180,7 +218,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, deposit, totalDeposit, transactionHash, token, depositEvent;
+            var _a, channelID, user, deposit, totalDeposit, transactionHash, token, depositEvent, toBN, time, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -198,8 +236,27 @@ exports.events = {
                             totalDeposit: totalDeposit,
                             txhash: transactionHash,
                         };
-                        main_1.callbacks.get('Deposit') && main_1.callbacks.get('Deposit')(null, depositEvent);
-                        return [2];
+                        toBN = main_1.web3_10.utils.toBN;
+                        if (!main_1.callbacks.get('Deposit')) return [3, 6];
+                        time = 0;
+                        _b.label = 2;
+                    case 2:
+                        if (!(time < 5)) return [3, 5];
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 3:
+                        channelInfo = _b.sent();
+                        if (toBN(channelInfo.userDeposit).gte(totalDeposit)) {
+                            return [3, 5];
+                        }
+                        return [4, common_1.delay(1000)];
+                    case 4:
+                        _b.sent();
+                        time++;
+                        return [3, 2];
+                    case 5:
+                        main_1.callbacks.get('Deposit')(null, depositEvent);
+                        _b.label = 6;
+                    case 6: return [2];
                 }
             });
         }); },
@@ -209,7 +266,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, amount, totalWithdraw, lastCommitBlock, transactionHash, token, withdrawEvent;
+            var _a, channelID, user, amount, totalWithdraw, lastCommitBlock, transactionHash, token, withdrawEvent, toBN, time, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -227,9 +284,27 @@ exports.events = {
                             totalWithdraw: totalWithdraw,
                             txhash: transactionHash,
                         };
-                        main_1.callbacks.get('Withdraw') &&
-                            main_1.callbacks.get('Withdraw')(null, withdrawEvent);
-                        return [2];
+                        toBN = main_1.web3_10.utils.toBN;
+                        if (!main_1.callbacks.get('Withdraw')) return [3, 6];
+                        time = 0;
+                        _b.label = 2;
+                    case 2:
+                        if (!(time < 5)) return [3, 5];
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 3:
+                        channelInfo = _b.sent();
+                        if (toBN(channelInfo.userWithdraw).gte(toBN(totalWithdraw))) {
+                            return [3, 5];
+                        }
+                        return [4, common_1.delay(1000)];
+                    case 4:
+                        _b.sent();
+                        time++;
+                        return [3, 2];
+                    case 5:
+                        main_1.callbacks.get('Withdraw')(null, withdrawEvent);
+                        _b.label = 6;
+                    case 6: return [2];
                 }
             });
         }); },
@@ -239,22 +314,42 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, withdrawEvent;
+            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, withdrawEvent, time, channelInfo;
             return __generator(this, function (_b) {
-                console.log('--------------------Handle CITA OnchainCooperativeSettleChannel--------------------');
-                _a = event.returnValues, channelID = _a.channelID, user = _a.user, token = _a.token, balance = _a.balance, lastCommitBlock = _a.lastCommitBlock, transactionHash = event.transactionHash;
-                console.log(' channelID: [%s], user: [%s], token: [%s], balance: [%s], lastCommitBlock: [%s] ', channelID, user, token, balance, lastCommitBlock);
-                withdrawEvent = {
-                    user: user,
-                    type: 2,
-                    token: token,
-                    amount: balance,
-                    totalWithdraw: '',
-                    txhash: transactionHash,
-                };
-                main_1.callbacks.get('Withdraw') &&
-                    main_1.callbacks.get('Withdraw')(null, withdrawEvent);
-                return [2];
+                switch (_b.label) {
+                    case 0:
+                        console.log('--------------------Handle CITA OnchainCooperativeSettleChannel--------------------');
+                        _a = event.returnValues, channelID = _a.channelID, user = _a.user, token = _a.token, balance = _a.balance, lastCommitBlock = _a.lastCommitBlock, transactionHash = event.transactionHash;
+                        console.log(' channelID: [%s], user: [%s], token: [%s], balance: [%s], lastCommitBlock: [%s] ', channelID, user, token, balance, lastCommitBlock);
+                        withdrawEvent = {
+                            user: user,
+                            type: 2,
+                            token: token,
+                            amount: balance,
+                            totalWithdraw: '',
+                            txhash: transactionHash,
+                        };
+                        if (!main_1.callbacks.get('Withdraw')) return [3, 5];
+                        time = 0;
+                        _b.label = 1;
+                    case 1:
+                        if (!(time < 5)) return [3, 4];
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                    case 2:
+                        channelInfo = _b.sent();
+                        if (Number(channelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
+                            return [3, 4];
+                        }
+                        return [4, common_1.delay(1000)];
+                    case 3:
+                        _b.sent();
+                        time++;
+                        return [3, 1];
+                    case 4:
+                        main_1.callbacks.get('Withdraw')(null, withdrawEvent);
+                        _b.label = 5;
+                    case 5: return [2];
+                }
             });
         }); },
     },
