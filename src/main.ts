@@ -636,6 +636,20 @@ export class L2 {
     return await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }
 
+  /**
+   * query on chain token/ETH balance
+   *
+   * @param token token address, ETH default: ADDRESS_ZERO
+   */
+  async getOnchainBalance(token: string = ADDRESS_ZERO) {
+    if (token === ADDRESS_ZERO) {
+      return await web3_10.eth.getBalance(user);
+    } else {
+      ERC20.options.address = token;
+      return await ERC20.methods.balanceOf(user).call();
+    }
+  }
+
   /** ---------- Event API ---------- */
 
   /**

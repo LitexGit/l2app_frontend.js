@@ -552,6 +552,23 @@ var L2 = (function () {
             });
         });
     };
+    L2.prototype.getOnchainBalance = function (token) {
+        if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!(token === constants_1.ADDRESS_ZERO)) return [3, 2];
+                        return [4, exports.web3_10.eth.getBalance(exports.user)];
+                    case 1: return [2, _a.sent()];
+                    case 2:
+                        exports.ERC20.options.address = token;
+                        return [4, exports.ERC20.methods.balanceOf(exports.user).call()];
+                    case 3: return [2, _a.sent()];
+                }
+            });
+        });
+    };
     L2.prototype.on = function (event, callback) {
         exports.callbacks.set(event, callback);
     };

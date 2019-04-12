@@ -35,6 +35,7 @@ export declare class L2 {
     getAllTXs(token?: string): Promise<any>;
     getAllPuppets(): Promise<Array<any>>;
     disablePuppet(puppet: string): Promise<string>;
+    getOnchainBalance(token?: string): Promise<any>;
     on(event: L2_EVENT, callback: L2_CB): void;
     private checkInitialized;
     initPuppet(): Promise<void>;
