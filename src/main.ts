@@ -645,8 +645,12 @@ export class L2 {
     if (token === ADDRESS_ZERO) {
       return await web3_10.eth.getBalance(user);
     } else {
-      ERC20.options.address = token;
-      return await ERC20.methods.balanceOf(user).call();
+      let contract = new web3_10.eth.Contract(
+        require('./config/ERC20.json'),
+        token
+      );
+      // ERC20.options.address = token;
+      return await contract.methods.balanceOf(user).call();
     }
   }
 
