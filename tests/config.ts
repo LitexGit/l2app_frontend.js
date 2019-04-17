@@ -3,13 +3,12 @@ import mylog from '../src/utils/mylog';
 mylog();
 
 export let config = {
-  ethPNAddress: "0xdfb90231f2355E756993dE371C05f3e92395790c",
-  appPNAddress: "0x7085d3C32c48385Ee2386440645Ec0bf7d49550F",
-  appSessionAddress: "0x07591D8e1f0f5466124C09cBB2Eca1292C2c0673",
-  appOperatorAddress: "0x8804Fc15cbeA212289BA216dD56b93cBbe33b930",
-  appRpcUrl: "http://18.179.21.124:1337",
+  ethPNAddress: "0x35e73CF2D3717B88322E23E6aE2ceb65B74B42c5",
+  appPNAddress: "0x4C636A5433CC3FaA5A3Af3429ceCA0852DA4Ba91",
+  appSessionAddress: "0x2398Fd042176e343cC47eD34ebB0C2ECb154128b",
+  appOperatorAddress: "0xf6486AB66Fa7e3af90098cBD9cd6342E422A1c3F",
+  appRpcUrl: "http://54.64.76.19:1337",
   ethRpcUrl: "http://39.96.8.192:8545",
-  // token: "0x3052c3104c32e666666fBEf3A5EAd4603747eA83"
-  // token: "0x9ac78c85A0d3a86a8BE1e08Bea6Ef2EE1687bE18"
+  // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
   token: "0x0000000000000000000000000000000000000000"
 };

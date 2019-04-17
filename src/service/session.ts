@@ -1,5 +1,6 @@
 import L2Session from '../session';
-import { cp, appPN } from '../main';
+import { cp, appPN, callbacks } from '../main';
+import { SESSION_STATUS } from '../utils/constants';
 
 export const events = {
   // 'InitSession': {
@@ -63,6 +64,17 @@ export const events = {
           amount,
           token,
         });
+
+      callbacks.get('SessionMessage') &&
+        callbacks.get('SessionMessage')(null, {
+          session,
+          from,
+          to,
+          type,
+          content,
+          amount,
+          token,
+        });
     },
   },
   CloseSession: {
@@ -83,8 +95,13 @@ export const events = {
         return;
       }
 
+      session.status = SESSION_STATUS.SESSION_STATUS_CLOSE;
+
       session.callbacks.get('close') &&
         session.callbacks.get('close')(null, {});
+
+      callbacks.get('SessionClose') &&
+        callbacks.get('SessionClose')(null, { session });
     },
   },
 };

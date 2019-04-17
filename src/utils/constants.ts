@@ -1,4 +1,5 @@
 import { AbiItem } from 'web3/node_modules/web3-utils';
+import L2Session from '../session';
 
 export type SOL_TYPE = 'address' | 'uint256' | 'bytes32' | 'bytes';
 
@@ -38,7 +39,9 @@ export type L2_EVENT =
   | 'Withdraw'
   | 'ForceWithdraw'
   | 'Transfer'
-  | 'PuppetChanged';
+  | 'PuppetChanged'
+  | 'SessionMessage'
+  | 'SessionClose';
 
 export type DEPOSIT_EVENT = {
   user: string;
@@ -81,6 +84,20 @@ export type PUPPETCHANGED_EVENT = {
   type: number;
 };
 
+export type SESSION_MESSAGE_EVENT = {
+  session: L2Session;
+  from: string;
+  to: string;
+  type: number;
+  content: string;
+  amount: string;
+  token: string;
+};
+
+export type SESSION_CLOSE_EVENT = {
+  session: L2Session;
+};
+
 export type L2_CB = (
   err: any,
   res:
@@ -89,6 +106,8 @@ export type L2_CB = (
     | FORCEWITHDRAW_EVENT
     | TRANSFER_EVENT
     | PUPPETCHANGED_EVENT
+    | SESSION_MESSAGE_EVENT
+    | SESSION_CLOSE_EVENT
 ) => void;
 export type ContractInfo = {
   address: string;

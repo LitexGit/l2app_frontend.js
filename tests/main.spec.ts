@@ -10,6 +10,10 @@ const Web3 = require('web3');
 
 import { config } from './config';
 import { resolve } from 'url';
+import { SESSION_MESSAGE_EVENT } from '../src/utils/constants';
+import * as rlp from 'rlp';
+
+
 let {
   ethPNAddress,
   appPNAddress,
@@ -133,6 +137,84 @@ async function createSession() {
   }
 }
 
+async function providerSendMessage(type, content) {
+  let tx = await common.getAppTxOption();
+  tx.from = providerAddress;
+  tx.privateKey = providerPrivateKey;
+
+  let from = providerAddress;
+  let to = userAddress;
+
+  let { toHex, soliditySha3 } = web3_10.utils;
+
+  console.log(
+    'providerSendMessage params:',
+    from,
+    to,
+    sessionID,
+    type,
+    content
+  );
+  let messageHash = soliditySha3(
+    { t: 'address', v: from },
+    { t: 'address', v: to },
+    { t: 'bytes32', v: sessionID },
+    { t: 'uint8', v: type },
+    { t: 'bytes', v: content }
+  );
+  let signature = await common.myEcsignToHex(
+    web3_10,
+    messageHash,
+    providerPrivateKey
+  );
+
+  let channelID =
+    '0x0000000000000000000000000000000000000000000000000000000000000000';
+  let balance = '0';
+  let nonce = '0';
+  let amount = '0';
+  let additionalHash =
+    '0x0000000000000000000000000000000000000000000000000000000000000000';
+  let paymentSignature = '0x0';
+
+  let paymentData = [
+    channelID,
+    toHex(balance),
+    toHex(nonce),
+    toHex(amount),
+    additionalHash,
+    paymentSignature,
+  ];
+  console.log('paymentData: ', paymentData);
+  // rlpencode is encoded data
+  let rlpencode = '0x' + rlp.encode(paymentData).toString('hex');
+
+  let res = await appSession.methods
+    .sendMessage(
+      providerAddress,
+      userAddress,
+      sessionID,
+      type,
+      content,
+      signature,
+      rlpencode
+    )
+    .send(tx);
+
+  if (res.hash) {
+    let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
+    if (receipt.errorMessage) {
+      throw new Error(receipt.errorMessage);
+    } else {
+      console.log('submit sendMessage success');
+      return res.hash;
+    }
+  } else {
+    console.log(res);
+    throw new Error('submit sendMessage failed');
+  }
+}
+
 async function closeSession() {
   let tx = await common.getAppTxOption();
   tx.from = providerAddress;
@@ -248,36 +330,57 @@ describe('L2 unit tests', () => {
   //   expect(Number(afterBalance)).toBe(Number(beforeBalance) / 2);
   // });
 
-  it('send session message success', async () => {
-    let session = await l2.startSession(sessionID);
-    let content = web3_10.utils.toHex('hello world');
-    await session.sendMessage(providerAddress, 1, content);
-    await common.delay(10000);
-    let messages = await l2.getMessagesBySessionID(sessionID);
-    expect(messages.length).toBeGreaterThan(0);
-    expect(messages[messages.length - 1].content).toBe(content);
-  });
+  // it('send session message success', async () => {
+  //   let session = await l2.startSession(sessionID);
+  //   let content = web3_10.utils.toHex('hello world');
+  //   await session.sendMessage(providerAddress, 1, content);
+  //   await common.delay(10000);
+  //   let messages = await l2.getMessagesBySessionID(sessionID);
+  //   expect(messages.length).toBeGreaterThan(0);
+  //   expect(messages[messages.length - 1].content).toBe(content);
+  // });
 
-  it('send session message with asset success', async () => {
-    let balance = await l2.getBalance(token);
-    let session = await l2.startSession(sessionID);
-    let content = web3_10.utils.toHex('hello world 2');
-    let transferBalance = Number(balance) / 2 + '';
-    for (let i = 0; i < 2; i++) {
-      await session.sendMessage(
-        providerAddress,
-        1,
-        content,
-        transferBalance,
-        token
-      );
-      await common.delay(1000);
-    }
-    await common.delay(1000);
-    let messages = await l2.getMessagesBySessionID(sessionID);
-    expect(messages.length).toBeGreaterThan(0);
-    expect(messages[messages.length - 1].content).toBe(content);
-    expect(messages[messages.length - 1].amount).toBe(transferBalance);
+  // it('send session message with asset success', async () => {
+  //   let balance = await l2.getBalance(token);
+  //   let session = await l2.startSession(sessionID);
+  //   let content = web3_10.utils.toHex('hello world 2');
+  //   let transferBalance = Number(balance) / 2 + '';
+  //   for (let i = 0; i < 2; i++) {
+  //     await session.sendMessage(
+  //       providerAddress,
+  //       1,
+  //       content,
+  //       transferBalance,
+  //       token
+  //     );
+  //     await common.delay(1000);
+  //   }
+  //   await common.delay(1000);
+  //   let messages = await l2.getMessagesBySessionID(sessionID);
+  //   expect(messages.length).toBeGreaterThan(0);
+  //   expect(messages[messages.length - 1].content).toBe(content);
+  //   expect(messages[messages.length - 1].amount).toBe(transferBalance);
+  // });
+
+  it('listen session message event', async () => {
+    let type = 4;
+    let content = web3_10.utils.sha3('hello world');
+
+    let receiveMessagePromise = new Promise<SESSION_MESSAGE_EVENT>(
+      (resolve, reject) => {
+        l2.on('SessionMessage', (err, res: SESSION_MESSAGE_EVENT) => {
+          console.log('receive SessionMessage event', res);
+          resolve(res);
+        });
+      }
+    );
+    let [_, message] = await Promise.all([
+      providerSendMessage(type, content),
+      receiveMessagePromise,
+    ]);
+    let { type: type1, content: content1 } = message;
+    expect(type).toBe(type1);
+    expect(content).toBe(content1);
   });
 
   // it('withdraw should success', async () => {

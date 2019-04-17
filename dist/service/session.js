@@ -38,6 +38,7 @@ var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var session_1 = require("../session");
 var main_1 = require("../main");
+var constants_1 = require("../utils/constants");
 exports.events = {
     SendMessage: {
         filter: function () {
@@ -70,6 +71,16 @@ exports.events = {
                                 amount: amount,
                                 token: token,
                             });
+                        main_1.callbacks.get('SessionMessage') &&
+                            main_1.callbacks.get('SessionMessage')(null, {
+                                session: session,
+                                from: from,
+                                to: to,
+                                type: type,
+                                content: content,
+                                amount: amount,
+                                token: token,
+                            });
                         return [2];
                 }
             });
@@ -93,8 +104,11 @@ exports.events = {
                         if (!session) {
                             return [2];
                         }
+                        session.status = constants_1.SESSION_STATUS.SESSION_STATUS_CLOSE;
                         session.callbacks.get('close') &&
                             session.callbacks.get('close')(null, {});
+                        main_1.callbacks.get('SessionClose') &&
+                            main_1.callbacks.get('SessionClose')(null, { session: session });
                         return [2];
                 }
             });
