@@ -682,7 +682,7 @@ export class L2 {
    * init Puppet when L2 initializing
    */
   async initPuppet() {
-    puppet = Puppet.get(user);
+    puppet = Puppet.get(user, ethPN.options.address);
 
     // get puppet from LocalStorage, check if it is valid on eth payment contract
     if (puppet) {
@@ -701,7 +701,7 @@ export class L2 {
     /* if no puppet or puppet is disabled,
      * create a new one and add it to payment contract
      */
-    puppet = Puppet.create(user);
+    puppet = Puppet.create(user, ethPN.options.address);
     let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
     await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }

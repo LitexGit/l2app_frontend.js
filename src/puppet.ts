@@ -3,7 +3,7 @@
  */
 import SimpleCrypto from 'simple-crypto-js';
 import { cita } from './main';
-import { sha3 } from 'web3/node_modules/web3-utils';
+import { soliditySha3 } from 'web3/node_modules/web3-utils';
 import { Account } from 'web3/node_modules/web3-eth-accounts';
 
 export default class Puppet {
@@ -11,7 +11,7 @@ export default class Puppet {
 
   constructor() {}
 
-  static create(masterAddress: string): Puppet {
+  static create(masterAddress: string, pnAddress: string): Puppet {
     let puppet = new Puppet();
 
     let key = cita.base.accounts.create().privateKey;
@@ -20,13 +20,24 @@ export default class Puppet {
     cita.base.accounts.wallet.add(puppet.account);
 
     key = new SimpleCrypto(getPassword(masterAddress)).encrypt(key);
-    localStorage.setItem(sha3(masterAddress), key);
+    localStorage.setItem(
+      soliditySha3(
+        { v: masterAddress, t: 'address' },
+        { v: pnAddress, t: 'address' }
+      ),
+      key
+    );
 
     return puppet;
   }
 
-  static get(masterAddress: string): Puppet | null {
-    let key = localStorage.getItem(sha3(masterAddress));
+  static get(masterAddress: string, pnAddress: string): Puppet | null {
+    let key = localStorage.getItem(
+      soliditySha3(
+        { v: masterAddress, t: 'address' },
+        { v: pnAddress, t: 'address' }
+      )
+    );
 
     if (!key) {
       return null;

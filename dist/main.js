@@ -555,6 +555,7 @@ var L2 = (function () {
     L2.prototype.getOnchainBalance = function (token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
+            var contract;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -562,8 +563,8 @@ var L2 = (function () {
                         return [4, exports.web3_10.eth.getBalance(exports.user)];
                     case 1: return [2, _a.sent()];
                     case 2:
-                        exports.ERC20.options.address = token;
-                        return [4, exports.ERC20.methods.balanceOf(exports.user).call()];
+                        contract = new exports.web3_10.eth.Contract(require('./config/ERC20.json'), token);
+                        return [4, contract.methods.balanceOf(exports.user).call()];
                     case 3: return [2, _a.sent()];
                 }
             });
@@ -583,7 +584,7 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        exports.puppet = puppet_1.default.get(exports.user);
+                        exports.puppet = puppet_1.default.get(exports.user, exports.ethPN.options.address);
                         if (!exports.puppet) return [3, 2];
                         console.log('puppet is ', exports.puppet);
                         return [4, exports.ethPN.methods
@@ -598,7 +599,7 @@ var L2 = (function () {
                         }
                         _a.label = 2;
                     case 2:
-                        exports.puppet = puppet_1.default.create(exports.user);
+                        exports.puppet = puppet_1.default.create(exports.user, exports.ethPN.options.address);
                         data = exports.ethPN.methods.addPuppet(exports.puppet.getAccount().address).encodeABI();
                         return [4, common_1.sendEthTx(exports.web3_outer, exports.user, exports.ethPN.options.address, 0, data)];
                     case 3:
