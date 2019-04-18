@@ -119,7 +119,7 @@ async function createSession() {
       game,
       [user, cp],
       appPN.options.address,
-      web3_10.utils.toHex(data)
+      web3_10.utils.utf8ToHex(data)
     )
     .send(tx);
 

@@ -121,7 +121,7 @@ var L2Session = (function () {
                         _a = _b.sent(), status = _a.status, provider = _a.provider, game = _a.game, paymentContract = _a.paymentContract, data = _a.data;
                         this.status = Number(status);
                         this.game = game;
-                        this.data = data;
+                        this.data = main_1.web3_10.utils.hexToUtf8(data);
                         this.provider = provider;
                         this.callbacks = this.callbacks || new Map();
                         return [2];

@@ -131,7 +131,7 @@ export default class L2Session {
     } = await appSession.methods.sessions(this.sessionID).call();
     this.status = Number(status);
     this.game = game;
-    this.data = data;
+    this.data = web3_10.utils.hexToUtf8(data);
     this.provider = provider;
 
     this.callbacks = this.callbacks || new Map<string, () => void>();
