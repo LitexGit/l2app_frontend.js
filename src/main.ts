@@ -600,6 +600,20 @@ export class L2 {
   }
 
   /**
+   * check user is a new user
+   */
+  async isNewUser(): Promise<boolean> {
+    try {
+      let firstPuppetAddress = await appPN.methods.puppets(user, 0).call();
+      console.log('firstPuppetAddress is exist', firstPuppetAddress);
+      return false;
+    } catch (err) {
+      console.info('first puppet not exist, it is new user', err);
+      return true;
+    }
+  }
+
+  /**
    * get all registered puppet of user
    *
    * @returns {Promise<Array<any>>}
@@ -707,7 +721,7 @@ export class L2 {
       let firstPuppetAddress = await appPN.methods.puppets(user, 0).call();
       console.log('firstPuppetAddress is exist', firstPuppetAddress);
     } catch (err) {
-      console.error('find first puppet error', err);
+      console.info('first puppet not exist, it is new user', err);
       return;
     }
 

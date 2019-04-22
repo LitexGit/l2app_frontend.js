@@ -33,6 +33,7 @@ export declare class L2 {
     getBalance(token?: string): Promise<string>;
     getChannelInfo(token?: string): Promise<any>;
     getAllTXs(token?: string): Promise<any>;
+    isNewUser(): Promise<boolean>;
     getAllPuppets(): Promise<Array<any>>;
     disablePuppet(puppet: string): Promise<string>;
     getOnchainBalance(token?: string): Promise<any>;

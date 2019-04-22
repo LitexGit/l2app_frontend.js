@@ -505,9 +505,30 @@ var L2 = (function () {
             });
         });
     };
+    L2.prototype.isNewUser = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var firstPuppetAddress, err_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4, exports.appPN.methods.puppets(exports.user, 0).call()];
+                    case 1:
+                        firstPuppetAddress = _a.sent();
+                        console.log('firstPuppetAddress is exist', firstPuppetAddress);
+                        return [2, false];
+                    case 2:
+                        err_1 = _a.sent();
+                        console.info('first puppet not exist, it is new user', err_1);
+                        return [2, true];
+                    case 3: return [2];
+                }
+            });
+        });
+    };
     L2.prototype.getAllPuppets = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var puppetList, n, _a, address, enabled, err_1;
+            var puppetList, n, _a, address, enabled, err_2;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -528,7 +549,7 @@ var L2 = (function () {
                         puppetList.push({ address: address, enabled: enabled });
                         return [3, 5];
                     case 4:
-                        err_1 = _b.sent();
+                        err_2 = _b.sent();
                         return [3, 6];
                     case 5: return [3, 1];
                     case 6:
@@ -580,7 +601,7 @@ var L2 = (function () {
     };
     L2.prototype.initPuppet = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var puppetStatus, firstPuppetAddress, err_2, data;
+            var puppetStatus, firstPuppetAddress, err_3, data;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -609,8 +630,8 @@ var L2 = (function () {
                         console.log('firstPuppetAddress is exist', firstPuppetAddress);
                         return [3, 6];
                     case 5:
-                        err_2 = _a.sent();
-                        console.error('find first puppet error', err_2);
+                        err_3 = _a.sent();
+                        console.info('first puppet not exist, it is new user', err_3);
                         return [2];
                     case 6:
                         data = exports.ethPN.methods.addPuppet(exports.puppet.getAccount().address).encodeABI();
