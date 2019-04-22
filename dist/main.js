@@ -580,29 +580,42 @@ var L2 = (function () {
     };
     L2.prototype.initPuppet = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var puppetStatus, data;
+            var puppetStatus, firstPuppetAddress, err_2, data;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         exports.puppet = puppet_1.default.get(exports.user, exports.ethPN.options.address);
                         if (!exports.puppet) return [3, 2];
                         console.log('puppet is ', exports.puppet);
-                        return [4, exports.ethPN.methods
-                                .puppetMap(exports.user, exports.puppet.getAccount().address)
+                        return [4, exports.appPN.methods
+                                .isPuppet(exports.user, exports.puppet.getAccount().address)
                                 .call()];
                     case 1:
                         puppetStatus = _a.sent();
                         console.log('puppetStatus', puppetStatus);
-                        if (Number(puppetStatus) === constants_1.PUPPET_STATUS.ENABLED) {
+                        if (puppetStatus) {
                             console.log('puppet is active');
                             return [2];
                         }
-                        _a.label = 2;
+                        return [3, 3];
                     case 2:
                         exports.puppet = puppet_1.default.create(exports.user, exports.ethPN.options.address);
+                        _a.label = 3;
+                    case 3:
+                        _a.trys.push([3, 5, , 6]);
+                        return [4, exports.appPN.methods.puppets(exports.user, 0).call()];
+                    case 4:
+                        firstPuppetAddress = _a.sent();
+                        console.log('firstPuppetAddress is exist', firstPuppetAddress);
+                        return [3, 6];
+                    case 5:
+                        err_2 = _a.sent();
+                        console.error('find first puppet error', err_2);
+                        return [2];
+                    case 6:
                         data = exports.ethPN.methods.addPuppet(exports.puppet.getAccount().address).encodeABI();
                         return [4, common_1.sendEthTx(exports.web3_outer, exports.user, exports.ethPN.options.address, 0, data)];
-                    case 3:
+                    case 7:
                         _a.sent();
                         return [2];
                 }

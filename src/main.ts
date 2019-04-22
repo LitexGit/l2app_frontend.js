@@ -687,21 +687,33 @@ export class L2 {
     // get puppet from LocalStorage, check if it is valid on eth payment contract
     if (puppet) {
       console.log('puppet is ', puppet);
-      let puppetStatus = await ethPN.methods
-        .puppetMap(user, puppet.getAccount().address)
+      let puppetStatus = await appPN.methods
+        .isPuppet(user, puppet.getAccount().address)
         .call();
       console.log('puppetStatus', puppetStatus);
-      if (Number(puppetStatus) === PUPPET_STATUS.ENABLED) {
+      if (puppetStatus) {
         // puppet is active, done
         console.log('puppet is active');
         return;
       }
+    } else {
+      puppet = Puppet.create(user, ethPN.options.address);
     }
 
-    /* if no puppet or puppet is disabled,
-     * create a new one and add it to payment contract
+    /*
+     * if a new user never register puppet, will register puppet when open channel
      */
-    puppet = Puppet.create(user, ethPN.options.address);
+    try {
+      let firstPuppetAddress = await appPN.methods.puppets(user, 0).call();
+      console.log('firstPuppetAddress is exist', firstPuppetAddress);
+    } catch (err) {
+      console.error('find first puppet error', err);
+      return;
+    }
+
+    /**
+     * if a user register puppet, and local puppet is not registered, will register local puppet here
+     */
     let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
     await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
   }
