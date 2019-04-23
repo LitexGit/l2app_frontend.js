@@ -44,6 +44,8 @@ import {
   delay,
   prepareSignatureForTransfer,
   sendAppTx,
+  logger,
+  setLogger,
 } from './utils/common';
 import L2Session from './session';
 
@@ -64,6 +66,7 @@ export let user: string; // user's eth address
 export let l2: string; // L2's eth address
 export let cp: string; // CP's eth address
 export let puppet: Puppet; // puppet object
+export let debug: boolean; // debug flag
 
 /**
  * L2 Class
@@ -128,7 +131,7 @@ export class L2 {
       address: appSessionAddress,
     };
 
-    console.log(
+    logger.info(
       'start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]',
       userAddress,
       ethPaymentNetworkAddress,
@@ -141,7 +144,7 @@ export class L2 {
     let provider = outerWeb3.currentProvider;
     web3_10 = new Web3(provider);
 
-    console.log(
+    logger.info(
       `outer web3 version:`,
       outerWeb3.version,
       `inner web3 version:`,
@@ -161,7 +164,10 @@ export class L2 {
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
-    console.log('cp / l2 is ', cp, l2);
+    debug = false;
+    setLogger();
+
+    logger.info('cp / l2 is ', cp, l2);
 
     cita = CITASDK(appRpcUrl);
     appPN = new cita.base.Contract(appPNInfo.abi, appPNInfo.address);
@@ -177,11 +183,16 @@ export class L2 {
     this.initMissingEvent();
     this.initialized = true;
 
-    console.log('finish L2.init');
+    logger.info('finish L2.init');
     return true;
   }
 
   /** * ---------- Payment APIs ---------- */
+
+  async setDebug(debugFlag: boolean) {
+    debug = debugFlag;
+    setLogger();
+  }
 
   /**
    * Deposit to channel. If there is no channel, open one
@@ -197,7 +208,7 @@ export class L2 {
   ): Promise<string> {
     this.checkInitialized();
 
-    console.log(
+    logger.info(
       'start deposit with params: amount: [%s], token: [%s]',
       amount + '',
       token
@@ -214,7 +225,7 @@ export class L2 {
       // add deposit
       let appChannel = await appPN.methods.channelMap(channelID).call();
       if (Number(appChannel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-        console.log('appChannel', appChannel);
+        logger.info('appChannel', appChannel);
         throw new Error('channel status of appchain is not open');
       }
 
@@ -268,7 +279,7 @@ export class L2 {
   ): Promise<string> {
     this.checkInitialized();
 
-    console.log(
+    logger.info(
       'start withdraw with params:  amount: [%s], token: [%s]',
       amount + '',
       token
@@ -296,7 +307,7 @@ export class L2 {
       if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         throw new Error('channel status is not open');
       }
-      console.log('call userProposeWithdraw');
+      logger.info('call userProposeWithdraw');
       return await sendAppTx(
         appPN.methods.userProposeWithdraw(
           channelID,
@@ -310,10 +321,10 @@ export class L2 {
         Number(channel.status) ===
         CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
       ) {
-        console.log('call ethSubmitCooperativeSettle');
+        logger.info('call ethSubmitCooperativeSettle');
         return await ethMethods.ethSubmitCooperativeSettle(channelID);
       }
-      console.log('call proposeCooperativeSettle', amount);
+      logger.info('call proposeCooperativeSettle', amount);
       let res = await sendAppTx(
         appPN.methods.proposeCooperativeSettle(
           channelID,
@@ -330,7 +341,7 @@ export class L2 {
         if (
           Number(status) === CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
         ) {
-          console.log('break loop', repeatTime);
+          logger.info('break loop', repeatTime);
           res = await ethMethods.ethSubmitCooperativeSettle(channelID);
           break;
         }
@@ -351,7 +362,7 @@ export class L2 {
   async forceWithdraw(token: string = ADDRESS_ZERO): Promise<string> {
     this.checkInitialized();
 
-    console.log('start forceWithdraw with params: token: [%s]', token);
+    logger.info('start forceWithdraw with params: token: [%s]', token);
 
     if (!web3_10.utils.isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
@@ -380,7 +391,7 @@ export class L2 {
     regulatorSignature = regulatorSignature || '0x0';
     providerSignature = providerSignature || '0x0';
 
-    console.log(
+    logger.info(
       'force-close params: channelID: [%s], balance: [%s], nonce: [%s], additionalHash: [%s], partnerSignature: [%s], inAmount: [%s], inNonce: [%s], regulatorSignature: [%s], providerSignature: [%s] ',
       channelID,
       balance,
@@ -425,7 +436,7 @@ export class L2 {
   ): Promise<string> {
     this.checkInitialized();
 
-    console.log(
+    logger.info(
       'start transfer with params: to: [%s], amount: [%s], token: [%s]',
       to,
       amount + '',
@@ -471,7 +482,7 @@ export class L2 {
       user
     );
 
-    console.log('start Submit Transfer');
+    logger.info('start Submit Transfer');
     return await sendAppTx(
       appPN.methods.transfer(
         to,
@@ -495,11 +506,12 @@ export class L2 {
    */
   async startSession(sessionID: string): Promise<L2Session> {
     this.checkInitialized();
-    let repeatTimes = 10;
+    let repeatTimes = CITA_SYNC_EVENT_TIMEOUT;
     let session: L2Session;
     for (let i = 0; i < repeatTimes; i++) {
       session = await L2Session.getSessionById(sessionID);
       if (session) {
+        logger.info('break loop', i);
         break;
       }
       await delay(1000);
@@ -544,7 +556,7 @@ export class L2 {
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let ethChannel = await ethPN.methods.channels(channelID).call();
 
-    console.log('ChannelID is ', channelID, ethChannel);
+    logger.info('ChannelID is ', channelID, ethChannel);
     let channel = await appPN.methods.channelMap(channelID).call();
 
     return { channelID, ...channel };
@@ -605,10 +617,10 @@ export class L2 {
   async isNewUser(): Promise<boolean> {
     try {
       let firstPuppetAddress = await appPN.methods.puppets(user, 0).call();
-      console.log('firstPuppetAddress is exist', firstPuppetAddress);
+      logger.info('firstPuppetAddress is exist', firstPuppetAddress);
       return false;
     } catch (err) {
-      console.info('first puppet not exist, it is new user', err);
+      logger.info('first puppet not exist, it is new user', err);
       return true;
     }
   }
@@ -633,7 +645,7 @@ export class L2 {
         break;
       }
     }
-    console.log(puppetList);
+    logger.info(puppetList);
     return puppetList;
   }
 
@@ -700,14 +712,14 @@ export class L2 {
 
     // get puppet from LocalStorage, check if it is valid on eth payment contract
     if (puppet) {
-      console.log('puppet is ', puppet);
+      logger.info('puppet is ', puppet);
       let puppetStatus = await appPN.methods
         .isPuppet(user, puppet.getAccount().address)
         .call();
-      console.log('puppetStatus', puppetStatus);
+      logger.info('puppetStatus', puppetStatus);
       if (puppetStatus) {
         // puppet is active, done
-        console.log('puppet is active');
+        logger.info('puppet is active');
         return;
       }
     } else {
@@ -719,9 +731,9 @@ export class L2 {
      */
     try {
       let firstPuppetAddress = await appPN.methods.puppets(user, 0).call();
-      console.log('firstPuppetAddress is exist', firstPuppetAddress);
+      logger.info('firstPuppetAddress is exist', firstPuppetAddress);
     } catch (err) {
-      console.info('first puppet not exist, it is new user', err);
+      logger.info('first puppet not exist, it is new user', err);
       return;
     }
 
@@ -758,7 +770,7 @@ export class L2 {
    * handle the missing events when user is offline.
    */
   private async initMissingEvent() {
-    console.log('start initMissingEvent');
+    logger.info('start initMissingEvent');
 
     // get all open channel of user
 
@@ -768,7 +780,7 @@ export class L2 {
       toBlock: 'latest',
     });
 
-    console.log(
+    logger.info(
       'getAllChannelOpenedEvent length',
       allChannelOpenedEvent.length
     );

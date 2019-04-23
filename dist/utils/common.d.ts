@@ -20,3 +20,5 @@ export declare function getAppTxOption(): Promise<{
     value: string;
 }>;
 export declare function sendAppTx(action: any): Promise<string>;
+export declare let logger: any;
+export declare function setLogger(): Promise<void>;

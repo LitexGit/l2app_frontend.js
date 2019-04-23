@@ -9,7 +9,8 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES } from '../config/TypedData';
-import { cita, puppet } from '../main';
+import { cita, puppet, debug } from '../main';
+import mylog from '../utils/mylog';
 
 /**
  * 用私钥签署消息
@@ -72,7 +73,7 @@ export async function sendEthTx(
     web3.eth.sendTransaction(
       { from, to, value, data, gasPrice: 1e10 },
       function(err: any, result: any) {
-        console.log('send Transaction', err, result);
+        logger.info('send Transaction', err, result);
         if (err) {
           reject(err);
         } else {
@@ -107,7 +108,7 @@ export async function signMessage(
 
   // }else {
   let params = [from, JSON.stringify(typedData)];
-  console.dir(params);
+  // console.dir(params);
   let method = 'eth_signTypedData_v3';
 
   return new Promise<string>((resolve, reject) => {
@@ -118,7 +119,7 @@ export async function signMessage(
         from,
       },
       async (err: any, result: any) => {
-        console.log('sign Result', err, result);
+        logger.info('sign Result', err, result);
         if (err) {
           reject(err);
         } else if (result.error) {
@@ -218,13 +219,13 @@ export async function prepareSignatureForTransfer(
     },
   };
 
-  console.log('typedData ', typedData);
+  logger.info('typedData ', typedData);
 
   let signature = '';
   try {
     signature = await signMessage(web3_outer, user, typedData);
   } catch (err) {
-    console.log('user reject the sign action');
+    logger.info('user reject the sign action');
     throw err;
   }
 
@@ -303,10 +304,25 @@ export async function sendAppTx(action: any): Promise<string> {
     if (receipt.errorMessage) {
       throw new Error(receipt.errorMessage);
     } else {
-      console.log('submit sendMessage success');
+      logger.info('submit sendMessage success');
       return res.hash;
     }
   } else {
     throw new Error('submit sendMessage failed');
   }
+}
+
+export declare let logger;
+
+// mylog();
+logger = {
+  info: debug ? console.log : () => {},
+  error: debug ? console.error : () => {},
+};
+
+export async function setLogger() {
+  logger = {
+    info: debug ? console.log : () => {},
+    error: debug ? console.error : () => {},
+  };
 }

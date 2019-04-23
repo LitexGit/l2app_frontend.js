@@ -1,5 +1,5 @@
 import { Contract } from 'web3/node_modules/web3-eth-contract';
-import { delay } from './utils/common';
+import { delay, logger } from './utils/common';
 
 /**
  * because appchain can not suppport event subscription.
@@ -102,7 +102,7 @@ export default class HttpWatcher {
     let currentBlockNumber = await this.base.getBlockNumber();
     lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
 
-    console.log('start syncing process', lastBlockNumber, currentBlockNumber);
+    logger.info('start syncing process', lastBlockNumber, currentBlockNumber);
     while (lastBlockNumber <= currentBlockNumber) {
       for (let watchItem of this.watchList) {
         await this.processAllEvent(
@@ -120,7 +120,7 @@ export default class HttpWatcher {
     }
 
     // finish sync process;
-    console.log('finish syncing process', currentBlockNumber);
+    logger.info('finish syncing process', currentBlockNumber);
 
     while (true) {
       await delay(this.blockInterval);
@@ -144,9 +144,9 @@ export default class HttpWatcher {
             return;
           }
         }
-        // console.log('currentBlockNumber', currentBlockNumber);
+        // logger.info('currentBlockNumber', currentBlockNumber);
       } catch (err) {
-        console.error('watch error:', err);
+        logger.error('watch error:', err);
         // this.base.setProvider('ws://wallet.milewan.com:4337');
         // alert 机制
       }

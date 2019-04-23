@@ -69,7 +69,7 @@ function sendEthTx(web3, from, to, value, data) {
         return __generator(this, function (_a) {
             return [2, new Promise(function (resolve, reject) {
                     web3.eth.sendTransaction({ from: from, to: to, value: value, data: data, gasPrice: 1e10 }, function (err, result) {
-                        console.log('send Transaction', err, result);
+                        exports.logger.info('send Transaction', err, result);
                         if (err) {
                             reject(err);
                         }
@@ -88,7 +88,6 @@ function signMessage(web3, from, typedData) {
         var _this = this;
         return __generator(this, function (_a) {
             params = [from, JSON.stringify(typedData)];
-            console.dir(params);
             method = 'eth_signTypedData_v3';
             return [2, new Promise(function (resolve, reject) {
                     web3.currentProvider.sendAsync({
@@ -97,7 +96,7 @@ function signMessage(web3, from, typedData) {
                         from: from,
                     }, function (err, result) { return __awaiter(_this, void 0, void 0, function () {
                         return __generator(this, function (_a) {
-                            console.log('sign Result', err, result);
+                            exports.logger.info('sign Result', err, result);
                             if (err) {
                                 reject(err);
                             }
@@ -177,7 +176,7 @@ function prepareSignatureForTransfer(web3_outer, ethPNAddress, channelID, balanc
                             additionalHash: additionalHash,
                         },
                     };
-                    console.log('typedData ', typedData);
+                    exports.logger.info('typedData ', typedData);
                     signature = '';
                     _a.label = 1;
                 case 1:
@@ -188,7 +187,7 @@ function prepareSignatureForTransfer(web3_outer, ethPNAddress, channelID, balanc
                     return [3, 4];
                 case 3:
                     err_1 = _a.sent();
-                    console.log('user reject the sign action');
+                    exports.logger.info('user reject the sign action');
                     throw err_1;
                 case 4: return [2, signature];
             }
@@ -261,7 +260,7 @@ function sendAppTx(action) {
                         throw new Error(receipt.errorMessage);
                     }
                     else {
-                        console.log('submit sendMessage success');
+                        exports.logger.info('submit sendMessage success');
                         return [2, res.hash];
                     }
                     return [3, 5];
@@ -272,4 +271,20 @@ function sendAppTx(action) {
     });
 }
 exports.sendAppTx = sendAppTx;
+exports.logger = {
+    info: main_1.debug ? console.log : function () { },
+    error: main_1.debug ? console.error : function () { },
+};
+function setLogger() {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            exports.logger = {
+                info: main_1.debug ? console.log : function () { },
+                error: main_1.debug ? console.error : function () { },
+            };
+            return [2];
+        });
+    });
+}
+exports.setLogger = setLogger;
 //# sourceMappingURL=common.js.map

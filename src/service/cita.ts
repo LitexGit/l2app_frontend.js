@@ -14,6 +14,7 @@ import {
   delay,
   getAppTxOption,
   sendAppTx,
+  logger,
 } from '../utils/common';
 import {
   TRANSFER_EVENT,
@@ -35,7 +36,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA ConfirmUserWithdraw--------------------'
       );
       let {
@@ -52,7 +53,7 @@ export const events = {
         transactionHash,
       } = event;
 
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], confirmer: [%s], amount: [%s], lastCommitBlock: [%s], isAllConfirmed: [%s], providerSignature: [%s], regulatorSignature: [%s]',
         channelID,
         user,
@@ -68,7 +69,7 @@ export const events = {
       if (isAllConfirmed === false) {
         return;
       }
-      console.log(
+      logger.info(
         'Receive ConfirmUserWithdraw event, will try to submit eth withdraw tx %s',
         transactionHash
       );
@@ -92,7 +93,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA ConfirmCooperativeSettle--------------------'
       );
       let {
@@ -109,7 +110,7 @@ export const events = {
         transactionHash,
       } = event;
 
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], confirmer: [%s], balance: [%s], lastCommitBlock: [%s], isAllConfirmed: [%s], providerSignature: [%s], regulatorSignature: [%s] ',
         channelID,
         user,
@@ -125,31 +126,15 @@ export const events = {
       if (isAllConfirmed === false) {
         return;
       }
-
-      // console.log(
-      //   'Receive ConfirmCooperativeSettle event, will try to submit eth settle tx %s',
-      //   transactionHash
-      // );
-      // let txData = ethPN.methods
-      //   .cooperativeSettle(
-      //     channelID,
-      //     balance,
-      //     lastCommitBlock,
-      //     providerSignature,
-      //     regulatorSignature
-      //   )
-      //   .encodeABI();
-      // sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
-      // return;
     },
   },
 
   Transfer: {
     filter: () => {
-      return { to: user };
+      return {};
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA Transfer--------------------'
       );
       let {
@@ -163,7 +148,14 @@ export const events = {
         },
       } = event;
 
-      console.log(
+      if (
+        to.toLowerCase() !== user.toLowerCase() &&
+        from.toLowerCase() !== user.toLowerCase()
+      ) {
+        return;
+      }
+
+      logger.info(
         ' from: [%s], to: [%s], channelID: [%s], balance: [%s], transferAmount: [%s], additionalHash: [%s] ',
         from,
         to,
@@ -180,21 +172,14 @@ export const events = {
         // additionalHash ===
         //   '0x0000000000000000000000000000000000000000000000000000000000000000'
       ) {
-        let { token } = await appPN.methods.channelMap(channelID).call();
         let amount = transferAmount;
-        let transferEvent: TRANSFER_EVENT = {
-          from,
-          to,
-          token,
-          amount,
-          additionalHash,
-          totalTransferredAmount: balance,
-        };
 
         let { toBN } = web3_10.utils;
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let channelInfo = await appPN.methods.balanceProofMap(channelID, to).call();
+          let channelInfo = await appPN.methods
+            .balanceProofMap(channelID, to)
+            .call();
           if (toBN(channelInfo.balance).gte(toBN(balance))) {
             break;
           }
@@ -202,11 +187,27 @@ export const events = {
           time++;
         }
 
+        let { token, userBalance } = await appPN.methods
+          .channelMap(channelID)
+          .call();
+
+        let transferEvent: TRANSFER_EVENT = {
+          from,
+          to,
+          token,
+          amount,
+          additionalHash,
+          totalTransferredAmount: balance,
+          balance: userBalance,
+        };
+
         callbacks.get('Transfer')(null, transferEvent);
       }
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
-      appMethods.appSubmitGuardProof(channelID, to);
+      if (to.toLowerCase() !== user.toLowerCase()) {
+        appMethods.appSubmitGuardProof(channelID, to);
+      }
     },
   },
   /****************************onchain Event(operator emit)************************************/
@@ -215,13 +216,13 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainAddPuppet--------------------'
       );
       let {
         returnValues: { user, puppet },
       } = event;
-      console.log('user: [%s], puppet: [%s]', user, puppet);
+      logger.info('user: [%s], puppet: [%s]', user, puppet);
       let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 1 };
       callbacks.get('PuppetChanged') &&
         callbacks.get('PuppetChanged')(null, puppetChangeEvent);
@@ -232,13 +233,13 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainDisablePuppet--------------------'
       );
       let {
         returnValues: { user, puppet },
       } = event;
-      console.log('user: [%s], puppet: [%s]', user, puppet);
+      logger.info('user: [%s], puppet: [%s]', user, puppet);
       let puppetChangeEvent: PUPPETCHANGED_EVENT = { user, puppet, type: 2 };
       callbacks.get('PuppetChanged') &&
         callbacks.get('PuppetChanged')(null, puppetChangeEvent);
@@ -250,36 +251,29 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainOpenChannel--------------------'
       );
       let {
         returnValues: { user, token, amount, channelID },
         transactionHash,
       } = event;
-      console.log(
+      logger.info(
         ' user: [%s], token: [%s], amount: [%s], channelID: [%s] ',
         user,
         token,
         amount,
         channelID
       );
-      let depositEvent: DEPOSIT_EVENT = {
-        user: user,
-        type: 1,
-        token,
-        amount: amount,
-        totalDeposit: amount,
-        txhash: transactionHash,
-      };
       let { toBN } = web3_10.utils;
 
       if (callbacks.get('Deposit')) {
         let time = 0;
+        let channelInfo;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
           let ethChannelInfo = await ethPN.methods.channels(channelID).call();
-          // console.log('ethChannelInfo', ethChannelInfo);
-          let channelInfo = await appPN.methods.channelMap(channelID).call();
+          // logger.info('ethChannelInfo', ethChannelInfo);
+          channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
             toBN(channelInfo.userDeposit).gte(toBN(amount)) &&
             Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN
@@ -289,6 +283,16 @@ export const events = {
           await delay(1000);
           time++;
         }
+
+        let depositEvent: DEPOSIT_EVENT = {
+          user: user,
+          type: 1,
+          token,
+          amount: amount,
+          totalDeposit: amount,
+          txhash: transactionHash,
+          balance: channelInfo.userBalance,
+        };
         callbacks.get('Deposit')(null, depositEvent);
       }
     },
@@ -299,7 +303,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainUserDeposit--------------------'
       );
       let {
@@ -307,24 +311,13 @@ export const events = {
         transactionHash,
       } = event;
 
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], deposit: [%s], totalDeposit: [%s] ',
         channelID,
         user,
         deposit,
         totalDeposit
       );
-
-      let { token } = await ethPN.methods.channels(channelID).call();
-
-      let depositEvent: DEPOSIT_EVENT = {
-        user: user,
-        type: 2,
-        token,
-        amount: deposit,
-        totalDeposit,
-        txhash: transactionHash,
-      };
 
       let { toBN } = web3_10.utils;
       if (callbacks.get('Deposit')) {
@@ -337,6 +330,19 @@ export const events = {
           await delay(1000);
           time++;
         }
+        let { token, userBalance } = await appPN.methods
+          .channelMap(channelID)
+          .call();
+
+        let depositEvent: DEPOSIT_EVENT = {
+          user: user,
+          type: 2,
+          token,
+          amount: deposit,
+          totalDeposit,
+          txhash: transactionHash,
+          balance: userBalance,
+        };
         callbacks.get('Deposit')(null, depositEvent);
       }
     },
@@ -347,7 +353,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainUserWithdraw--------------------'
       );
       let {
@@ -361,7 +367,7 @@ export const events = {
         transactionHash,
       } = event;
 
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], amount: [%s], totalWithdraw: [%s], lastCommitBlock: [%s], ',
         channelID,
         user,
@@ -369,17 +375,6 @@ export const events = {
         totalWithdraw,
         lastCommitBlock
       );
-
-      let { token } = await ethPN.methods.channels(channelID).call();
-
-      let withdrawEvent: WITHDRAW_EVENT = {
-        user: user,
-        type: 1,
-        token,
-        amount,
-        totalWithdraw,
-        txhash: transactionHash,
-      };
 
       let { toBN } = web3_10.utils;
       if (callbacks.get('Withdraw')) {
@@ -392,6 +387,19 @@ export const events = {
           await delay(1000);
           time++;
         }
+        let { token, userBalance } = await appPN.methods
+          .channelMap(channelID)
+          .call();
+
+        let withdrawEvent: WITHDRAW_EVENT = {
+          user: user,
+          type: 1,
+          token,
+          amount,
+          totalWithdraw,
+          txhash: transactionHash,
+          balance: userBalance,
+        };
         callbacks.get('Withdraw')(null, withdrawEvent);
       }
     },
@@ -402,14 +410,14 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainCooperativeSettleChannel--------------------'
       );
       let {
         returnValues: { channelID, user, token, balance, lastCommitBlock },
         transactionHash,
       } = event;
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], token: [%s], balance: [%s], lastCommitBlock: [%s] ',
         channelID,
         user,
@@ -424,6 +432,7 @@ export const events = {
         amount: balance,
         totalWithdraw: '',
         txhash: transactionHash,
+        balance: '0',
       };
       if (callbacks.get('Withdraw')) {
         let time = 0;
@@ -450,7 +459,7 @@ export const events = {
       return { user };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA OnchainSettleChannel--------------------'
       );
       let {
@@ -463,7 +472,7 @@ export const events = {
         },
         transactionHash,
       } = event;
-      console.log(
+      logger.info(
         ' channelID: [%s], user: [%s], token: [%s], transferTouserAmount: [%s], transferToProviderAmount: [%s], ',
         channelID,
         user,
@@ -479,6 +488,7 @@ export const events = {
         userSettleAmount: transferTouserAmount,
         providerSettleAmount: transferToProviderAmount,
         txhash: transactionHash,
+        balance: '0',
       };
       callbacks.get('ForceWithdraw') &&
         callbacks.get('ForceWithdraw')(null, forceWithdrawEvent);
@@ -508,7 +518,7 @@ export const ethMethods = {
       appPN.methods.userWithdrawProofMap(channelID).call(),
     ]);
 
-    console.log(
+    logger.info(
       'userWithdrawProofMap: isConfirmed: [%s], withdraw: [%s], providerSignature: [%s], regulatorSignature: [%s], lastCommitBlock: [%s], receiver: [%s]',
       isConfirmed,
       withdraw,
@@ -518,7 +528,7 @@ export const ethMethods = {
       receiver
     );
     if (!isConfirmed) {
-      console.log('userWithdrawProofMap not confirmed');
+      logger.info('userWithdrawProofMap not confirmed');
       return;
     }
 
@@ -528,11 +538,11 @@ export const ethMethods = {
         .toBN(currentBlockNumber)
         .gt(web3_10.utils.toBN(lastCommitBlock))
     ) {
-      console.log('unlock user withdraw now');
+      logger.info('unlock user withdraw now');
 
       sendAppTx(appPN.methods.unlockUserWithdrawProof(channelID));
     } else {
-      console.log('submit user withdraw now');
+      logger.info('submit user withdraw now');
       // TODO: check the eth tx has been submited before
       let txData = ethPN.methods
         .userWithdraw(
@@ -562,7 +572,7 @@ export const ethMethods = {
       regulatorSignature,
     } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
-    console.log(
+    logger.info(
       'cooperativeSettleProof: channelID: [%s], isConfirmed: [%s], balance: [%s], lastCommitBlock: [%s], providerSignature: [%s], regulatorSignature: [%s]',
       channelID,
       isConfirmed,
@@ -573,7 +583,7 @@ export const ethMethods = {
     );
 
     if (!isConfirmed) {
-      console.log('cooperativeSettleProof not confirmed');
+      logger.info('cooperativeSettleProof not confirmed');
       return null;
     }
 
@@ -630,7 +640,7 @@ export const appMethods = {
       consignorSignature,
     } = await appPN.methods.balanceProofMap(channelID, to).call();
 
-    console.log(
+    logger.info(
       'balanceProof:  balance: [%s], nonce: [%s], additionalHash: [%s], signature: [%s], consignorSignature: [%s]',
       balance,
       nonce,
@@ -640,12 +650,12 @@ export const appMethods = {
     );
     // check if user has uploaded his guard proof
     if (consignorSignature != null) {
-      console.log('balance proof already signed now');
+      logger.info('balance proof already signed now');
       return;
     }
 
     if (balance === '0') {
-      console.log('no balance proof now');
+      logger.info('no balance proof now');
       return;
     }
 
@@ -667,7 +677,7 @@ export const appMethods = {
 
     let appTx = await getAppTxOption();
 
-    console.log(
+    logger.info(
       'guardBalanceProof params: channelID: [%s], balance: [%s], nonce: [%s], additionalHash: [%s], signature: [%s], consignorSignature: [%s]',
       channelID,
       balance,
@@ -691,9 +701,9 @@ export const appMethods = {
     if (res.hash) {
       let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
       if (receipt.errorMessage) {
-        console.error('[CITA] - guardBalanceProof', receipt.errorMessage);
+        logger.error('[CITA] - guardBalanceProof', receipt.errorMessage);
       } else {
-        console.log('submit cita tx success');
+        logger.info('submit cita tx success');
       }
     }
   },

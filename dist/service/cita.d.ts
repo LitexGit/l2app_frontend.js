@@ -12,9 +12,7 @@ export declare const events: {
         handler: (event: any) => Promise<void>;
     };
     Transfer: {
-        filter: () => {
-            to: string;
-        };
+        filter: () => {};
         handler: (event: any) => Promise<void>;
     };
     OnchainAddPuppet: {

@@ -14,6 +14,7 @@ export declare let user: string;
 export declare let l2: string;
 export declare let cp: string;
 export declare let puppet: Puppet;
+export declare let debug: boolean;
 export declare class L2 {
     private static _instance;
     private initialized;
@@ -22,6 +23,7 @@ export declare class L2 {
     private constructor();
     static getInstance(): L2;
     init(userAddress: string, outerWeb3: any, ethPaymentNetworkAddress: string, appRpcUrl: string, appPaymentNetworkAddress: string, appSessionAddress: string): Promise<boolean>;
+    setDebug(debugFlag: boolean): Promise<void>;
     deposit(amount: string | number, token?: string): Promise<string>;
     withdraw(amount: string | number, token?: string, receiver?: string): Promise<string>;
     forceWithdraw(token?: string): Promise<string>;

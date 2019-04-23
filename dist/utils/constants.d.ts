@@ -31,6 +31,7 @@ export declare type DEPOSIT_EVENT = {
     token: string;
     amount: string;
     totalDeposit: string;
+    balance: string;
     txhash: string;
 };
 export declare type WITHDRAW_EVENT = {
@@ -39,6 +40,7 @@ export declare type WITHDRAW_EVENT = {
     token: string;
     amount: string;
     totalWithdraw: string;
+    balance: string;
     txhash: string;
 };
 export declare type FORCEWITHDRAW_EVENT = {
@@ -46,6 +48,7 @@ export declare type FORCEWITHDRAW_EVENT = {
     token: string;
     userSettleAmount: string;
     providerSettleAmount: string;
+    balance: string;
     txhash: string;
 };
 export declare type TRANSFER_EVENT = {
@@ -55,6 +58,7 @@ export declare type TRANSFER_EVENT = {
     amount: string;
     additionalHash: string;
     totalTransferredAmount: string;
+    balance: string;
 };
 export declare type PUPPETCHANGED_EVENT = {
     user: string;

@@ -1,6 +1,7 @@
 import L2Session from '../session';
 import { cp, appPN, callbacks } from '../main';
 import { SESSION_STATUS } from '../utils/constants';
+import { logger } from '../utils/common';
 
 export const events = {
   // 'InitSession': {
@@ -18,7 +19,7 @@ export const events = {
       return { from: cp };
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA SendMessage--------------------'
       );
       let {
@@ -36,7 +37,7 @@ export const events = {
         transactionHash,
       } = event;
 
-      console.log(
+      logger.info(
         ' from: [%s], to: [%s], sessionID: [%s], type: [%s], content: [%s], channelID: [%s], balance: [%s], nonce: [%s], amount: [%s] ',
         from,
         to,
@@ -82,13 +83,13 @@ export const events = {
       return {};
     },
     handler: async (event: any) => {
-      console.log(
+      logger.info(
         '--------------------Handle CITA CloseSession--------------------'
       );
       let {
         returnValues: { sessionID },
       } = event;
-      console.log('sessionID', sessionID);
+      logger.info('sessionID', sessionID);
 
       let session = await L2Session.getSessionById(sessionID, false);
       if (!session) {

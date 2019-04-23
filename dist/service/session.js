@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var session_1 = require("../session");
 var main_1 = require("../main");
 var constants_1 = require("../utils/constants");
+var common_1 = require("../utils/common");
 exports.events = {
     SendMessage: {
         filter: function () {
@@ -49,9 +50,9 @@ exports.events = {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        console.log('--------------------Handle CITA SendMessage--------------------');
+                        common_1.logger.info('--------------------Handle CITA SendMessage--------------------');
                         _a = event.returnValues, from = _a.from, to = _a.to, sessionID = _a.sessionID, type = _a.mType, content = _a.content, channelID = _a.channelID, balance = _a.balance, nonce = _a.nonce, amount = _a.amount, transactionHash = event.transactionHash;
-                        console.log(' from: [%s], to: [%s], sessionID: [%s], type: [%s], content: [%s], channelID: [%s], balance: [%s], nonce: [%s], amount: [%s] ', from, to, sessionID, type, content, channelID, balance, nonce, amount);
+                        common_1.logger.info(' from: [%s], to: [%s], sessionID: [%s], type: [%s], content: [%s], channelID: [%s], balance: [%s], nonce: [%s], amount: [%s] ', from, to, sessionID, type, content, channelID, balance, nonce, amount);
                         return [4, session_1.default.getSessionById(sessionID, false)];
                     case 1:
                         session = _b.sent();
@@ -95,9 +96,9 @@ exports.events = {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        console.log('--------------------Handle CITA CloseSession--------------------');
+                        common_1.logger.info('--------------------Handle CITA CloseSession--------------------');
                         sessionID = event.returnValues.sessionID;
-                        console.log('sessionID', sessionID);
+                        common_1.logger.info('sessionID', sessionID);
                         return [4, session_1.default.getSessionById(sessionID, false)];
                     case 1:
                         session = _a.sent();

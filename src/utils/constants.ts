@@ -49,6 +49,7 @@ export type DEPOSIT_EVENT = {
   token: string;
   amount: string;
   totalDeposit: string;
+  balance: string;
   txhash: string;
 };
 
@@ -58,6 +59,7 @@ export type WITHDRAW_EVENT = {
   token: string;
   amount: string;
   totalWithdraw: string;
+  balance: string;
   txhash: string;
 };
 
@@ -66,6 +68,7 @@ export type FORCEWITHDRAW_EVENT = {
   token: string;
   userSettleAmount: string;
   providerSettleAmount: string;
+  balance: string;
   txhash: string;
 };
 
@@ -76,6 +79,7 @@ export type TRANSFER_EVENT = {
   amount: string;
   additionalHash: string;
   totalTransferredAmount: string;
+  balance: string;
 };
 
 export type PUPPETCHANGED_EVENT = {

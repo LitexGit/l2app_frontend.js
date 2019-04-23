@@ -117,7 +117,7 @@ var HttpWatcher = (function () {
                     case 1:
                         currentBlockNumber = _d.sent();
                         lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
-                        console.log('start syncing process', lastBlockNumber, currentBlockNumber);
+                        common_1.logger.info('start syncing process', lastBlockNumber, currentBlockNumber);
                         _d.label = 2;
                     case 2:
                         if (!(lastBlockNumber <= currentBlockNumber)) return [3, 8];
@@ -143,7 +143,7 @@ var HttpWatcher = (function () {
                         currentBlockNumber = _d.sent();
                         return [3, 2];
                     case 8:
-                        console.log('finish syncing process', currentBlockNumber);
+                        common_1.logger.info('finish syncing process', currentBlockNumber);
                         _d.label = 9;
                     case 9:
                         if (!true) return [3, 19];
@@ -178,7 +178,7 @@ var HttpWatcher = (function () {
                     case 16: return [3, 18];
                     case 17:
                         err_1 = _d.sent();
-                        console.error('watch error:', err_1);
+                        common_1.logger.error('watch error:', err_1);
                         return [3, 18];
                     case 18: return [3, 9];
                     case 19: return [2];

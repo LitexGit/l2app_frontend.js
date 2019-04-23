@@ -17,6 +17,7 @@ import {
   myEcsignToHex,
   prepareSignatureForTransfer,
   sendAppTx,
+  logger,
 } from './utils/common';
 import * as rlp from 'rlp';
 
@@ -157,7 +158,7 @@ export default class L2Session {
     amount: string | number = '0',
     token: string = ADDRESS_ZERO
   ): Promise<string> {
-    console.log(
+    logger.info(
       'sendMessage start execute with params: to: [%s], type: [%s], content: [%s], amount: [%s], token: [%s]',
       to,
       type,
@@ -233,7 +234,7 @@ export default class L2Session {
     token: string,
     messageHash: string
   ): Promise<any> {
-    console.log(
+    logger.info(
       'start buildTransferData with params: from[%s], amount[%s], token[%s], messageHash[%s]',
       from,
       amount,
@@ -249,23 +250,23 @@ export default class L2Session {
       '0x0000000000000000000000000000000000000000000000000000000000000000';
     let paymentSignature = '0x0';
     if (Number(amount) > 0) {
-      console.log('start get channelID');
+      logger.info('start get channelID');
       channelID = await ethPN.methods.getChannelID(from, token).call();
-      console.log('start get channel status');
-      // let channel = await appPN.methods.channelMap(channelID).call();
+      logger.info('start get channel status');
+      let channel = await appPN.methods.channelMap(channelID).call();
 
-      // // check channel status
-      // if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-      //   throw new Error('app channel status is not open, can not transfer now');
-      // }
-      // // check user's balance is enough
-      // if (toBN(channel.userBalance).lt(toBN(amount))) {
-      //   throw new Error("user's balance is less than transfer amount");
-      // }
+      // check channel status
+      if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
+        throw new Error('app channel status is not open, can not transfer now');
+      }
+      // check user's balance is enough
+      if (toBN(channel.userBalance).lt(toBN(amount))) {
+        throw new Error("user's balance is less than transfer amount");
+      }
 
       // build transfer message
       // get balance proof from eth contract
-      console.log('start get channel balanceProof');
+      logger.info('start get channel balanceProof');
       let balanceProof = await appPN.methods
         .balanceProofMap(channelID, cp)
         .call();
@@ -299,11 +300,11 @@ export default class L2Session {
       additionalHash,
       paymentSignature,
     ];
-    console.log('paymentData: ', paymentData);
+    logger.info('paymentData: ', paymentData);
     // rlpencode is encoded data
     let rlpencode = '0x' + rlp.encode(paymentData).toString('hex');
 
-    console.log('rlpencode is', rlpencode);
+    logger.info('rlpencode is', rlpencode);
 
     return rlpencode;
   }
