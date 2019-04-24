@@ -312,6 +312,24 @@ export async function sendAppTx(action: any): Promise<string> {
   }
 }
 
+/**
+ * get eth transaction hash from operator's tx
+ *
+ * @param web3 web3 instance
+ * @param receipt receipt object
+ */
+export async function extractTxHashFromReceipt(
+  web3: any,
+  receipt: any
+): Promise<string> {
+  let executionLogs = receipt.logs[receipt.logs.length - 1];
+  let transactionId = executionLogs.topics[0];
+
+  // TODO query operator contract to get ETH tx hash
+
+  return '';
+}
+
 export declare let logger;
 
 // mylog();

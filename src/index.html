@@ -155,15 +155,15 @@
   <script>
     const SERVER_URL = 'http://localhost:9527/';
     let config = {
-      ethPNAddress: '0x35e73CF2D3717B88322E23E6aE2ceb65B74B42c5',
-      appPNAddress: '0x4C636A5433CC3FaA5A3Af3429ceCA0852DA4Ba91',
-      appSessionAddress: '0x2398Fd042176e343cC47eD34ebB0C2ECb154128b',
+      ethPNAddress: '0xb661DB91C0EB7ff242871BB2787690BF51959DDA',
+      appPNAddress: '0xa097122AcdC2dEc8532985dAeEE5020F25086ED7',
+      appSessionAddress: '0xd1DDD0232BA1E8B23Bd1531FfF35e30f3cC6fAcA',
       appOperatorAddress: '0xf6486AB66Fa7e3af90098cBD9cd6342E422A1c3F',
-      appRpcUrl: 'http://54.64.76.19:1337',
+      appRpcUrl: 'ws://18.179.21.124:4337',
       ethRpcUrl: 'http://39.96.8.192:8545',
       // token: '0x3052c3104c32e666666fBEf3A5EAd4603747eA83',
       // token: "0x9ac78c85A0d3a86a8BE1e08Bea6Ef2EE1687bE18"
-      token: "0x0000000000000000000000000000000000000000"
+      token: '0x0000000000000000000000000000000000000000',
     };
 
     let { ethPNAddress, appPNAddress, appSessionAddress, appRpcUrl } = config;
@@ -186,6 +186,8 @@
 
     let sessionID = '';
     let session;
+
+    let txHash = '';
 
     window.L2 = l2js.default;
 
@@ -257,6 +259,7 @@
         });
       document.getElementById('init').addEventListener('click', async event => {
         console.log('init button clicked');
+        L2.getInstance().setDebug(true);
         let res = await L2.getInstance().init(
           defaultAccount,
           window.web3,
@@ -275,6 +278,7 @@
           console.log('deposit button clicked');
           let res = await L2.getInstance().deposit(1e16, token);
           console.log('deposit res ', res);
+          txHash = res;
         });
 
       document
@@ -302,8 +306,9 @@
 
           let balance = await L2.getInstance().getBalance(token);
           console.log('balance is', balance);
-          let res = L2.getInstance().withdraw(balance, token);
+          let res = await L2.getInstance().withdraw(balance, token);
           console.log('coclose res', res);
+          txHash = res;
         });
 
       document
@@ -361,6 +366,9 @@
           console.log('getAllTxs button clicked');
           let result = await L2.getInstance().getAllTXs(token);
           console.log('getAllTxs result', result);
+
+          result = await L2.getInstance().getEthTxReceipt(txHash);
+          console.log('getEthTxReceipt', result);
         });
 
       document

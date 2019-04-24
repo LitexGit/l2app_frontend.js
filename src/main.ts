@@ -343,12 +343,12 @@ export class L2 {
         ) {
           logger.info('break loop', repeatTime);
           res = await ethMethods.ethSubmitCooperativeSettle(channelID);
-          break;
+          return res;
         }
         repeatTime++;
       }
 
-      return res;
+      throw new Error('withdraw timeout');
     }
   }
 
@@ -609,6 +609,21 @@ export class L2 {
     outTXs = outTXs.sort(cmpNonce('nonce')).map(tx => getTX(tx));
 
     return { in: inTXs, out: outTXs };
+  }
+
+  /**
+   * check a eth transaction has been confirmed
+   *
+   * @param txHash
+   */
+  async getEthTxReceipt(txHash: string): Promise<boolean> {
+    try {
+      let { status = false } = await web3_10.eth.getTransactionReceipt(txHash);
+      return status;
+    } catch (err) {
+      logger.error('getEthTxReceipt fail', err);
+      return null;
+    }
   }
 
   /**
