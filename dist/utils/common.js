@@ -271,6 +271,17 @@ function sendAppTx(action) {
     });
 }
 exports.sendAppTx = sendAppTx;
+function extractTxHashFromReceipt(web3, receipt) {
+    return __awaiter(this, void 0, void 0, function () {
+        var executionLogs, transactionId;
+        return __generator(this, function (_a) {
+            executionLogs = receipt.logs[receipt.logs.length - 1];
+            transactionId = executionLogs.topics[0];
+            return [2, ''];
+        });
+    });
+}
+exports.extractTxHashFromReceipt = extractTxHashFromReceipt;
 exports.logger = {
     info: main_1.debug ? console.log : function () { },
     error: main_1.debug ? console.error : function () { },

@@ -272,11 +272,11 @@ var L2 = (function () {
                         return [4, cita_1.ethMethods.ethSubmitCooperativeSettle(channelID)];
                     case 13:
                         res = _j.sent();
-                        return [3, 15];
+                        return [2, res];
                     case 14:
                         repeatTime++;
                         return [3, 10];
-                    case 15: return [2, res];
+                    case 15: throw new Error('withdraw timeout');
                 }
             });
         });
@@ -517,9 +517,29 @@ var L2 = (function () {
             });
         });
     };
+    L2.prototype.getEthTxReceipt = function (txHash) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, status_2, err_1;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 2, , 3]);
+                        return [4, exports.web3_10.eth.getTransactionReceipt(txHash)];
+                    case 1:
+                        _a = (_b.sent()).status, status_2 = _a === void 0 ? false : _a;
+                        return [2, status_2];
+                    case 2:
+                        err_1 = _b.sent();
+                        common_1.logger.error('getEthTxReceipt fail', err_1);
+                        return [2, null];
+                    case 3: return [2];
+                }
+            });
+        });
+    };
     L2.prototype.isNewUser = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var firstPuppetAddress, err_1;
+            var firstPuppetAddress, err_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -530,8 +550,8 @@ var L2 = (function () {
                         common_1.logger.info('firstPuppetAddress is exist', firstPuppetAddress);
                         return [2, false];
                     case 2:
-                        err_1 = _a.sent();
-                        common_1.logger.info('first puppet not exist, it is new user', err_1);
+                        err_2 = _a.sent();
+                        common_1.logger.info('first puppet not exist, it is new user', err_2);
                         return [2, true];
                     case 3: return [2];
                 }
@@ -540,7 +560,7 @@ var L2 = (function () {
     };
     L2.prototype.getAllPuppets = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var puppetList, n, _a, address, enabled, err_2;
+            var puppetList, n, _a, address, enabled, err_3;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -561,7 +581,7 @@ var L2 = (function () {
                         puppetList.push({ address: address, enabled: enabled });
                         return [3, 5];
                     case 4:
-                        err_2 = _b.sent();
+                        err_3 = _b.sent();
                         return [3, 6];
                     case 5: return [3, 1];
                     case 6:
@@ -613,7 +633,7 @@ var L2 = (function () {
     };
     L2.prototype.initPuppet = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var puppetStatus, firstPuppetAddress, err_3, data;
+            var puppetStatus, firstPuppetAddress, err_4, data;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -642,8 +662,8 @@ var L2 = (function () {
                         common_1.logger.info('firstPuppetAddress is exist', firstPuppetAddress);
                         return [3, 6];
                     case 5:
-                        err_3 = _a.sent();
-                        common_1.logger.info('first puppet not exist, it is new user', err_3);
+                        err_4 = _a.sent();
+                        common_1.logger.info('first puppet not exist, it is new user', err_4);
                         return [2];
                     case 6:
                         data = exports.ethPN.methods.addPuppet(exports.puppet.getAccount().address).encodeABI();
