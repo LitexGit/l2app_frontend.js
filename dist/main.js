@@ -580,7 +580,8 @@ var L2 = (function () {
             });
         });
     };
-    L2.prototype.getEthTxReceipt = function (txHash) {
+    L2.prototype.getEthTxReceipt = function (txHash, syncWithApp) {
+        if (syncWithApp === void 0) { syncWithApp = false; }
         return __awaiter(this, void 0, void 0, function () {
             var ethStatus, appStatus, err_1;
             return __generator(this, function (_a) {
@@ -592,6 +593,9 @@ var L2 = (function () {
                         ethStatus = (_a.sent()).status;
                         if (!ethStatus) {
                             return [2, false];
+                        }
+                        if (!syncWithApp) {
+                            return [2, ethStatus];
                         }
                         return [4, exports.appOperator.methods.proposedTxMap(txHash).call()];
                     case 2:

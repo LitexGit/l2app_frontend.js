@@ -693,19 +693,26 @@ export class L2 {
   /**
    * check a eth transaction has been confirmed
    *
-   * @param txHash
+   * @param txHash eth transaction Hash
+   * @param syncWithApp sync with the data on app chain, default: false
    *
    * @returns true =  confirmed false = reverted null = unknown
    */
-  async getEthTxReceipt(txHash: string): Promise<boolean> {
+  async getEthTxReceipt(
+    txHash: string,
+    syncWithApp: boolean = false
+  ): Promise<boolean> {
     try {
       let { status: ethStatus } = await web3_10.eth.getTransactionReceipt(
         txHash
       );
-      // logger.info('ethStatus', ethStatus);
 
       if (!ethStatus) {
         return false;
+      }
+
+      if (!syncWithApp) {
+        return ethStatus;
       }
 
       let appStatus = await appOperator.methods.proposedTxMap(txHash).call();

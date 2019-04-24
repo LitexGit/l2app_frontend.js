@@ -9,7 +9,7 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES } from '../config/TypedData';
-import { cita, puppet, debug } from '../main';
+import { cita, puppet, debug, appOperator, web3_10 } from '../main';
 import mylog from '../utils/mylog';
 
 /**
@@ -315,19 +315,29 @@ export async function sendAppTx(action: any): Promise<string> {
 /**
  * get eth transaction hash from operator's tx
  *
- * @param web3 web3 instance
- * @param receipt receipt object
+ * @param appTxHash appchain transaction Hash
  */
-export async function extractTxHashFromReceipt(
-  web3: any,
-  receipt: any
+export async function extractEthTxHashFromAppTx(
+  appTxHash: any
 ): Promise<string> {
-  let executionLogs = receipt.logs[receipt.logs.length - 1];
-  let transactionId = executionLogs.topics[0];
+  let receipt = await cita.listeners.listenToTransactionReceipt(appTxHash);
+  // logger.info('receipt', receipt);
 
-  // TODO query operator contract to get ETH tx hash
+  let executionABIs = appOperator.options.jsonInterface.filter(
+    item => item.name === 'Execution'
+  );
 
-  return '';
+  for (let log of receipt.logs) {
+    if (
+      log.topics[0] === web3_10.eth.abi.encodeEventSignature(executionABIs[0])
+    ) {
+      let transactionId = log.topics[1];
+      let { txHash } = await appOperator.methods
+        .transactions(transactionId)
+        .call();
+      return txHash;
+    }
+  }
 }
 
 export declare let logger;

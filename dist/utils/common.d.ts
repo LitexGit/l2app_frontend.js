@@ -20,6 +20,6 @@ export declare function getAppTxOption(): Promise<{
     value: string;
 }>;
 export declare function sendAppTx(action: any): Promise<string>;
-export declare function extractTxHashFromReceipt(web3: any, receipt: any): Promise<string>;
+export declare function extractEthTxHashFromAppTx(appTxHash: any): Promise<string>;
 export declare let logger: any;
 export declare function setLogger(): Promise<void>;

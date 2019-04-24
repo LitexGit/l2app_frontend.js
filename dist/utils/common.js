@@ -271,17 +271,37 @@ function sendAppTx(action) {
     });
 }
 exports.sendAppTx = sendAppTx;
-function extractTxHashFromReceipt(web3, receipt) {
+function extractEthTxHashFromAppTx(appTxHash) {
     return __awaiter(this, void 0, void 0, function () {
-        var executionLogs, transactionId;
-        return __generator(this, function (_a) {
-            executionLogs = receipt.logs[receipt.logs.length - 1];
-            transactionId = executionLogs.topics[0];
-            return [2, ''];
+        var receipt, executionABIs, _i, _a, log, transactionId, txHash;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0: return [4, main_1.cita.listeners.listenToTransactionReceipt(appTxHash)];
+                case 1:
+                    receipt = _b.sent();
+                    executionABIs = main_1.appOperator.options.jsonInterface.filter(function (item) { return item.name === 'Execution'; });
+                    _i = 0, _a = receipt.logs;
+                    _b.label = 2;
+                case 2:
+                    if (!(_i < _a.length)) return [3, 5];
+                    log = _a[_i];
+                    if (!(log.topics[0] === main_1.web3_10.eth.abi.encodeEventSignature(executionABIs[0]))) return [3, 4];
+                    transactionId = log.topics[1];
+                    return [4, main_1.appOperator.methods
+                            .transactions(transactionId)
+                            .call()];
+                case 3:
+                    txHash = (_b.sent()).txHash;
+                    return [2, txHash];
+                case 4:
+                    _i++;
+                    return [3, 2];
+                case 5: return [2];
+            }
         });
     });
 }
-exports.extractTxHashFromReceipt = extractTxHashFromReceipt;
+exports.extractEthTxHashFromAppTx = extractEthTxHashFromAppTx;
 exports.logger = {
     info: main_1.debug ? console.log : function () { },
     error: main_1.debug ? console.error : function () { },

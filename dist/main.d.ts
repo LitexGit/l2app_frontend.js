@@ -38,7 +38,7 @@ export declare class L2 {
     getBalance(token?: string): Promise<string>;
     getChannelInfo(token?: string): Promise<any>;
     getAllTXs(token?: string): Promise<any>;
-    getEthTxReceipt(txHash: string): Promise<boolean>;
+    getEthTxReceipt(txHash: string, syncWithApp?: boolean): Promise<boolean>;
     isNewUser(): Promise<boolean>;
     getAllPuppets(): Promise<Array<any>>;
     disablePuppet(puppet: string): Promise<string>;

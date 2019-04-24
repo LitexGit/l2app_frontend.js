@@ -15,6 +15,7 @@ import {
   getAppTxOption,
   sendAppTx,
   logger,
+  extractEthTxHashFromAppTx,
 } from '../utils/common';
 import {
   TRANSFER_EVENT,
@@ -284,13 +285,14 @@ export const events = {
           time++;
         }
 
+        let txhash = await extractEthTxHashFromAppTx(transactionHash);
         let depositEvent: DEPOSIT_EVENT = {
           user: user,
           type: 1,
           token,
           amount: amount,
           totalDeposit: amount,
-          txhash: transactionHash,
+          txhash,
           balance: channelInfo.userBalance,
         };
         callbacks.get('Deposit')(null, depositEvent);
@@ -334,13 +336,14 @@ export const events = {
           .channelMap(channelID)
           .call();
 
+        let txhash = await extractEthTxHashFromAppTx(transactionHash);
         let depositEvent: DEPOSIT_EVENT = {
           user: user,
           type: 2,
           token,
           amount: deposit,
           totalDeposit,
-          txhash: transactionHash,
+          txhash,
           balance: userBalance,
         };
         callbacks.get('Deposit')(null, depositEvent);
@@ -391,13 +394,14 @@ export const events = {
           .channelMap(channelID)
           .call();
 
+        let txhash = await extractEthTxHashFromAppTx(transactionHash);
         let withdrawEvent: WITHDRAW_EVENT = {
           user: user,
           type: 1,
           token,
           amount,
           totalWithdraw,
-          txhash: transactionHash,
+          txhash,
           balance: userBalance,
         };
         callbacks.get('Withdraw')(null, withdrawEvent);
@@ -425,13 +429,14 @@ export const events = {
         balance,
         lastCommitBlock
       );
+      let txhash = await extractEthTxHashFromAppTx(transactionHash);
       let withdrawEvent: WITHDRAW_EVENT = {
         user: user,
         type: 2,
         token,
         amount: balance,
         totalWithdraw: '',
-        txhash: transactionHash,
+        txhash,
         balance: '0',
       };
       if (callbacks.get('Withdraw')) {
@@ -482,12 +487,13 @@ export const events = {
       );
 
       let { closer } = await appPN.methods.closingChannelMap(channelID).call();
+      let txhash = await extractEthTxHashFromAppTx(transactionHash);
       let forceWithdrawEvent: FORCEWITHDRAW_EVENT = {
         closer,
         token,
         userSettleAmount: transferTouserAmount,
         providerSettleAmount: transferToProviderAmount,
-        txhash: transactionHash,
+        txhash,
         balance: '0',
       };
       callbacks.get('ForceWithdraw') &&
