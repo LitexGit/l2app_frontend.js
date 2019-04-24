@@ -205,7 +205,7 @@ export const events = {
       }
 
       // automatically submit GuardProof for the received Transfer, to make sure user's proof can be submit when provider force-close channel and user is offline
-      if (to.toLowerCase() !== user.toLowerCase()) {
+      if (to.toLowerCase() === user.toLowerCase()) {
         appMethods.appSubmitGuardProof(channelID, to);
       }
     },

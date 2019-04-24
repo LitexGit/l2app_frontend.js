@@ -132,7 +132,7 @@ exports.events = {
                         main_1.callbacks.get('Transfer')(null, transferEvent);
                         _c.label = 6;
                     case 6:
-                        if (to.toLowerCase() !== main_1.user.toLowerCase()) {
+                        if (to.toLowerCase() === main_1.user.toLowerCase()) {
                             exports.appMethods.appSubmitGuardProof(channelID, to);
                         }
                         return [2];
