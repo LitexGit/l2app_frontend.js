@@ -4,7 +4,7 @@ import L2Session from '../session';
 export type SOL_TYPE = 'address' | 'uint256' | 'bytes32' | 'bytes';
 
 export const CITA_SYNC_EVENT_TIMEOUT = 15;
-export const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 250;
+export const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 5;
 export const CITA_TX_COMMIT_BLOCK_EXPERITION = 88;
 export const CITA_TX_BLOCK_INTERVAL = 1000;
 export const SETTLE_WINDOW = 5;

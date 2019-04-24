@@ -315,7 +315,7 @@
         .getElementById('coclose2')
         .addEventListener('click', async event => {
           console.log('coclose2 button clicked');
-          let res = await L2.getInstance().testCoClose(token);
+          let res = await L2.getInstance().cancelWithdraw(token);
         });
 
       /***********************************The Second Line ********************************************/

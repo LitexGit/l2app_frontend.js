@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CITA_SYNC_EVENT_TIMEOUT = 15;
-exports.ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 250;
+exports.ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 5;
 exports.CITA_TX_COMMIT_BLOCK_EXPERITION = 88;
 exports.CITA_TX_BLOCK_INTERVAL = 1000;
 exports.SETTLE_WINDOW = 5;

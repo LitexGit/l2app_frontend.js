@@ -67,6 +67,8 @@ var common_1 = require("./utils/common");
 var session_2 = require("./session");
 var L2 = (function () {
     function L2() {
+        exports.debug = false;
+        common_1.setLogger();
     }
     L2.getInstance = function () {
         if (this._instance === undefined) {
@@ -77,7 +79,7 @@ var L2 = (function () {
     };
     L2.prototype.init = function (userAddress, outerWeb3, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress) {
         return __awaiter(this, void 0, void 0, function () {
-            var ethPNInfo, appPNInfo, appSessionInfo, provider, ERC20Abi;
+            var ethPNInfo, appPNInfo, appSessionInfo, provider, ERC20Abi, operatorCNAddress, operatorAbi;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -110,15 +112,20 @@ var L2 = (function () {
                         return [4, exports.ethPN.methods.regulator().call()];
                     case 2:
                         exports.l2 = _a.sent();
-                        exports.debug = false;
-                        common_1.setLogger();
                         common_1.logger.info('cp / l2 is ', exports.cp, exports.l2);
                         exports.cita = cita_sdk_1.default(appRpcUrl);
                         exports.appPN = new exports.cita.base.Contract(appPNInfo.abi, appPNInfo.address);
                         exports.appPN.options.address = appPNInfo.address;
                         exports.appSession = new exports.cita.base.Contract(appSessionInfo.abi, appSessionInfo.address);
-                        return [4, this.initPuppet()];
+                        return [4, exports.appPN.methods.operator().call()];
                     case 3:
+                        operatorCNAddress = _a.sent();
+                        common_1.logger.info('op is', operatorCNAddress);
+                        operatorAbi = common_1.abi2jsonInterface(JSON.stringify(require('./config/operatorContract.json')));
+                        exports.appOperator = new exports.cita.base.Contract(operatorAbi, operatorCNAddress);
+                        exports.appOperator.options.address = operatorCNAddress;
+                        return [4, this.initPuppet()];
+                    case 4:
                         _a.sent();
                         this.initListeners();
                         this.initMissingEvent();
@@ -138,10 +145,37 @@ var L2 = (function () {
             });
         });
     };
+    L2.prototype.submitERC20Approval = function (amount, token) {
+        return __awaiter(this, void 0, void 0, function () {
+            var toBN, amountBN, allowance, approveData;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        common_1.logger.info('start submitERC20Approval with params: amount: [%s], token: [%s]', amount + '', token);
+                        if (!exports.web3_10.utils.isAddress(token)) {
+                            throw new Error("token: [" + token + "] is not a valid address");
+                        }
+                        toBN = exports.web3_10.utils.toBN;
+                        amountBN = toBN(amount);
+                        return [4, this.getERC20Allowance(exports.user, exports.ethPN.options.address, token)];
+                    case 1:
+                        allowance = _a.sent();
+                        if (toBN(allowance).gte(amountBN)) {
+                            throw new Error('allowance is great than amount now.');
+                        }
+                        approveData = exports.ERC20.methods
+                            .approve(exports.ethPN.options.address, amountBN.toString())
+                            .encodeABI();
+                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
+                    case 2: return [2, _a.sent()];
+                }
+            });
+        });
+    };
     L2.prototype.deposit = function (amount, token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
-            var channelID, channel, ethPNAddress, appChannel, data, approveData, from, data, approveData;
+            var channelID, channel, ethPNAddress, appChannel, data, from, data;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -158,7 +192,7 @@ var L2 = (function () {
                         channel = _a.sent();
                         amount = exports.web3_10.utils.toBN(amount).toString();
                         ethPNAddress = exports.ethPN.options.address;
-                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN)) return [3, 9];
+                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN)) return [3, 8];
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 3:
                         appChannel = _a.sent();
@@ -170,37 +204,23 @@ var L2 = (function () {
                         if (!(token === constants_1.ADDRESS_ZERO)) return [3, 5];
                         return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, amount, data)];
                     case 4: return [2, _a.sent()];
-                    case 5:
-                        approveData = exports.ERC20.methods
-                            .approve(ethPNAddress, amount)
-                            .encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
-                    case 6:
-                        _a.sent();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
-                    case 7: return [2, _a.sent()];
-                    case 8: return [3, 16];
-                    case 9:
-                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT)) return [3, 15];
+                    case 5: return [4, this.depositERC20Token(amount + '', token, data)];
+                    case 6: return [2, _a.sent()];
+                    case 7: return [3, 14];
+                    case 8:
+                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT)) return [3, 13];
                         from = exports.puppet.getAccount().address;
                         data = exports.ethPN.methods
                             .openChannel(exports.user, from, constants_1.SETTLE_WINDOW, token, amount)
                             .encodeABI();
-                        if (!(token === constants_1.ADDRESS_ZERO)) return [3, 11];
+                        if (!(token === constants_1.ADDRESS_ZERO)) return [3, 10];
                         return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, amount, data)];
-                    case 10: return [2, _a.sent()];
-                    case 11:
-                        approveData = exports.ERC20.methods
-                            .approve(ethPNAddress, amount)
-                            .encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
-                    case 12:
-                        _a.sent();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
-                    case 13: return [2, _a.sent()];
-                    case 14: return [3, 16];
-                    case 15: throw new Error('can not deposit now, channel status is ' + channel.status);
-                    case 16: return [2];
+                    case 9: return [2, _a.sent()];
+                    case 10: return [4, this.depositERC20Token(amount + '', token, data)];
+                    case 11: return [2, _a.sent()];
+                    case 12: return [3, 14];
+                    case 13: throw new Error('can not deposit now, channel status is ' + channel.status);
+                    case 14: return [2];
                 }
             });
         });
@@ -277,6 +297,49 @@ var L2 = (function () {
                         repeatTime++;
                         return [3, 10];
                     case 15: throw new Error('withdraw timeout');
+                }
+            });
+        });
+    };
+    L2.prototype.cancelWithdraw = function (token) {
+        if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
+        return __awaiter(this, void 0, void 0, function () {
+            var channelID, _a, isConfirmed, settleBalance, lastCommitBlock, providerSignature, regulatorSignature, toBN, status_2, currentBlockNumber;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                    case 1:
+                        channelID = _b.sent();
+                        return [4, exports.appPN.methods.cooperativeSettleProofMap(channelID).call()];
+                    case 2:
+                        _a = _b.sent(), isConfirmed = _a.isConfirmed, settleBalance = _a.balance, lastCommitBlock = _a.lastCommitBlock, providerSignature = _a.providerSignature, regulatorSignature = _a.regulatorSignature;
+                        toBN = exports.web3_10.utils.toBN;
+                        if (!isConfirmed) {
+                            common_1.logger.error('cooperativeSettleProof not confirmed');
+                            throw new Error('cooperativeSettleProof not confirmed');
+                        }
+                        _b.label = 3;
+                    case 3:
+                        if (!true) return [3, 7];
+                        return [4, exports.appPN.methods.channelMap(channelID).call()];
+                    case 4:
+                        status_2 = (_b.sent()).status;
+                        if (Number(status_2) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE) {
+                            throw new Error('channels status is not pending co settle, will terminate cancel withdraw');
+                        }
+                        return [4, exports.web3_10.eth.getBlockNumber()];
+                    case 5:
+                        currentBlockNumber = _b.sent();
+                        if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
+                            return [3, 7];
+                        }
+                        common_1.logger.info('wait to unlock coSettle, currentBlockNumber[%s], lastCommitBlockNumber[%s]', currentBlockNumber, lastCommitBlock);
+                        return [4, common_1.delay(3000)];
+                    case 6:
+                        _b.sent();
+                        return [3, 3];
+                    case 7: return [4, common_1.sendAppTx(exports.appPN.methods.unlockCooperativeSettle(channelID))];
+                    case 8: return [2, _b.sent()];
                 }
             });
         });
@@ -519,20 +582,26 @@ var L2 = (function () {
     };
     L2.prototype.getEthTxReceipt = function (txHash) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, status_2, err_1;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var ethStatus, appStatus, err_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
-                        _b.trys.push([0, 2, , 3]);
+                        _a.trys.push([0, 3, , 4]);
                         return [4, exports.web3_10.eth.getTransactionReceipt(txHash)];
                     case 1:
-                        _a = (_b.sent()).status, status_2 = _a === void 0 ? false : _a;
-                        return [2, status_2];
+                        ethStatus = (_a.sent()).status;
+                        if (!ethStatus) {
+                            return [2, false];
+                        }
+                        return [4, exports.appOperator.methods.proposedTxMap(txHash).call()];
                     case 2:
-                        err_1 = _b.sent();
+                        appStatus = _a.sent();
+                        return [2, appStatus];
+                    case 3:
+                        err_1 = _a.sent();
                         common_1.logger.error('getEthTxReceipt fail', err_1);
                         return [2, null];
-                    case 3: return [2];
+                    case 4: return [2];
                 }
             });
         });
@@ -623,6 +692,19 @@ var L2 = (function () {
             });
         });
     };
+    L2.prototype.getERC20Allowance = function (owner, spender, token) {
+        return __awaiter(this, void 0, void 0, function () {
+            var contract;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        contract = new exports.web3_10.eth.Contract(require('./config/ERC20.json'), token);
+                        return [4, contract.methods.allowance(owner, spender).call()];
+                    case 1: return [2, _a.sent()];
+                }
+            });
+        });
+    };
     L2.prototype.on = function (event, callback) {
         exports.callbacks.set(event, callback);
     };
@@ -630,6 +712,29 @@ var L2 = (function () {
         if (!this.initialized) {
             throw new Error('L2 is not initialized');
         }
+    };
+    L2.prototype.depositERC20Token = function (amount, token, data) {
+        return __awaiter(this, void 0, void 0, function () {
+            var toBN, ethPNAddress, allowance, approveData;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        toBN = exports.web3_10.utils.toBN;
+                        ethPNAddress = exports.ethPN.options.address;
+                        return [4, this.getERC20Allowance(exports.user, ethPNAddress, token)];
+                    case 1:
+                        allowance = _a.sent();
+                        if (!toBN(allowance).lt(toBN(amount))) return [3, 3];
+                        approveData = exports.ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
+                    case 2:
+                        _a.sent();
+                        _a.label = 3;
+                    case 3: return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
+                    case 4: return [2, _a.sent()];
+                }
+            });
+        });
     };
     L2.prototype.initPuppet = function () {
         return __awaiter(this, void 0, void 0, function () {

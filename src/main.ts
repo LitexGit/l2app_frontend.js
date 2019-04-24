@@ -60,7 +60,8 @@ export let web3_outer: any; // eth sdk object;
 export let ethPN: Contract; // eth payment contract
 export let ERC20: Contract; // ERC20 contract
 export let appPN: Contract; // cita payment contract
-export let appSession: Contract; // cita payment contract
+export let appSession: Contract; // cita session contract
+export let appOperator: Contract; // cita operator contract
 export let callbacks: Map<L2_EVENT, L2_CB>; // callbacks for L2.on
 export let user: string; // user's eth address
 export let l2: string; // L2's eth address
@@ -80,7 +81,10 @@ export class L2 {
   private ethWatcher: HttpWatcher;
   private appWatcher: HttpWatcher;
 
-  private constructor() {}
+  private constructor() {
+    debug = false;
+    setLogger();
+  }
 
   // get singleton
   public static getInstance(): L2 {
@@ -164,9 +168,6 @@ export class L2 {
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
-    debug = false;
-    setLogger();
-
     logger.info('cp / l2 is ', cp, l2);
 
     cita = CITASDK(appRpcUrl);
@@ -177,6 +178,14 @@ export class L2 {
       appSessionInfo.abi,
       appSessionInfo.address
     );
+
+    let operatorCNAddress = await appPN.methods.operator().call();
+    logger.info('op is', operatorCNAddress);
+    let operatorAbi = abi2jsonInterface(
+      JSON.stringify(require('./config/operatorContract.json'))
+    );
+    appOperator = new cita.base.Contract(operatorAbi, operatorCNAddress);
+    appOperator.options.address = operatorCNAddress;
 
     await this.initPuppet();
     this.initListeners();
@@ -192,6 +201,40 @@ export class L2 {
   async setDebug(debugFlag: boolean) {
     debug = debugFlag;
     setLogger();
+  }
+
+  /**
+   * approve ethPNAddress to spend user's ERC20 token
+   *
+   * @param amount amount to approve
+   * @param token token contract address
+   */
+  async submitERC20Approval(amount: string | number, token): Promise<string> {
+    logger.info(
+      'start submitERC20Approval with params: amount: [%s], token: [%s]',
+      amount + '',
+      token
+    );
+    if (!web3_10.utils.isAddress(token)) {
+      throw new Error(`token: [${token}] is not a valid address`);
+    }
+    let { toBN } = web3_10.utils;
+    const amountBN = toBN(amount);
+
+    let allowance = await this.getERC20Allowance(
+      user,
+      ethPN.options.address,
+      token
+    );
+
+    if (toBN(allowance).gte(amountBN)) {
+      throw new Error('allowance is great than amount now.');
+    }
+
+    let approveData = ERC20.methods
+      .approve(ethPN.options.address, amountBN.toString())
+      .encodeABI();
+    return await sendEthTx(web3_outer, user, token, 0, approveData);
   }
 
   /**
@@ -233,11 +276,7 @@ export class L2 {
       if (token === ADDRESS_ZERO) {
         return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
       } else {
-        let approveData = ERC20.methods
-          .approve(ethPNAddress, amount)
-          .encodeABI();
-        await sendEthTx(web3_outer, user, token, 0, approveData);
-        return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
+        return await this.depositERC20Token(amount + '', token, data);
       }
     } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
       // open channel
@@ -249,12 +288,7 @@ export class L2 {
       if (token === ADDRESS_ZERO) {
         return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
       } else {
-        // Approve ERC20
-        let approveData = ERC20.methods
-          .approve(ethPNAddress, amount)
-          .encodeABI();
-        await sendEthTx(web3_outer, user, token, 0, approveData);
-        return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
+        return await this.depositERC20Token(amount + '', token, data);
       }
     } else {
       throw new Error(
@@ -350,6 +384,51 @@ export class L2 {
 
       throw new Error('withdraw timeout');
     }
+  }
+
+  /**
+   * cancel unsubmited cooperative settle request
+   *
+   * @param token token contract address
+   */
+  async cancelWithdraw(token: string = ADDRESS_ZERO): Promise<string> {
+    const channelID = await ethPN.methods.getChannelID(user, token).call();
+
+    let {
+      isConfirmed,
+      balance: settleBalance,
+      lastCommitBlock,
+      providerSignature,
+      regulatorSignature,
+    } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
+
+    let { toBN } = web3_10.utils;
+    if (!isConfirmed) {
+      logger.error('cooperativeSettleProof not confirmed');
+      throw new Error('cooperativeSettleProof not confirmed');
+    }
+
+    while (true) {
+      const { status } = await appPN.methods.channelMap(channelID).call();
+      if (Number(status) !== CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE) {
+        throw new Error(
+          'channels status is not pending co settle, will terminate cancel withdraw'
+        );
+      }
+
+      let currentBlockNumber = await web3_10.eth.getBlockNumber();
+      if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
+        break;
+      }
+      logger.info(
+        'wait to unlock coSettle, currentBlockNumber[%s], lastCommitBlockNumber[%s]',
+        currentBlockNumber,
+        lastCommitBlock
+      );
+      await delay(3000);
+    }
+
+    return await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
   }
 
   /**
@@ -615,11 +694,23 @@ export class L2 {
    * check a eth transaction has been confirmed
    *
    * @param txHash
+   *
+   * @returns true =  confirmed false = reverted null = unknown
    */
   async getEthTxReceipt(txHash: string): Promise<boolean> {
     try {
-      let { status = false } = await web3_10.eth.getTransactionReceipt(txHash);
-      return status;
+      let { status: ethStatus } = await web3_10.eth.getTransactionReceipt(
+        txHash
+      );
+      // logger.info('ethStatus', ethStatus);
+
+      if (!ethStatus) {
+        return false;
+      }
+
+      let appStatus = await appOperator.methods.proposedTxMap(txHash).call();
+      // logger.info('appStatus', appStatus);
+      return appStatus;
     } catch (err) {
       logger.error('getEthTxReceipt fail', err);
       return null;
@@ -695,6 +786,21 @@ export class L2 {
     }
   }
 
+  /**
+   * query ERC20 allowance
+   *
+   * @param owner owner address
+   * @param spender spender address
+   * @param token token contract address
+   */
+  async getERC20Allowance(owner: string, spender: string, token: string) {
+    let contract = new web3_10.eth.Contract(
+      require('./config/ERC20.json'),
+      token
+    );
+    return await contract.methods.allowance(owner, spender).call();
+  }
+
   /** ---------- Event API ---------- */
 
   /**
@@ -717,6 +823,30 @@ export class L2 {
     if (!this.initialized) {
       throw new Error('L2 is not initialized');
     }
+  }
+
+  /**
+   * deposit ERC20 token to contract
+   *
+   * @param amount deposit amount
+   * @param token token address
+   * @param data contract interface data
+   */
+  private async depositERC20Token(
+    amount: string,
+    token: string,
+    data: string
+  ): Promise<string> {
+    // Approve ERC20
+    let { toBN } = web3_10.utils;
+    let ethPNAddress = ethPN.options.address;
+    let allowance = await this.getERC20Allowance(user, ethPNAddress, token);
+
+    if (toBN(allowance).lt(toBN(amount))) {
+      let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+      await sendEthTx(web3_outer, user, token, 0, approveData);
+    }
+    return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
   }
 
   /**
