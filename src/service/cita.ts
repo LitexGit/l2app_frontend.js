@@ -295,7 +295,6 @@ export const events = {
 
         let txhash = await extractEthTxHashFromAppTx(transactionHash);
         ethPendingTxStore.setTokenAllowance(token, '0');
-
         await ethPendingTxStore.removeTx(txhash);
         let depositEvent: DEPOSIT_EVENT = {
           user: user,
@@ -445,6 +444,7 @@ export const events = {
       );
       let txhash = await extractEthTxHashFromAppTx(transactionHash);
       await ethPendingTxStore.removeTx(txhash);
+      await cancelListener.remove(channelID);
       let withdrawEvent: WITHDRAW_EVENT = {
         user: user,
         type: 2,

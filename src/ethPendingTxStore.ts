@@ -4,8 +4,9 @@ import {
   CITA_TX_BLOCK_INTERVAL,
   APPROVAL_STATUS,
   ADDRESS_ZERO,
+  APPROVE_EVENT,
 } from './utils/constants';
-import { appPN, user, web3_10, ethPN } from './main';
+import { appPN, user, web3_10, ethPN, ERC20, callbacks } from './main';
 
 export enum TX_TYPE {
   CHANNEL_OPEN = 1,
@@ -85,19 +86,57 @@ export default class EthPendingTxStore {
     this.save();
   }
 
+  async getApproveEventFromLogs(logs) {
+    console.log('ERC20.options', ERC20.options);
+    let inputs = ERC20.options.jsonInterface.filter(
+      item => item.name === 'Approval' && item.type === 'event'
+    )[0].inputs;
+    console.log('inputs', inputs);
+    console.log('logs[0]', logs[0]);
+    let event = web3_10.eth.abi.decodeLog(
+      inputs,
+      logs[0].data,
+      logs[0].topics.slice(1)
+    );
+    console.log(event);
+    let { owner: user, spender: contractAddress, value: amount } = event;
+    return { user, contractAddress, amount };
+  }
+
   async startWatch(web3: any) {
     while (true) {
       for (let tx of this.txList) {
         let { txHash, type, token } = tx;
         try {
-          let { status: txStatus } = await web3.eth.getTransactionReceipt(
+          let { status: txStatus, logs } = await web3.eth.getTransactionReceipt(
             txHash
           );
           logger.info('txHash status', txHash, txStatus);
 
           if (txStatus === true || txStatus === false) {
+            console.log('tx is', tx);
             if (type === TX_TYPE.TOKEN_APPROVE) {
-              txStatus && this.setTokenAllowance(token, '1');
+              if (txStatus) {
+                try {
+                  let { user, amount } = await this.getApproveEventFromLogs(
+                    logs
+                  );
+                  let approveEvent: APPROVE_EVENT = {
+                    user,
+                    amount,
+                    token: tx.token,
+                    txhash: txHash,
+                    type: !!tx.channelID ? 1 : 0,
+                  };
+                  // console.log('approveEvent', approveEvent);
+                  callbacks.get('TokenApproval') &&
+                    callbacks.get('TokenApproval')(null, approveEvent);
+                } catch (err) {
+                  logger.error('emit TokenApproval event fail', err);
+                }
+
+                this.setTokenAllowance(token, '1');
+              }
             }
 
             this.removeTx(txHash);

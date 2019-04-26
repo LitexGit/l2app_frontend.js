@@ -243,6 +243,11 @@
         refresh();
       });
 
+      L2.getInstance().on('TokenApproval', (err, res) => {
+        console.log('TokenApproval from L2', err, res);
+        refresh();
+      });
+
       initUser();
       initServer();
       initOperator();
