@@ -107,6 +107,7 @@ var L2 = (function () {
                         exports.ethPN.options.address = ethPNInfo.address;
                         ERC20Abi = common_1.abi2jsonInterface(JSON.stringify(require('./config/ERC20.json')));
                         exports.ERC20 = new web3_eth_contract_1.Contract(provider, ERC20Abi);
+                        exports.ERC20.options.jsonInterface = ERC20Abi;
                         exports.user = userAddress;
                         return [4, exports.ethPN.methods.provider().call()];
                     case 1:

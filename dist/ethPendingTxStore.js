@@ -96,50 +96,89 @@ var EthPendingTxStore = (function () {
         });
         this.save();
     };
+    EthPendingTxStore.prototype.getApproveEventFromLogs = function (logs) {
+        return __awaiter(this, void 0, void 0, function () {
+            var inputs, event, user, contractAddress, amount;
+            return __generator(this, function (_a) {
+                console.log('ERC20.options', main_1.ERC20.options);
+                inputs = main_1.ERC20.options.jsonInterface.filter(function (item) { return item.name === 'Approval' && item.type === 'event'; })[0].inputs;
+                console.log('inputs', inputs);
+                console.log('logs[0]', logs[0]);
+                event = main_1.web3_10.eth.abi.decodeLog(inputs, logs[0].data, logs[0].topics.slice(1));
+                console.log(event);
+                user = event.owner, contractAddress = event.spender, amount = event.value;
+                return [2, { user: user, contractAddress: contractAddress, amount: amount }];
+            });
+        });
+    };
     EthPendingTxStore.prototype.startWatch = function (web3) {
         return __awaiter(this, void 0, void 0, function () {
-            var _i, _a, tx, txHash, type, token, txStatus, err_1;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var _i, _a, tx, txHash, type, token, _b, txStatus, logs, _c, user_1, amount, approveEvent, err_1, err_2;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        if (!true) return [3, 8];
+                        if (!true) return [3, 14];
                         _i = 0, _a = this.txList;
-                        _b.label = 1;
+                        _d.label = 1;
                     case 1:
-                        if (!(_i < _a.length)) return [3, 6];
+                        if (!(_i < _a.length)) return [3, 12];
                         tx = _a[_i];
                         txHash = tx.txHash, type = tx.type, token = tx.token;
-                        _b.label = 2;
+                        _d.label = 2;
                     case 2:
-                        _b.trys.push([2, 4, , 5]);
+                        _d.trys.push([2, 10, , 11]);
                         return [4, web3.eth.getTransactionReceipt(txHash)];
                     case 3:
-                        txStatus = (_b.sent()).status;
+                        _b = _d.sent(), txStatus = _b.status, logs = _b.logs;
                         common_1.logger.info('txHash status', txHash, txStatus);
-                        if (txStatus === true || txStatus === false) {
-                            if (type === TX_TYPE.TOKEN_APPROVE) {
-                                txStatus && this.setTokenAllowance(token, '1');
-                            }
-                            this.removeTx(txHash);
-                        }
-                        return [3, 5];
+                        if (!(txStatus === true || txStatus === false)) return [3, 9];
+                        console.log('tx is', tx);
+                        if (!(type === TX_TYPE.TOKEN_APPROVE)) return [3, 8];
+                        if (!txStatus) return [3, 8];
+                        _d.label = 4;
                     case 4:
-                        err_1 = _b.sent();
-                        common_1.logger.info('unknow transaction', txHash);
-                        return [3, 5];
+                        _d.trys.push([4, 6, , 7]);
+                        return [4, this.getApproveEventFromLogs(logs)];
                     case 5:
+                        _c = _d.sent(), user_1 = _c.user, amount = _c.amount;
+                        approveEvent = {
+                            user: user_1,
+                            amount: amount,
+                            token: tx.token,
+                            txhash: txHash,
+                            type: !!tx.channelID ? 1 : 0,
+                        };
+                        main_1.callbacks.get('TokenApproval') &&
+                            main_1.callbacks.get('TokenApproval')(null, approveEvent);
+                        return [3, 7];
+                    case 6:
+                        err_1 = _d.sent();
+                        common_1.logger.error('emit TokenApproval event fail', err_1);
+                        return [3, 7];
+                    case 7:
+                        this.setTokenAllowance(token, '1');
+                        _d.label = 8;
+                    case 8:
+                        this.removeTx(txHash);
+                        _d.label = 9;
+                    case 9: return [3, 11];
+                    case 10:
+                        err_2 = _d.sent();
+                        common_1.logger.info('unknow transaction', txHash);
+                        return [3, 11];
+                    case 11:
                         _i++;
                         return [3, 1];
-                    case 6:
+                    case 12:
                         if (this.enabled === false) {
                             return [2];
                         }
                         console.log('ethPendingTxStore watching');
                         return [4, common_1.delay(3000)];
-                    case 7:
-                        _b.sent();
+                    case 13:
+                        _d.sent();
                         return [3, 0];
-                    case 8: return [2];
+                    case 14: return [2];
                 }
             });
         });

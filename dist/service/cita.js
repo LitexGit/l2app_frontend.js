@@ -367,6 +367,9 @@ exports.events = {
                         return [4, main_1.ethPendingTxStore.removeTx(txhash)];
                     case 2:
                         _b.sent();
+                        return [4, main_1.cancelListener.remove(channelID)];
+                    case 3:
+                        _b.sent();
                         withdrawEvent = {
                             user: user,
                             type: 2,
@@ -376,31 +379,31 @@ exports.events = {
                             txhash: txhash,
                             balance: '0',
                         };
-                        if (!main_1.callbacks.get('Withdraw')) return [3, 8];
+                        if (!main_1.callbacks.get('Withdraw')) return [3, 9];
                         time = 0;
-                        _b.label = 3;
-                    case 3:
-                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 7];
-                        return [4, main_1.ethPN.methods.channels(channelID).call()];
+                        _b.label = 4;
                     case 4:
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 8];
+                        return [4, main_1.ethPN.methods.channels(channelID).call()];
+                    case 5:
                         ethChannelInfo = _b.sent();
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
-                    case 5:
+                    case 6:
                         channelInfo = _b.sent();
                         if (Number(channelInfo.status) ===
                             constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE &&
                             Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
-                            return [3, 7];
+                            return [3, 8];
                         }
                         return [4, common_1.delay(1000)];
-                    case 6:
+                    case 7:
                         _b.sent();
                         time++;
-                        return [3, 3];
-                    case 7:
+                        return [3, 4];
+                    case 8:
                         main_1.callbacks.get('Withdraw')(null, withdrawEvent);
-                        _b.label = 8;
-                    case 8: return [2];
+                        _b.label = 9;
+                    case 9: return [2];
                 }
             });
         }); },

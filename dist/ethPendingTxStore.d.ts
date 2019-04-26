@@ -27,6 +27,11 @@ export default class EthPendingTxStore {
     getTokenAllowance(token: string): number;
     addTx(info: TXINFO): void;
     removeTx(txHash: string): void;
+    getApproveEventFromLogs(logs: any): Promise<{
+        user: any;
+        contractAddress: any;
+        amount: any;
+    }>;
     startWatch(web3: any): Promise<void>;
     getPendingTxByChannelID(channelID: string): false | TXINFO;
     getPendingTxByUser(user: string, token: string): false | TXINFO;

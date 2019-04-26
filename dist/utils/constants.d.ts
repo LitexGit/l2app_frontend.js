@@ -37,7 +37,14 @@ export declare enum SESSION_STATUS {
     SESSION_STATUS_OPEN = 1,
     SESSION_STATUS_CLOSE = 2
 }
-export declare type L2_EVENT = 'Deposit' | 'Withdraw' | 'ForceWithdraw' | 'Transfer' | 'PuppetChanged' | 'SessionMessage' | 'SessionClose';
+export declare type L2_EVENT = 'TokenApproval' | 'Deposit' | 'Withdraw' | 'ForceWithdraw' | 'Transfer' | 'PuppetChanged' | 'SessionMessage' | 'SessionClose';
+export declare type APPROVE_EVENT = {
+    user: string;
+    type: number;
+    token: string;
+    amount: string;
+    txhash: string;
+};
 export declare type DEPOSIT_EVENT = {
     user: string;
     type: number;
@@ -90,7 +97,7 @@ export declare type SESSION_MESSAGE_EVENT = {
 export declare type SESSION_CLOSE_EVENT = {
     session: L2Session;
 };
-export declare type L2_CB = (err: any, res: DEPOSIT_EVENT | WITHDRAW_EVENT | FORCEWITHDRAW_EVENT | TRANSFER_EVENT | PUPPETCHANGED_EVENT | SESSION_MESSAGE_EVENT | SESSION_CLOSE_EVENT) => void;
+export declare type L2_CB = (err: any, res: APPROVE_EVENT | DEPOSIT_EVENT | WITHDRAW_EVENT | FORCEWITHDRAW_EVENT | TRANSFER_EVENT | PUPPETCHANGED_EVENT | SESSION_MESSAGE_EVENT | SESSION_CLOSE_EVENT) => void;
 export declare type ContractInfo = {
     address: string;
     abi: AbiItem[] | AbiItem;
