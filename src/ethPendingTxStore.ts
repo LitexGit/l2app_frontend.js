@@ -115,6 +115,7 @@ export default class EthPendingTxStore {
 
           if (txStatus === true || txStatus === false) {
             console.log('tx is', tx);
+            this.removeTx(txHash);
             if (type === TX_TYPE.TOKEN_APPROVE) {
               if (txStatus) {
                 try {
@@ -138,8 +139,12 @@ export default class EthPendingTxStore {
                 this.setTokenAllowance(token, '1');
               }
             }
-
-            this.removeTx(txHash);
+            if (
+              type === TX_TYPE.CHANNEL_OPEN ||
+              type === TX_TYPE.CHANNEL_DEPOSIT
+            ) {
+              this.setTokenAllowance(token, '0');
+            }
           }
         } catch (err) {
           logger.info('unknow transaction', txHash);

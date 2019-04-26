@@ -133,6 +133,7 @@ var EthPendingTxStore = (function () {
                         common_1.logger.info('txHash status', txHash, txStatus);
                         if (!(txStatus === true || txStatus === false)) return [3, 9];
                         console.log('tx is', tx);
+                        this.removeTx(txHash);
                         if (!(type === TX_TYPE.TOKEN_APPROVE)) return [3, 8];
                         if (!txStatus) return [3, 8];
                         _d.label = 4;
@@ -159,7 +160,10 @@ var EthPendingTxStore = (function () {
                         this.setTokenAllowance(token, '1');
                         _d.label = 8;
                     case 8:
-                        this.removeTx(txHash);
+                        if (type === TX_TYPE.CHANNEL_OPEN ||
+                            type === TX_TYPE.CHANNEL_DEPOSIT) {
+                            this.setTokenAllowance(token, '0');
+                        }
                         _d.label = 9;
                     case 9: return [3, 11];
                     case 10:

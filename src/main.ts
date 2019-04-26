@@ -919,21 +919,22 @@ export class L2 {
     // Approve ERC20
     let { toBN } = web3_10.utils;
     let ethPNAddress = ethPN.options.address;
-    let allowance = await this.getERC20Allowance(user, ethPNAddress, token);
+    // let allowance = await this.getERC20Allowance(user, ethPNAddress, token);
 
-    if (toBN(allowance).lt(toBN(amount))) {
-      let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
-      let txHash = await sendEthTx(web3_outer, user, token, 0, approveData);
-      ethPendingTxStore.addTx({
-        channelID,
-        txHash,
-        user,
-        token,
-        type: TX_TYPE.TOKEN_APPROVE,
-        amount: amount + '',
-        time: new Date().getTime(),
-      });
-    }
+    // if (toBN(allowance).lt(toBN(amount))) {
+    //   let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
+    //   let txHash = await sendEthTx(web3_outer, user, token, 0, approveData);
+    //   ethPendingTxStore.addTx({
+    //     channelID,
+    //     txHash,
+    //     user,
+    //     token,
+    //     type: TX_TYPE.TOKEN_APPROVE,
+    //     amount: amount + '',
+    //     time: new Date().getTime(),
+    //   });
+    // }
+
     let res = await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
     ethPendingTxStore.addTx({
       channelID,

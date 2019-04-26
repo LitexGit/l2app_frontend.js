@@ -792,32 +792,14 @@ var L2 = (function () {
     };
     L2.prototype.depositERC20Token = function (channelID, amount, token, data) {
         return __awaiter(this, void 0, void 0, function () {
-            var toBN, ethPNAddress, allowance, approveData, txHash, res;
+            var toBN, ethPNAddress, res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         toBN = exports.web3_10.utils.toBN;
                         ethPNAddress = exports.ethPN.options.address;
-                        return [4, this.getERC20Allowance(exports.user, ethPNAddress, token)];
+                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
                     case 1:
-                        allowance = _a.sent();
-                        if (!toBN(allowance).lt(toBN(amount))) return [3, 3];
-                        approveData = exports.ERC20.methods.approve(ethPNAddress, amount).encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
-                    case 2:
-                        txHash = _a.sent();
-                        exports.ethPendingTxStore.addTx({
-                            channelID: channelID,
-                            txHash: txHash,
-                            user: exports.user,
-                            token: token,
-                            type: ethPendingTxStore_1.TX_TYPE.TOKEN_APPROVE,
-                            amount: amount + '',
-                            time: new Date().getTime(),
-                        });
-                        _a.label = 3;
-                    case 3: return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
-                    case 4:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
                             channelID: channelID,

@@ -45,6 +45,9 @@
     <div class="d-flex justify-content-md-start flex-wrap" style="padding: 5px">
       <button id="refresh" type="button" class="btn btn-info">refresh</button>
       <button id="init" type="button" class="btn btn-info">InitL2</button>
+      <button id="approve" type="button" class="btn btn-info">
+        TokenApproval
+      </button>
       <button id="deposit" type="button" class="btn btn-info">
         User Deposit
       </button>
@@ -277,6 +280,14 @@
         console.log('int res ', res);
         console.log('web3 version', web3.version);
       });
+
+      document
+        .getElementById('approve')
+        .addEventListener('click', async event => {
+          console.log('approve button clicked');
+          let res = await L2.getInstance().submitERC20Approval(1e16, token);
+          console.log('approve res', res);
+        });
 
       document
         .getElementById('deposit')
