@@ -50,6 +50,7 @@ export enum SESSION_STATUS {
  * all properties need outside, will be exposed in L2.ts
  */
 export type L2_EVENT =
+  | 'TokenApproval'
   | 'Deposit'
   | 'Withdraw'
   | 'ForceWithdraw'
@@ -57,6 +58,14 @@ export type L2_EVENT =
   | 'PuppetChanged'
   | 'SessionMessage'
   | 'SessionClose';
+
+export type APPROVE_EVENT = {
+  user: string;
+  type: number;
+  token: string;
+  amount: string;
+  txhash: string;
+};
 
 export type DEPOSIT_EVENT = {
   user: string;
@@ -120,6 +129,7 @@ export type SESSION_CLOSE_EVENT = {
 export type L2_CB = (
   err: any,
   res:
+    | APPROVE_EVENT
     | DEPOSIT_EVENT
     | WITHDRAW_EVENT
     | FORCEWITHDRAW_EVENT

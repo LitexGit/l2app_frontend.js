@@ -167,6 +167,7 @@ export class L2 {
       JSON.stringify(require('./config/ERC20.json'))
     );
     ERC20 = new Contract(provider, ERC20Abi);
+    ERC20.options.jsonInterface = ERC20Abi;
 
     user = userAddress;
     cp = await ethPN.methods.provider().call();
