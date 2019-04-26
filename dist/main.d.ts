@@ -2,6 +2,8 @@ import { Contract } from 'web3/node_modules/web3-eth-contract';
 import Puppet from './puppet';
 import { L2_CB, L2_EVENT } from './utils/constants';
 import L2Session from './session';
+import EthPendingTxStore from './ethPendingTxStore';
+import CancelListener from './cancelListener';
 export declare let cita: any;
 export declare let web3_10: any;
 export declare let web3_outer: any;
@@ -15,6 +17,8 @@ export declare let user: string;
 export declare let l2: string;
 export declare let cp: string;
 export declare let puppet: Puppet;
+export declare let ethPendingTxStore: EthPendingTxStore;
+export declare let cancelListener: CancelListener;
 export declare let debug: boolean;
 export declare class L2 {
     private static _instance;
@@ -25,6 +29,7 @@ export declare class L2 {
     static getInstance(): L2;
     init(userAddress: string, outerWeb3: any, ethPaymentNetworkAddress: string, appRpcUrl: string, appPaymentNetworkAddress: string, appSessionAddress: string): Promise<boolean>;
     setDebug(debugFlag: boolean): Promise<void>;
+    initTokenList(tokenList: Array<string>): Promise<void>;
     submitERC20Approval(amount: string | number, token: any): Promise<string>;
     deposit(amount: string | number, token?: string): Promise<string>;
     withdraw(amount: string | number, token?: string, receiver?: string): Promise<string>;
@@ -49,6 +54,8 @@ export declare class L2 {
     private depositERC20Token;
     initPuppet(): Promise<void>;
     private initListeners;
+    private initEthPendingTxStore;
+    private initCancelListener;
     private initMissingEvent;
 }
 export default L2;

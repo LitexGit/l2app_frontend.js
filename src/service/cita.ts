@@ -7,6 +7,8 @@ import {
   cita,
   web3_10,
   web3_outer,
+  ethPendingTxStore,
+  cancelListener,
 } from '../main';
 import {
   myEcsignToHex,
@@ -27,6 +29,7 @@ import {
   CHANNEL_STATUS,
   CITA_SYNC_EVENT_TIMEOUT,
 } from '../utils/constants';
+import { TX_TYPE } from '../ethPendingTxStore';
 
 /**
  * Handle events from cita payment contract, only filter current user related event
@@ -127,6 +130,11 @@ export const events = {
       if (isAllConfirmed === false) {
         return;
       }
+
+      cancelListener.add({
+        channelID,
+        lastCommitBlock: Number(lastCommitBlock),
+      });
     },
   },
 
@@ -286,6 +294,9 @@ export const events = {
         }
 
         let txhash = await extractEthTxHashFromAppTx(transactionHash);
+        ethPendingTxStore.setTokenAllowance(token, '0');
+
+        await ethPendingTxStore.removeTx(txhash);
         let depositEvent: DEPOSIT_EVENT = {
           user: user,
           type: 1,
@@ -337,6 +348,8 @@ export const events = {
           .call();
 
         let txhash = await extractEthTxHashFromAppTx(transactionHash);
+        ethPendingTxStore.setTokenAllowance(token, '0');
+        await ethPendingTxStore.removeTx(txhash);
         let depositEvent: DEPOSIT_EVENT = {
           user: user,
           type: 2,
@@ -395,6 +408,7 @@ export const events = {
           .call();
 
         let txhash = await extractEthTxHashFromAppTx(transactionHash);
+        await ethPendingTxStore.removeTx(txhash);
         let withdrawEvent: WITHDRAW_EVENT = {
           user: user,
           type: 1,
@@ -430,6 +444,7 @@ export const events = {
         lastCommitBlock
       );
       let txhash = await extractEthTxHashFromAppTx(transactionHash);
+      await ethPendingTxStore.removeTx(txhash);
       let withdrawEvent: WITHDRAW_EVENT = {
         user: user,
         type: 2,
@@ -488,6 +503,7 @@ export const events = {
 
       let { closer } = await appPN.methods.closingChannelMap(channelID).call();
       let txhash = await extractEthTxHashFromAppTx(transactionHash);
+      await ethPendingTxStore.removeTx(txhash);
       let forceWithdrawEvent: FORCEWITHDRAW_EVENT = {
         closer,
         token,
@@ -611,13 +627,25 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      return await sendEthTx(
+      let res = await sendEthTx(
         web3_outer,
         user,
         ethPN.options.address,
         0,
         txData
       );
+
+      let { token } = await appPN.methods.channelMap(channelID).call();
+      ethPendingTxStore.addTx({
+        channelID,
+        txHash: res,
+        user,
+        token,
+        type: TX_TYPE.CHANNEL_CO_SETTLE,
+        amount: settleBalance + '',
+        time: new Date().getTime(),
+      });
+      return res;
     }
   },
 

@@ -271,6 +271,23 @@ function sendAppTx(action) {
     });
 }
 exports.sendAppTx = sendAppTx;
+function getERC20Allowance(owner, spender, token) {
+    return __awaiter(this, void 0, void 0, function () {
+        var contract, allowance;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    contract = new main_1.web3_10.eth.Contract(require('../config/ERC20.json'), token);
+                    return [4, contract.methods.allowance(owner, spender).call()];
+                case 1:
+                    allowance = _a.sent();
+                    main_1.ethPendingTxStore.setTokenAllowance(token, allowance);
+                    return [2, allowance];
+            }
+        });
+    });
+}
+exports.getERC20Allowance = getERC20Allowance;
 function extractEthTxHashFromAppTx(appTxHash) {
     return __awaiter(this, void 0, void 0, function () {
         var receipt, executionABIs, _i, _a, log, transactionId, txHash;

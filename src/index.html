@@ -268,6 +268,7 @@
           appPNAddress,
           appSessionAddress
         );
+        await L2.getInstance().initTokenList(tokenList);
         console.log('int res ', res);
         console.log('web3 version', web3.version);
       });
@@ -364,6 +365,14 @@
         .getElementById('getAllTxs')
         .addEventListener('click', async event => {
           console.log('getAllTxs button clicked');
+          let allowance = await L2.getInstance().getERC20Allowance(
+            defaultAccount,
+            ethPNAddress,
+            token
+          );
+
+          console.log('allowance is', allowance);
+
           let result = await L2.getInstance().getAllTXs(token);
           console.log('getAllTxs result', result);
 

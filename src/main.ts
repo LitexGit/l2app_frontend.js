@@ -35,7 +35,6 @@ import {
   CITA_SYNC_EVENT_TIMEOUT,
 } from './utils/constants';
 import { events as appEvents, ethMethods, appMethods } from './service/cita';
-import { events as ethEvents } from './service/eth';
 import { events as sessionEvents } from './service/session';
 import {
   sendEthTx,
@@ -46,8 +45,11 @@ import {
   sendAppTx,
   logger,
   setLogger,
+  getERC20Allowance,
 } from './utils/common';
 import L2Session from './session';
+import EthPendingTxStore, { TX_TYPE } from './ethPendingTxStore';
+import CancelListener from './cancelListener';
 
 /**
  * INTERNAL EXPORTS
@@ -67,6 +69,8 @@ export let user: string; // user's eth address
 export let l2: string; // L2's eth address
 export let cp: string; // CP's eth address
 export let puppet: Puppet; // puppet object
+export let ethPendingTxStore: EthPendingTxStore;
+export let cancelListener: CancelListener;
 export let debug: boolean; // debug flag
 
 /**
@@ -190,6 +194,9 @@ export class L2 {
     await this.initPuppet();
     this.initListeners();
     this.initMissingEvent();
+    this.initEthPendingTxStore();
+    this.initCancelListener();
+
     this.initialized = true;
 
     logger.info('finish L2.init');
@@ -201,6 +208,31 @@ export class L2 {
   async setDebug(debugFlag: boolean) {
     debug = debugFlag;
     setLogger();
+  }
+
+  /**
+   * if user is in co-settle process, add co-settle request to cancelListener
+   *
+   * @param tokenList token address array
+   */
+  async initTokenList(tokenList: Array<string>) {
+    for (let token of tokenList) {
+      let channelID = await ethPN.methods.getChannelID(user, token).call();
+      let channel = await appPN.methods.channelMap(channelID).call();
+      let {
+        isConfirmed,
+        lastCommitBlock,
+      } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
+
+      if (
+        Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE
+      ) {
+        cancelListener.add({
+          channelID,
+          lastCommitBlock: Number(lastCommitBlock),
+        });
+      }
+    }
   }
 
   /**
@@ -234,7 +266,18 @@ export class L2 {
     let approveData = ERC20.methods
       .approve(ethPN.options.address, amountBN.toString())
       .encodeABI();
-    return await sendEthTx(web3_outer, user, token, 0, approveData);
+    let res = await sendEthTx(web3_outer, user, token, 0, approveData);
+    ethPendingTxStore.addTx({
+      channelID: '',
+      txHash: res,
+      user,
+      token,
+      type: TX_TYPE.TOKEN_APPROVE,
+      amount: amount + '',
+      time: new Date().getTime(),
+    });
+
+    return res;
   }
 
   /**
@@ -274,9 +317,26 @@ export class L2 {
 
       let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+        let res = await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+
+        ethPendingTxStore.addTx({
+          channelID,
+          txHash: res,
+          user,
+          token,
+          type: TX_TYPE.CHANNEL_DEPOSIT,
+          amount: amount + '',
+          time: new Date().getTime(),
+        });
+
+        return res;
       } else {
-        return await this.depositERC20Token(amount + '', token, data);
+        return await this.depositERC20Token(
+          channelID,
+          amount + '',
+          token,
+          data
+        );
       }
     } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
       // open channel
@@ -286,9 +346,19 @@ export class L2 {
         .encodeABI();
 
       if (token === ADDRESS_ZERO) {
-        return await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+        let res = await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+        ethPendingTxStore.addTx({
+          channelID,
+          txHash: res,
+          user,
+          token,
+          type: TX_TYPE.CHANNEL_OPEN,
+          amount: amount + '',
+          time: new Date().getTime(),
+        });
+        return res;
       } else {
-        return await this.depositERC20Token(amount + '', token, data);
+        return await this.depositERC20Token('', amount + '', token, data);
       }
     } else {
       throw new Error(
@@ -352,8 +422,7 @@ export class L2 {
       );
     } else {
       if (
-        Number(channel.status) ===
-        CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
+        Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE
       ) {
         logger.info('call ethSubmitCooperativeSettle');
         return await ethMethods.ethSubmitCooperativeSettle(channelID);
@@ -372,9 +441,7 @@ export class L2 {
         await delay(1000);
 
         let { status } = await appPN.methods.channelMap(channelID).call();
-        if (
-          Number(status) === CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE
-        ) {
+        if (Number(status) === CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE) {
           logger.info('break loop', repeatTime);
           res = await ethMethods.ethSubmitCooperativeSettle(channelID);
           return res;
@@ -410,7 +477,7 @@ export class L2 {
 
     while (true) {
       const { status } = await appPN.methods.channelMap(channelID).call();
-      if (Number(status) !== CHANNEL_STATUS.CHANNEL_STATUS_PENDING_CO_SETTLE) {
+      if (Number(status) !== CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE) {
         throw new Error(
           'channels status is not pending co settle, will terminate cancel withdraw'
         );
@@ -638,6 +705,13 @@ export class L2 {
     logger.info('ChannelID is ', channelID, ethChannel);
     let channel = await appPN.methods.channelMap(channelID).call();
 
+    channel.status = await ethPendingTxStore.getChannelStatus(
+      channelID,
+      Number(channel.status),
+      user,
+      token
+    );
+
     return { channelID, ...channel };
   }
 
@@ -801,11 +875,7 @@ export class L2 {
    * @param token token contract address
    */
   async getERC20Allowance(owner: string, spender: string, token: string) {
-    let contract = new web3_10.eth.Contract(
-      require('./config/ERC20.json'),
-      token
-    );
-    return await contract.methods.allowance(owner, spender).call();
+    return await getERC20Allowance(owner, spender, token);
   }
 
   /** ---------- Event API ---------- */
@@ -840,6 +910,7 @@ export class L2 {
    * @param data contract interface data
    */
   private async depositERC20Token(
+    channelID: string,
     amount: string,
     token: string,
     data: string
@@ -851,9 +922,28 @@ export class L2 {
 
     if (toBN(allowance).lt(toBN(amount))) {
       let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
-      await sendEthTx(web3_outer, user, token, 0, approveData);
+      let txHash = await sendEthTx(web3_outer, user, token, 0, approveData);
+      ethPendingTxStore.addTx({
+        channelID,
+        txHash,
+        user,
+        token,
+        type: TX_TYPE.TOKEN_APPROVE,
+        amount: amount + '',
+        time: new Date().getTime(),
+      });
     }
-    return await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
+    let res = await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
+    ethPendingTxStore.addTx({
+      channelID,
+      txHash: res,
+      user,
+      token,
+      type: !!channelID ? TX_TYPE.CHANNEL_DEPOSIT : TX_TYPE.CHANNEL_OPEN,
+      amount: amount + '',
+      time: new Date().getTime(),
+    });
+    return res;
   }
 
   /**
@@ -918,6 +1008,17 @@ export class L2 {
     this.appWatcher.start();
   }
 
+  private async initEthPendingTxStore() {
+    ethPendingTxStore && ethPendingTxStore.stopWatch();
+    ethPendingTxStore = new EthPendingTxStore();
+    ethPendingTxStore.startWatch(web3_10);
+  }
+
+  private async initCancelListener() {
+    cancelListener && cancelListener.stop();
+    cancelListener = new CancelListener();
+    cancelListener.start();
+  }
   /**
    * handle the missing events when user is offline.
    */

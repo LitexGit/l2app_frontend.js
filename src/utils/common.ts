@@ -9,8 +9,16 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES } from '../config/TypedData';
-import { cita, puppet, debug, appOperator, web3_10 } from '../main';
+import {
+  cita,
+  puppet,
+  debug,
+  appOperator,
+  web3_10,
+  ethPendingTxStore,
+} from '../main';
 import mylog from '../utils/mylog';
+import EthPendingTxStore from '../ethPendingTxStore';
 
 /**
  * 用私钥签署消息
@@ -310,6 +318,20 @@ export async function sendAppTx(action: any): Promise<string> {
   } else {
     throw new Error('submit sendMessage failed');
   }
+}
+
+export async function getERC20Allowance(
+  owner: string,
+  spender: string,
+  token: string
+) {
+  let contract = new web3_10.eth.Contract(
+    require('../config/ERC20.json'),
+    token
+  );
+  let allowance = await contract.methods.allowance(owner, spender).call();
+  ethPendingTxStore.setTokenAllowance(token, allowance);
+  return allowance;
 }
 
 /**
