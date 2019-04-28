@@ -35,11 +35,11 @@ export default class EthPendingTxStore {
 
   public constructor() {
     // this.txList = new Array<TXINFO>();
-    this.load();
+    // this.load();
   }
 
-  load() {
-    let txListStr = localStorage.getItem(this.key);
+  async load() {
+    let txListStr = await localStorage.getItem(this.key);
     if (!!txListStr) {
       this.txList = JSON.parse(localStorage.getItem(this.key));
     } else {
@@ -115,7 +115,6 @@ export default class EthPendingTxStore {
 
           if (txStatus === true || txStatus === false) {
             console.log('tx is', tx);
-            this.removeTx(txHash);
             if (type === TX_TYPE.TOKEN_APPROVE) {
               if (txStatus) {
                 try {
@@ -145,6 +144,7 @@ export default class EthPendingTxStore {
             ) {
               this.setTokenAllowance(token, '0');
             }
+            this.removeTx(txHash);
           }
         } catch (err) {
           logger.info('unknow transaction', txHash);

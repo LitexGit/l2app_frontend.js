@@ -1,7 +1,7 @@
 import { delay, sendAppTx, logger } from './utils/common';
-import { web3_10, user, appPN, appOperator } from './main';
+import { web3_10, user, appPN, appOperator, callbacks } from './main';
 import { ethMethods } from './service/cita';
-import { CHANNEL_STATUS } from './utils/constants';
+import { CHANNEL_STATUS, WITHDRAW_UNLOCKED_EVENT } from './utils/constants';
 
 export type SettleRequest = {
   channelID: string;
@@ -15,11 +15,11 @@ export default class CancelListener {
     'CancelListenerStore_' + web3_10.utils.sha3(user + appPN.options.address);
 
   public constructor() {
-    this.load();
+    // this.load();
   }
 
-  load() {
-    let txListStr = localStorage.getItem(this.key);
+  async load() {
+    let txListStr = await localStorage.getItem(this.key);
     if (!!txListStr) {
       this.settleList = JSON.parse(localStorage.getItem(this.key));
     } else {
@@ -66,7 +66,9 @@ export default class CancelListener {
           logger.info('cancel listner', currentBlockNumber, lastCommitBlock);
           if (currentBlockNumber > lastCommitBlock) {
             try {
-              let { status } = await appPN.methods.channelMap(channelID);
+              let { user, token, status } = await appPN.methods.channelMap(
+                channelID
+              ).call();
               if (status === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
                 this.remove(channelID);
                 continue;
@@ -74,6 +76,16 @@ export default class CancelListener {
 
               await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
               this.remove(channelID);
+
+              let withdrawUnlockedEvent: WITHDRAW_UNLOCKED_EVENT = {
+                user,
+                type: 2,
+                token,
+                // amount: '0',
+              };
+
+              callbacks.get('WithdrawUnlocked') &&
+                callbacks.get('WithdrawUnlocked')(null, withdrawUnlockedEvent);
             } catch (err) {
               logger.error('unlockCooperativeSettle failed', channelID);
             }

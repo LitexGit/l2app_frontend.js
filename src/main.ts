@@ -195,8 +195,8 @@ export class L2 {
     await this.initPuppet();
     this.initListeners();
     this.initMissingEvent();
-    this.initEthPendingTxStore();
-    this.initCancelListener();
+    await this.initEthPendingTxStore();
+    await this.initCancelListener();
 
     this.initialized = true;
 
@@ -264,12 +264,15 @@ export class L2 {
       throw new Error('allowance is great than amount now.');
     }
 
+    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    // let channel = await ethPN.methods.channels(channelID).call();
+
     let approveData = ERC20.methods
       .approve(ethPN.options.address, amountBN.toString())
       .encodeABI();
     let res = await sendEthTx(web3_outer, user, token, 0, approveData);
     ethPendingTxStore.addTx({
-      channelID: '',
+      channelID,
       txHash: res,
       user,
       token,
@@ -1013,12 +1016,14 @@ export class L2 {
   private async initEthPendingTxStore() {
     ethPendingTxStore && ethPendingTxStore.stopWatch();
     ethPendingTxStore = new EthPendingTxStore();
+    await ethPendingTxStore.load();
     ethPendingTxStore.startWatch(web3_10);
   }
 
   private async initCancelListener() {
     cancelListener && cancelListener.stop();
     cancelListener = new CancelListener();
+    await cancelListener.load();
     cancelListener.start();
   }
   /**

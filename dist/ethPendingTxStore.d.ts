@@ -21,7 +21,7 @@ export default class EthPendingTxStore {
     private txList;
     private key;
     constructor();
-    load(): void;
+    load(): Promise<void>;
     save(): void;
     setTokenAllowance(token: string, allowance: string): void;
     getTokenAllowance(token: string): number;

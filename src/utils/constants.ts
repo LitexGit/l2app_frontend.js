@@ -57,7 +57,8 @@ export type L2_EVENT =
   | 'Transfer'
   | 'PuppetChanged'
   | 'SessionMessage'
-  | 'SessionClose';
+  | 'SessionClose'
+  | 'WithdrawUnlocked';
 
 export type APPROVE_EVENT = {
   user: string;
@@ -126,6 +127,13 @@ export type SESSION_CLOSE_EVENT = {
   session: L2Session;
 };
 
+export type WITHDRAW_UNLOCKED_EVENT = {
+  user: string;
+  type: number;
+  token: string;
+  // amount: string;
+};
+
 export type L2_CB = (
   err: any,
   res:
@@ -137,6 +145,7 @@ export type L2_CB = (
     | PUPPETCHANGED_EVENT
     | SESSION_MESSAGE_EVENT
     | SESSION_CLOSE_EVENT
+    | WITHDRAW_UNLOCKED_EVENT
 ) => void;
 export type ContractInfo = {
   address: string;

@@ -50,16 +50,25 @@ var TX_TYPE;
 var EthPendingTxStore = (function () {
     function EthPendingTxStore() {
         this.key = 'ETHPendingStore_' + main_1.web3_10.utils.sha3(main_1.user + main_1.appPN.options.address);
-        this.load();
     }
     EthPendingTxStore.prototype.load = function () {
-        var txListStr = localStorage.getItem(this.key);
-        if (!!txListStr) {
-            this.txList = JSON.parse(localStorage.getItem(this.key));
-        }
-        else {
-            this.txList = new Array();
-        }
+        return __awaiter(this, void 0, void 0, function () {
+            var txListStr;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4, localStorage.getItem(this.key)];
+                    case 1:
+                        txListStr = _a.sent();
+                        if (!!txListStr) {
+                            this.txList = JSON.parse(localStorage.getItem(this.key));
+                        }
+                        else {
+                            this.txList = new Array();
+                        }
+                        return [2];
+                }
+            });
+        });
     };
     EthPendingTxStore.prototype.save = function () {
         localStorage.setItem(this.key, JSON.stringify(this.txList));
@@ -133,7 +142,6 @@ var EthPendingTxStore = (function () {
                         common_1.logger.info('txHash status', txHash, txStatus);
                         if (!(txStatus === true || txStatus === false)) return [3, 9];
                         console.log('tx is', tx);
-                        this.removeTx(txHash);
                         if (!(type === TX_TYPE.TOKEN_APPROVE)) return [3, 8];
                         if (!txStatus) return [3, 8];
                         _d.label = 4;
@@ -164,6 +172,7 @@ var EthPendingTxStore = (function () {
                             type === TX_TYPE.CHANNEL_DEPOSIT) {
                             this.setTokenAllowance(token, '0');
                         }
+                        this.removeTx(txHash);
                         _d.label = 9;
                     case 9: return [3, 11];
                     case 10:

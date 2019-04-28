@@ -251,6 +251,11 @@
         refresh();
       });
 
+      L2.getInstance().on('WithdrawUnlocked', (err, res) => {
+        console.log('WithdrawUnlocked from L2', err, res);
+        refresh();
+      });
+
       initUser();
       initServer();
       initOperator();

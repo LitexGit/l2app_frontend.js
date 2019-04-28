@@ -281,7 +281,6 @@ function getERC20Allowance(owner, spender, token) {
                     return [4, contract.methods.allowance(owner, spender).call()];
                 case 1:
                     allowance = _a.sent();
-                    main_1.ethPendingTxStore.setTokenAllowance(token, allowance);
                     return [2, allowance];
             }
         });

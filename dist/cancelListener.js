@@ -41,16 +41,25 @@ var constants_1 = require("./utils/constants");
 var CancelListener = (function () {
     function CancelListener() {
         this.key = 'CancelListenerStore_' + main_1.web3_10.utils.sha3(main_1.user + main_1.appPN.options.address);
-        this.load();
     }
     CancelListener.prototype.load = function () {
-        var txListStr = localStorage.getItem(this.key);
-        if (!!txListStr) {
-            this.settleList = JSON.parse(localStorage.getItem(this.key));
-        }
-        else {
-            this.settleList = new Array();
-        }
+        return __awaiter(this, void 0, void 0, function () {
+            var txListStr;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4, localStorage.getItem(this.key)];
+                    case 1:
+                        txListStr = _a.sent();
+                        if (!!txListStr) {
+                            this.settleList = JSON.parse(localStorage.getItem(this.key));
+                        }
+                        else {
+                            this.settleList = new Array();
+                        }
+                        return [2];
+                }
+            });
+        });
     };
     CancelListener.prototype.save = function () {
         localStorage.setItem(this.key, JSON.stringify(this.settleList));
@@ -77,44 +86,51 @@ var CancelListener = (function () {
     };
     CancelListener.prototype.start = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var currentBlockNumber, _i, _a, settle, channelID, lastCommitBlock, status_1, err_1, err_2;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var currentBlockNumber, _i, _a, settle, channelID, lastCommitBlock, _b, user_1, token, status_1, withdrawUnlockedEvent, err_1, err_2;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         if (!true) return [3, 13];
-                        _b.label = 1;
+                        _c.label = 1;
                     case 1:
-                        _b.trys.push([1, 11, , 12]);
+                        _c.trys.push([1, 11, , 12]);
                         return [4, main_1.appOperator.methods
                                 .ethBlockNumber()
                                 .call()];
                     case 2:
-                        currentBlockNumber = _b.sent();
+                        currentBlockNumber = _c.sent();
                         _i = 0, _a = this.settleList;
-                        _b.label = 3;
+                        _c.label = 3;
                     case 3:
                         if (!(_i < _a.length)) return [3, 9];
                         settle = _a[_i];
                         channelID = settle.channelID, lastCommitBlock = settle.lastCommitBlock;
                         common_1.logger.info('cancel listner', currentBlockNumber, lastCommitBlock);
                         if (!(currentBlockNumber > lastCommitBlock)) return [3, 8];
-                        _b.label = 4;
+                        _c.label = 4;
                     case 4:
-                        _b.trys.push([4, 7, , 8]);
-                        return [4, main_1.appPN.methods.channelMap(channelID)];
+                        _c.trys.push([4, 7, , 8]);
+                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 5:
-                        status_1 = (_b.sent()).status;
+                        _b = _c.sent(), user_1 = _b.user, token = _b.token, status_1 = _b.status;
                         if (status_1 === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
                             this.remove(channelID);
                             return [3, 8];
                         }
                         return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID))];
                     case 6:
-                        _b.sent();
+                        _c.sent();
                         this.remove(channelID);
+                        withdrawUnlockedEvent = {
+                            user: user_1,
+                            type: 2,
+                            token: token,
+                        };
+                        main_1.callbacks.get('WithdrawUnlocked') &&
+                            main_1.callbacks.get('WithdrawUnlocked')(null, withdrawUnlockedEvent);
                         return [3, 8];
                     case 7:
-                        err_1 = _b.sent();
+                        err_1 = _c.sent();
                         common_1.logger.error('unlockCooperativeSettle failed', channelID);
                         return [3, 8];
                     case 8:
@@ -126,10 +142,10 @@ var CancelListener = (function () {
                         }
                         return [4, common_1.delay(3000)];
                     case 10:
-                        _b.sent();
+                        _c.sent();
                         return [3, 12];
                     case 11:
-                        err_2 = _b.sent();
+                        err_2 = _c.sent();
                         common_1.logger.error('cancelListener error', err_2);
                         return [3, 12];
                     case 12: return [3, 0];

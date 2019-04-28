@@ -7,7 +7,7 @@ export default class CancelListener {
     private settleList;
     private key;
     constructor();
-    load(): void;
+    load(): Promise<void>;
     save(): void;
     add(info: SettleRequest): void;
     contains(channelID: string): boolean;

@@ -132,8 +132,12 @@ var L2 = (function () {
                         _a.sent();
                         this.initListeners();
                         this.initMissingEvent();
-                        this.initEthPendingTxStore();
-                        this.initCancelListener();
+                        return [4, this.initEthPendingTxStore()];
+                    case 5:
+                        _a.sent();
+                        return [4, this.initCancelListener()];
+                    case 6:
+                        _a.sent();
                         this.initialized = true;
                         common_1.logger.info('finish L2.init');
                         return [2, true];
@@ -187,7 +191,7 @@ var L2 = (function () {
     };
     L2.prototype.submitERC20Approval = function (amount, token) {
         return __awaiter(this, void 0, void 0, function () {
-            var toBN, amountBN, allowance, approveData, res;
+            var toBN, amountBN, allowance, channelID, approveData, res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -203,14 +207,17 @@ var L2 = (function () {
                         if (toBN(allowance).gte(amountBN)) {
                             throw new Error('allowance is great than amount now.');
                         }
+                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                    case 2:
+                        channelID = _a.sent();
                         approveData = exports.ERC20.methods
                             .approve(exports.ethPN.options.address, amountBN.toString())
                             .encodeABI();
                         return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
-                    case 2:
+                    case 3:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
-                            channelID: '',
+                            channelID: channelID,
                             txHash: res,
                             user: exports.user,
                             token: token,
@@ -878,20 +885,32 @@ var L2 = (function () {
     L2.prototype.initEthPendingTxStore = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                exports.ethPendingTxStore && exports.ethPendingTxStore.stopWatch();
-                exports.ethPendingTxStore = new ethPendingTxStore_1.default();
-                exports.ethPendingTxStore.startWatch(exports.web3_10);
-                return [2];
+                switch (_a.label) {
+                    case 0:
+                        exports.ethPendingTxStore && exports.ethPendingTxStore.stopWatch();
+                        exports.ethPendingTxStore = new ethPendingTxStore_1.default();
+                        return [4, exports.ethPendingTxStore.load()];
+                    case 1:
+                        _a.sent();
+                        exports.ethPendingTxStore.startWatch(exports.web3_10);
+                        return [2];
+                }
             });
         });
     };
     L2.prototype.initCancelListener = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                exports.cancelListener && exports.cancelListener.stop();
-                exports.cancelListener = new cancelListener_1.default();
-                exports.cancelListener.start();
-                return [2];
+                switch (_a.label) {
+                    case 0:
+                        exports.cancelListener && exports.cancelListener.stop();
+                        exports.cancelListener = new cancelListener_1.default();
+                        return [4, exports.cancelListener.load()];
+                    case 1:
+                        _a.sent();
+                        exports.cancelListener.start();
+                        return [2];
+                }
             });
         });
     };

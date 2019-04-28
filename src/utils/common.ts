@@ -330,7 +330,7 @@ export async function getERC20Allowance(
     token
   );
   let allowance = await contract.methods.allowance(owner, spender).call();
-  ethPendingTxStore.setTokenAllowance(token, allowance);
+  // ethPendingTxStore.setTokenAllowance(token, allowance);
   return allowance;
 }
 
