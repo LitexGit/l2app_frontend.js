@@ -101,6 +101,7 @@ export declare type WITHDRAW_UNLOCKED_EVENT = {
     user: string;
     type: number;
     token: string;
+    amount: string;
 };
 export declare type L2_CB = (err: any, res: APPROVE_EVENT | DEPOSIT_EVENT | WITHDRAW_EVENT | FORCEWITHDRAW_EVENT | TRANSFER_EVENT | PUPPETCHANGED_EVENT | SESSION_MESSAGE_EVENT | SESSION_CLOSE_EVENT | WITHDRAW_UNLOCKED_EVENT) => void;
 export declare type ContractInfo = {

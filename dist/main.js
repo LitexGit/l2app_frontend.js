@@ -156,7 +156,7 @@ var L2 = (function () {
     };
     L2.prototype.initTokenList = function (tokenList) {
         return __awaiter(this, void 0, void 0, function () {
-            var _i, tokenList_1, token, channelID, channel, _a, isConfirmed, lastCommitBlock;
+            var _i, tokenList_1, token, channelID, channel, _a, isConfirmed, balance, lastCommitBlock;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -173,10 +173,11 @@ var L2 = (function () {
                         channel = _b.sent();
                         return [4, exports.appPN.methods.cooperativeSettleProofMap(channelID).call()];
                     case 4:
-                        _a = _b.sent(), isConfirmed = _a.isConfirmed, lastCommitBlock = _a.lastCommitBlock;
+                        _a = _b.sent(), isConfirmed = _a.isConfirmed, balance = _a.balance, lastCommitBlock = _a.lastCommitBlock;
                         if (Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE) {
                             exports.cancelListener.add({
                                 channelID: channelID,
+                                balance: balance,
                                 lastCommitBlock: Number(lastCommitBlock),
                             });
                         }

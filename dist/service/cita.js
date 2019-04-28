@@ -78,6 +78,7 @@ exports.events = {
                 }
                 main_1.cancelListener.add({
                     channelID: channelID,
+                    balance: balance,
                     lastCommitBlock: Number(lastCommitBlock),
                 });
                 return [2];

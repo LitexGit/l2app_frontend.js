@@ -222,6 +222,7 @@ export class L2 {
       let channel = await appPN.methods.channelMap(channelID).call();
       let {
         isConfirmed,
+        balance,
         lastCommitBlock,
       } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
@@ -230,6 +231,7 @@ export class L2 {
       ) {
         cancelListener.add({
           channelID,
+          balance,
           lastCommitBlock: Number(lastCommitBlock),
         });
       }

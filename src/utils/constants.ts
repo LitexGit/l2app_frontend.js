@@ -131,7 +131,7 @@ export type WITHDRAW_UNLOCKED_EVENT = {
   user: string;
   type: number;
   token: string;
-  // amount: string;
+  amount: string;
 };
 
 export type L2_CB = (

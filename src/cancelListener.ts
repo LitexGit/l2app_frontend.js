@@ -5,6 +5,7 @@ import { CHANNEL_STATUS, WITHDRAW_UNLOCKED_EVENT } from './utils/constants';
 
 export type SettleRequest = {
   channelID: string;
+  balance: string;
   lastCommitBlock: number;
 };
 
@@ -61,14 +62,14 @@ export default class CancelListener {
           .call();
 
         for (let settle of this.settleList) {
-          let { channelID, lastCommitBlock } = settle;
+          let { channelID, balance, lastCommitBlock } = settle;
 
           logger.info('cancel listner', currentBlockNumber, lastCommitBlock);
           if (currentBlockNumber > lastCommitBlock) {
             try {
-              let { user, token, status } = await appPN.methods.channelMap(
-                channelID
-              ).call();
+              let { user, token, status } = await appPN.methods
+                .channelMap(channelID)
+                .call();
               if (status === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
                 this.remove(channelID);
                 continue;
@@ -81,7 +82,7 @@ export default class CancelListener {
                 user,
                 type: 2,
                 token,
-                // amount: '0',
+                amount: balance,
               };
 
               callbacks.get('WithdrawUnlocked') &&

@@ -86,7 +86,7 @@ var CancelListener = (function () {
     };
     CancelListener.prototype.start = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var currentBlockNumber, _i, _a, settle, channelID, lastCommitBlock, _b, user_1, token, status_1, withdrawUnlockedEvent, err_1, err_2;
+            var currentBlockNumber, _i, _a, settle, channelID, balance, lastCommitBlock, _b, user_1, token, status_1, withdrawUnlockedEvent, err_1, err_2;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -104,13 +104,15 @@ var CancelListener = (function () {
                     case 3:
                         if (!(_i < _a.length)) return [3, 9];
                         settle = _a[_i];
-                        channelID = settle.channelID, lastCommitBlock = settle.lastCommitBlock;
+                        channelID = settle.channelID, balance = settle.balance, lastCommitBlock = settle.lastCommitBlock;
                         common_1.logger.info('cancel listner', currentBlockNumber, lastCommitBlock);
                         if (!(currentBlockNumber > lastCommitBlock)) return [3, 8];
                         _c.label = 4;
                     case 4:
                         _c.trys.push([4, 7, , 8]);
-                        return [4, main_1.appPN.methods.channelMap(channelID).call()];
+                        return [4, main_1.appPN.methods
+                                .channelMap(channelID)
+                                .call()];
                     case 5:
                         _b = _c.sent(), user_1 = _b.user, token = _b.token, status_1 = _b.status;
                         if (status_1 === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
@@ -125,6 +127,7 @@ var CancelListener = (function () {
                             user: user_1,
                             type: 2,
                             token: token,
+                            amount: balance,
                         };
                         main_1.callbacks.get('WithdrawUnlocked') &&
                             main_1.callbacks.get('WithdrawUnlocked')(null, withdrawUnlockedEvent);

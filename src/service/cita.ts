@@ -133,6 +133,7 @@ export const events = {
 
       cancelListener.add({
         channelID,
+        balance,
         lastCommitBlock: Number(lastCommitBlock),
       });
     },

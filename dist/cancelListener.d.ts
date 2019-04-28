@@ -1,5 +1,6 @@
 export declare type SettleRequest = {
     channelID: string;
+    balance: string;
     lastCommitBlock: number;
 };
 export default class CancelListener {
