@@ -18,9 +18,9 @@
  */
 
 import { Contract } from 'web3/node_modules/web3-eth-contract';
+import { toBN, isAddress } from 'web3/node_modules/web3-utils';
 import CITASDK from '@cryptape/cita-sdk';
 
-const Web3 = require('web3');
 // import * as Web3 from 'web3';
 import Puppet from './puppet';
 import HttpWatcher from './httpwatcher';
@@ -30,7 +30,6 @@ import {
   L2_CB,
   L2_EVENT,
   CHANNEL_STATUS,
-  PUPPET_STATUS,
   ContractInfo,
   CITA_SYNC_EVENT_TIMEOUT,
 } from './utils/constants';
@@ -50,6 +49,7 @@ import {
 import L2Session from './session';
 import EthPendingTxStore, { TX_TYPE } from './ethPendingTxStore';
 import CancelListener from './cancelListener';
+import { ethHelper } from './utils/ethHelper';
 
 /**
  * INTERNAL EXPORTS
@@ -57,8 +57,8 @@ import CancelListener from './cancelListener';
  * DON'T export them in L2.ts
  */
 export let cita: any; // cita sdk object
-export let web3_10: any; // eth sdk object;
-export let web3_outer: any; // eth sdk object;
+export let EthProvider: any; // eth provider
+export let web3: any; // eth sdk object;
 export let ethPN: Contract; // eth payment contract
 export let ERC20: Contract; // ERC20 contract
 export let appPN: Contract; // cita payment contract
@@ -148,32 +148,29 @@ export class L2 {
       appSessionAddress
     );
 
-    web3_outer = outerWeb3;
-    let provider = outerWeb3.currentProvider;
-    web3_10 = new Web3(provider);
+    web3 = outerWeb3;
+    EthProvider = outerWeb3.currentProvider;
+    // logger.info(provider.toString());
+    // logger.info(JSON.stringify(outerWeb3.version));
 
-    logger.info(
-      `outer web3 version:`,
-      outerWeb3.version,
-      `inner web3 version:`,
-      web3_10.version
-    );
+    logger.info(`outer web3 version:`, outerWeb3.version);
 
-    ethPN = new Contract(provider, ethPNInfo.abi, ethPNInfo.address);
+    ethPN = new Contract(EthProvider, ethPNInfo.abi, ethPNInfo.address);
     ethPN.options.from = user;
     ethPN.options.address = ethPNInfo.address;
 
     let ERC20Abi = abi2jsonInterface(
       JSON.stringify(require('./config/ERC20.json'))
     );
-    ERC20 = new Contract(provider, ERC20Abi);
+    ERC20 = new Contract(EthProvider, ERC20Abi);
     ERC20.options.jsonInterface = ERC20Abi;
+    ERC20.options.from = user;
 
-    user = userAddress;
+    user = (userAddress);
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
-    logger.info('cp / l2 is ', cp, l2);
+    logger.info(`cp / l2 is ${cp} ${l2}`);
 
     cita = CITASDK(appRpcUrl);
     appPN = new cita.base.Contract(appPNInfo.abi, appPNInfo.address);
@@ -185,12 +182,14 @@ export class L2 {
     );
 
     let operatorCNAddress = await appPN.methods.operator().call();
-    logger.info('op is', operatorCNAddress);
+    logger.info(`op is ${operatorCNAddress}`);
     let operatorAbi = abi2jsonInterface(
       JSON.stringify(require('./config/operatorContract.json'))
     );
     appOperator = new cita.base.Contract(operatorAbi, operatorCNAddress);
     appOperator.options.address = operatorCNAddress;
+
+    logger.info('cita contract init finished');
 
     await this.initPuppet();
     this.initListeners();
@@ -250,10 +249,9 @@ export class L2 {
       amount + '',
       token
     );
-    if (!web3_10.utils.isAddress(token)) {
+    if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
-    let { toBN } = web3_10.utils;
     const amountBN = toBN(amount);
 
     let allowance = await this.getERC20Allowance(
@@ -272,7 +270,7 @@ export class L2 {
     let approveData = ERC20.methods
       .approve(ethPN.options.address, amountBN.toString())
       .encodeABI();
-    let res = await sendEthTx(web3_outer, user, token, 0, approveData);
+    let res = await sendEthTx(web3, user, token, 0, approveData);
     ethPendingTxStore.addTx({
       channelID,
       txHash: res,
@@ -305,13 +303,13 @@ export class L2 {
       amount + '',
       token
     );
-    if (!web3_10.utils.isAddress(token)) {
+    if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await ethPN.methods.channels(channelID).call();
 
-    amount = web3_10.utils.toBN(amount).toString();
+    amount = toBN(amount).toString();
     let ethPNAddress = ethPN.options.address;
     if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       // add deposit
@@ -323,7 +321,7 @@ export class L2 {
 
       let data = ethPN.methods.userDeposit(channelID, amount).encodeABI();
       if (token === ADDRESS_ZERO) {
-        let res = await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+        let res = await sendEthTx(web3, user, ethPNAddress, amount, data);
 
         ethPendingTxStore.addTx({
           channelID,
@@ -352,7 +350,7 @@ export class L2 {
         .encodeABI();
 
       if (token === ADDRESS_ZERO) {
-        let res = await sendEthTx(web3_outer, user, ethPNAddress, amount, data);
+        let res = await sendEthTx(web3, user, ethPNAddress, amount, data);
         ethPendingTxStore.addTx({
           channelID,
           txHash: res,
@@ -395,25 +393,21 @@ export class L2 {
       token
     );
 
-    if (!web3_10.utils.isAddress(token)) {
+    if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
 
-    amount = web3_10.utils.toBN(amount).toString();
+    amount = toBN(amount).toString();
     let channelID = await ethPN.methods.getChannelID(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     // withdraw amount must less than user balance
-    if (
-      web3_10.utils.toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))
-    ) {
+    if (toBN(channel.userBalance).lt(toBN(amount))) {
       throw new Error('withdraw amount exceeds the balance');
     }
 
     // if withdraw balance < user's balance, then go walk with userwithdraw process.
     // if withdraw balance == user's balance, then go walk with cooperative settle process.
-    if (
-      web3_10.utils.toBN(channel.userBalance).gt(web3_10.utils.toBN(amount))
-    ) {
+    if (toBN(channel.userBalance).gt(toBN(amount))) {
       if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         throw new Error('channel status is not open');
       }
@@ -423,7 +417,7 @@ export class L2 {
           channelID,
           amount,
           user,
-          await getLCB(web3_10.eth, 'eth')
+          await getLCB(ethHelper, 'eth')
         )
       );
     } else {
@@ -438,7 +432,7 @@ export class L2 {
         appPN.methods.proposeCooperativeSettle(
           channelID,
           amount,
-          await getLCB(web3_10.eth, 'eth')
+          await getLCB(ethHelper, 'eth')
         )
       );
 
@@ -475,7 +469,6 @@ export class L2 {
       regulatorSignature,
     } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
-    let { toBN } = web3_10.utils;
     if (!isConfirmed) {
       logger.error('cooperativeSettleProof not confirmed');
       throw new Error('cooperativeSettleProof not confirmed');
@@ -489,7 +482,7 @@ export class L2 {
         );
       }
 
-      let currentBlockNumber = await web3_10.eth.getBlockNumber();
+      let currentBlockNumber = await ethHelper.getBlockNumber();
       if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
         break;
       }
@@ -516,7 +509,7 @@ export class L2 {
 
     logger.info('start forceWithdraw with params: token: [%s]', token);
 
-    if (!web3_10.utils.isAddress(token)) {
+    if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
 
@@ -569,7 +562,7 @@ export class L2 {
         providerSignature
       )
       .encodeABI();
-    return await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
+    return await sendEthTx(web3, user, ethPN.options.address, 0, data);
   }
 
   /**
@@ -595,8 +588,6 @@ export class L2 {
       token
     );
 
-    let { isAddress, toBN } = web3_10.utils;
-
     if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
@@ -608,7 +599,7 @@ export class L2 {
     }
 
     // check user's balance is enough
-    if (toBN(channel.userBalance).lt(web3_10.utils.toBN(amount))) {
+    if (toBN(channel.userBalance).lt(toBN(amount))) {
       throw new Error("user's balance is less than transfer amount");
     }
 
@@ -625,7 +616,7 @@ export class L2 {
     let additionalHash = '0x0';
 
     let signature = await prepareSignatureForTransfer(
-      web3_outer,
+      web3,
       ethPN.options.address,
       channelID,
       balance,
@@ -750,10 +741,10 @@ export class L2 {
       };
     };
 
-    let lastBalance = web3_10.utils.toBN(0);
+    let lastBalance = toBN(0);
     const getTX = (tx: any) => {
       let { channelID, balance, ...rest } = tx.returnValues;
-      balance = new web3_10.utils.toBN(balance);
+      balance = toBN(balance);
       let amount = balance.sub(lastBalance).toString();
       lastBalance = balance;
 
@@ -783,9 +774,7 @@ export class L2 {
     syncWithApp: boolean = false
   ): Promise<boolean> {
     try {
-      let { status: ethStatus } = await web3_10.eth.getTransactionReceipt(
-        txHash
-      );
+      let { status: ethStatus } = await ethHelper.getTransactionReceipt(txHash);
 
       if (!ethStatus) {
         return false;
@@ -852,7 +841,7 @@ export class L2 {
   async disablePuppet(puppet: string): Promise<string> {
     this.checkInitialized();
     let data = ethPN.methods.disablePuppet(puppet).encodeABI();
-    return await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
+    return await sendEthTx(web3, user, ethPN.options.address, 0, data);
   }
 
   /**
@@ -862,14 +851,10 @@ export class L2 {
    */
   async getOnchainBalance(token: string = ADDRESS_ZERO) {
     if (token === ADDRESS_ZERO) {
-      return await web3_10.eth.getBalance(user);
+      return await ethHelper.getBalance(user);
     } else {
-      let contract = new web3_10.eth.Contract(
-        require('./config/ERC20.json'),
-        token
-      );
-      // ERC20.options.address = token;
-      return await contract.methods.balanceOf(user).call();
+      ERC20.options.address = token;
+      return await ERC20.methods.balanceOf(user).call();
     }
   }
 
@@ -922,13 +907,12 @@ export class L2 {
     data: string
   ): Promise<string> {
     // Approve ERC20
-    let { toBN } = web3_10.utils;
     let ethPNAddress = ethPN.options.address;
     // let allowance = await this.getERC20Allowance(user, ethPNAddress, token);
 
     // if (toBN(allowance).lt(toBN(amount))) {
     //   let approveData = ERC20.methods.approve(ethPNAddress, amount).encodeABI();
-    //   let txHash = await sendEthTx(web3_outer, user, token, 0, approveData);
+    //   let txHash = await sendEthTx(web3, user, token, 0, approveData);
     //   ethPendingTxStore.addTx({
     //     channelID,
     //     txHash,
@@ -940,7 +924,7 @@ export class L2 {
     //   });
     // }
 
-    let res = await sendEthTx(web3_outer, user, ethPNAddress, 0, data);
+    let res = await sendEthTx(web3, user, ethPNAddress, 0, data);
     ethPendingTxStore.addTx({
       channelID,
       txHash: res,
@@ -957,11 +941,13 @@ export class L2 {
    * init Puppet when L2 initializing
    */
   async initPuppet() {
-    puppet = Puppet.get(user, ethPN.options.address);
+    logger.info('start init Pupept');
+    puppet = await Puppet.get(user, ethPN.options.address);
 
+    logger.info(`puppet is ${puppet}`);
     // get puppet from LocalStorage, check if it is valid on eth payment contract
     if (puppet) {
-      logger.info('puppet is ', puppet);
+      logger.info('puppet is ' + JSON.stringify(puppet));
       let puppetStatus = await appPN.methods
         .isPuppet(user, puppet.getAccount().address)
         .call();
@@ -972,7 +958,7 @@ export class L2 {
         return;
       }
     } else {
-      puppet = Puppet.create(user, ethPN.options.address);
+      puppet = await Puppet.create(user, ethPN.options.address);
     }
 
     /*
@@ -990,20 +976,14 @@ export class L2 {
      * if a user register puppet, and local puppet is not registered, will register local puppet here
      */
     let data = ethPN.methods.addPuppet(puppet.getAccount().address).encodeABI();
-    await sendEthTx(web3_outer, user, ethPN.options.address, 0, data);
+    await sendEthTx(web3, user, ethPN.options.address, 0, data);
   }
 
   /**
    * init listeners for payment contract of eth and appchain
    */
   private async initListeners() {
-    // before start new watcher, stop the old watcher
-    this.ethWatcher && this.ethWatcher.stop();
-
-    // let ethWatchList = [{ contract: ethPN, listener: ethEvents }];
-    // this.ethWatcher = new HttpWatcher(web3_10.eth, 5000, ethWatchList);
-    // this.ethWatcher.start();
-
+    logger.info('start init Listener');
     // before start new watcher, stop the old watcher
     this.appWatcher && this.appWatcher.stop();
 
@@ -1016,13 +996,15 @@ export class L2 {
   }
 
   private async initEthPendingTxStore() {
+    logger.info('start init initEthPendingTxStore');
     ethPendingTxStore && ethPendingTxStore.stopWatch();
     ethPendingTxStore = new EthPendingTxStore();
     await ethPendingTxStore.load();
-    ethPendingTxStore.startWatch(web3_10);
+    ethPendingTxStore.startWatch();
   }
 
   private async initCancelListener() {
+    logger.info('start initCancelListener');
     cancelListener && cancelListener.stop();
     cancelListener = new CancelListener();
     await cancelListener.load();
@@ -1032,7 +1014,7 @@ export class L2 {
    * handle the missing events when user is offline.
    */
   private async initMissingEvent() {
-    logger.info('start initMissingEvent');
+    logger.info('start init Missing Event');
 
     // get all open channel of user
 

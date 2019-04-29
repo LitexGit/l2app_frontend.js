@@ -183,7 +183,13 @@
     // let token = "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928";
 
     var defaultAccount = '';
+
+    console.log = message => {
+      document.getElementById('info').innerHTML += message + '<br/>';
+    };
+
     window.addEventListener('load', async () => {
+      console.log('hello world');
       await main();
     });
 
@@ -198,7 +204,7 @@
       if (typeof window.ethereum !== 'undefined') {
         // window.web3 = new Web3(ethereum);
         try {
-          console.log('start enable');
+          console.log('start ethereum enable');
           // window.web3 = new Web3(ethereum);
           await window.ethereum.enable();
           defaultAccount = ethereum.selectedAddress;
@@ -206,10 +212,23 @@
           console.log(error);
         }
       } else if (window.web3) {
+        console.log('window.web3 enable');
         // window.web3 = new Web3(web3.currentProvider);
-        var accounts = await web3.eth.getAccounts();
+        let getAccountPromise = new Promise((resolve, reject) => {
+          var accounts = web3.eth.getAccounts((err, result) => {
+            if (err) {
+              reject(err);
+            }
+            resolve(result);
+          });
+        });
+
+        let accounts = await getAccountPromise;
         defaultAccount = accounts[0];
+        console.log('defaultAccount' + defaultAccount);
+        console.log('web3 version' + web3.version);
       } else {
+        console.log('no window.web3, no ethereum');
         return;
       }
 
@@ -260,9 +279,6 @@
       initServer();
       initOperator();
     }
-    // console.log = (message) =>{
-    //   document.getElementById('info').innerHTML += message + '<br/>';
-    // }
 
     function initUser() {
       /******************************************The First Line******************************************************/
@@ -276,17 +292,20 @@
       document.getElementById('init').addEventListener('click', async event => {
         console.log('init button clicked');
         L2.getInstance().setDebug(true);
-        let res = await L2.getInstance().init(
-          defaultAccount,
-          window.web3,
-          ethPNAddress,
-          appRpcUrl,
-          appPNAddress,
-          appSessionAddress
-        );
-        await L2.getInstance().initTokenList(tokenList);
-        console.log('int res ', res);
-        console.log('web3 version', web3.version);
+        try {
+          let res = await L2.getInstance().init(
+            defaultAccount,
+            window.web3,
+            ethPNAddress,
+            appRpcUrl,
+            appPNAddress,
+            appSessionAddress
+          );
+          await L2.getInstance().initTokenList(tokenList);
+          console.log('int res ', res);
+        } catch (err) {
+          console.log('Error: ' + err.stack);
+        }
       });
 
       document
@@ -373,7 +392,8 @@
             console.log('transfer res', res);
             refresh();
           } catch (err) {
-            document.getElementById('info').innerHTML += 'TransferError:' + err + '<br/>';
+            document.getElementById('info').innerHTML +=
+              'TransferError:' + err + '<br/>';
           }
 
           var msg =

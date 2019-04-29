@@ -1,7 +1,7 @@
 import { delay, sendAppTx, logger } from './utils/common';
-import { web3_10, user, appPN, appOperator, callbacks } from './main';
-import { ethMethods } from './service/cita';
+import { user, appPN, appOperator, callbacks } from './main';
 import { CHANNEL_STATUS, WITHDRAW_UNLOCKED_EVENT } from './utils/constants';
+import { sha3 } from 'web3/node_modules/web3-utils';
 
 export type SettleRequest = {
   channelID: string;
@@ -12,8 +12,7 @@ export type SettleRequest = {
 export default class CancelListener {
   private enabled: boolean;
   private settleList: Array<SettleRequest>;
-  private key =
-    'CancelListenerStore_' + web3_10.utils.sha3(user + appPN.options.address);
+  private key = 'CancelListenerStore_' + sha3(user + appPN.options.address);
 
   public constructor() {
     // this.load();

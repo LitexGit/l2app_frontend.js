@@ -40,6 +40,8 @@ var main_1 = require("../main");
 var common_1 = require("../utils/common");
 var constants_1 = require("../utils/constants");
 var ethPendingTxStore_1 = require("../ethPendingTxStore");
+var web3_utils_1 = require("web3/node_modules/web3-utils");
+var ethHelper_1 = require("../utils/ethHelper");
 exports.events = {
     ConfirmUserWithdraw: {
         filter: function () {
@@ -58,7 +60,7 @@ exports.events = {
                 txData = main_1.ethPN.methods
                     .userWithdraw(channelID, amount, lastCommitBlock, providerSignature, regulatorSignature, user)
                     .encodeABI();
-                common_1.sendEthTx(main_1.web3_outer, user, main_1.ethPN.options.address, 0, txData);
+                common_1.sendEthTx(main_1.web3, user, main_1.ethPN.options.address, 0, txData);
                 return [2];
             });
         }); },
@@ -90,7 +92,7 @@ exports.events = {
             return {};
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, from, to, channelID, balance, transferAmount, additionalHash, amount, toBN, time, channelInfo, _b, token, userBalance, transferEvent;
+            var _a, from, to, channelID, balance, transferAmount, additionalHash, amount, time, channelInfo, _b, token, userBalance, transferEvent;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -103,7 +105,6 @@ exports.events = {
                         common_1.logger.info(' from: [%s], to: [%s], channelID: [%s], balance: [%s], transferAmount: [%s], additionalHash: [%s] ', from, to, channelID, balance, transferAmount, additionalHash);
                         if (!main_1.callbacks.get('Transfer')) return [3, 6];
                         amount = transferAmount;
-                        toBN = main_1.web3_10.utils.toBN;
                         time = 0;
                         _c.label = 1;
                     case 1:
@@ -113,7 +114,7 @@ exports.events = {
                                 .call()];
                     case 2:
                         channelInfo = _c.sent();
-                        if (toBN(channelInfo.balance).gte(toBN(balance))) {
+                        if (web3_utils_1.toBN(channelInfo.balance).gte(web3_utils_1.toBN(balance))) {
                             return [3, 4];
                         }
                         return [4, common_1.delay(1000)];
@@ -185,14 +186,13 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, user, token, amount, channelID, transactionHash, toBN, time, channelInfo, ethChannelInfo, txhash, depositEvent;
+            var _a, user, token, amount, channelID, transactionHash, time, channelInfo, ethChannelInfo, txhash, depositEvent;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
                         common_1.logger.info('--------------------Handle CITA OnchainOpenChannel--------------------');
                         _a = event.returnValues, user = _a.user, token = _a.token, amount = _a.amount, channelID = _a.channelID, transactionHash = event.transactionHash;
                         common_1.logger.info(' user: [%s], token: [%s], amount: [%s], channelID: [%s] ', user, token, amount, channelID);
-                        toBN = main_1.web3_10.utils.toBN;
                         if (!main_1.callbacks.get('Deposit')) return [3, 8];
                         time = 0;
                         channelInfo = void 0;
@@ -205,7 +205,7 @@ exports.events = {
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 3:
                         channelInfo = _b.sent();
-                        if (toBN(channelInfo.userDeposit).gte(toBN(amount)) &&
+                        if (web3_utils_1.toBN(channelInfo.userDeposit).gte(web3_utils_1.toBN(amount)) &&
                             Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
                             return [3, 5];
                         }
@@ -242,14 +242,13 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, deposit, totalDeposit, transactionHash, toBN, time, channelInfo, _b, token, userBalance, txhash, depositEvent;
+            var _a, channelID, user, deposit, totalDeposit, transactionHash, time, channelInfo, _b, token, userBalance, txhash, depositEvent;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
                         common_1.logger.info('--------------------Handle CITA OnchainUserDeposit--------------------');
                         _a = event.returnValues, channelID = _a.channelID, user = _a.user, deposit = _a.deposit, totalDeposit = _a.totalDeposit, transactionHash = event.transactionHash;
                         common_1.logger.info(' channelID: [%s], user: [%s], deposit: [%s], totalDeposit: [%s] ', channelID, user, deposit, totalDeposit);
-                        toBN = main_1.web3_10.utils.toBN;
                         if (!main_1.callbacks.get('Deposit')) return [3, 8];
                         time = 0;
                         _c.label = 1;
@@ -258,7 +257,7 @@ exports.events = {
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channelInfo = _c.sent();
-                        if (toBN(channelInfo.userDeposit).gte(totalDeposit)) {
+                        if (web3_utils_1.toBN(channelInfo.userDeposit).gte(totalDeposit)) {
                             return [3, 4];
                         }
                         return [4, common_1.delay(1000)];
@@ -299,14 +298,13 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, amount, totalWithdraw, lastCommitBlock, transactionHash, toBN, time, channelInfo, _b, token, userBalance, txhash, withdrawEvent;
+            var _a, channelID, user, amount, totalWithdraw, lastCommitBlock, transactionHash, time, channelInfo, _b, token, userBalance, txhash, withdrawEvent;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
                         common_1.logger.info('--------------------Handle CITA OnchainUserWithdraw--------------------');
                         _a = event.returnValues, channelID = _a.channelID, user = _a.user, amount = _a.amount, totalWithdraw = _a.withdraw, lastCommitBlock = _a.lastCommitBlock, transactionHash = event.transactionHash;
                         common_1.logger.info(' channelID: [%s], user: [%s], amount: [%s], totalWithdraw: [%s], lastCommitBlock: [%s], ', channelID, user, amount, totalWithdraw, lastCommitBlock);
-                        toBN = main_1.web3_10.utils.toBN;
                         if (!main_1.callbacks.get('Withdraw')) return [3, 8];
                         time = 0;
                         _c.label = 1;
@@ -315,7 +313,7 @@ exports.events = {
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channelInfo = _c.sent();
-                        if (toBN(channelInfo.userWithdraw).gte(toBN(totalWithdraw))) {
+                        if (web3_utils_1.toBN(channelInfo.userWithdraw).gte(web3_utils_1.toBN(totalWithdraw))) {
                             return [3, 4];
                         }
                         return [4, common_1.delay(1000)];
@@ -466,12 +464,10 @@ exports.ethMethods = {
                             common_1.logger.info('userWithdrawProofMap not confirmed');
                             return [2];
                         }
-                        return [4, main_1.web3_10.eth.getBlockNumber()];
+                        return [4, ethHelper_1.ethHelper.getBlockNumber()];
                     case 3:
                         currentBlockNumber = _b.sent();
-                        if (main_1.web3_10.utils
-                            .toBN(currentBlockNumber)
-                            .gt(main_1.web3_10.utils.toBN(lastCommitBlock))) {
+                        if (web3_utils_1.toBN(currentBlockNumber).gt(web3_utils_1.toBN(lastCommitBlock))) {
                             common_1.logger.info('unlock user withdraw now');
                             common_1.sendAppTx(main_1.appPN.methods.unlockUserWithdrawProof(channelID));
                         }
@@ -480,7 +476,7 @@ exports.ethMethods = {
                             txData = main_1.ethPN.methods
                                 .userWithdraw(channelID, withdraw, lastCommitBlock, providerSignature, regulatorSignature, receiver)
                                 .encodeABI();
-                            common_1.sendEthTx(main_1.web3_outer, main_1.user, main_1.ethPN.options.address, 0, txData);
+                            common_1.sendEthTx(main_1.web3, main_1.user, main_1.ethPN.options.address, 0, txData);
                         }
                         return [2];
                 }
@@ -499,19 +495,17 @@ exports.ethMethods = {
                         common_1.logger.info('cooperativeSettleProof not confirmed');
                         return [2, null];
                     }
-                    return [4, main_1.web3_10.eth.getBlockNumber()];
+                    return [4, ethHelper_1.ethHelper.getBlockNumber()];
                 case 2:
                     currentBlockNumber = _b.sent();
-                    if (!main_1.web3_10.utils
-                        .toBN(currentBlockNumber)
-                        .gt(main_1.web3_10.utils.toBN(lastCommitBlock))) return [3, 4];
+                    if (!web3_utils_1.toBN(currentBlockNumber).gt(web3_utils_1.toBN(lastCommitBlock))) return [3, 4];
                     return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID))];
                 case 3: return [2, _b.sent()];
                 case 4:
                     txData = main_1.ethPN.methods
                         .cooperativeSettle(channelID, settleBalance, lastCommitBlock, providerSignature, regulatorSignature)
                         .encodeABI();
-                    return [4, common_1.sendEthTx(main_1.web3_outer, main_1.user, main_1.ethPN.options.address, 0, txData)];
+                    return [4, common_1.sendEthTx(main_1.web3, main_1.user, main_1.ethPN.options.address, 0, txData)];
                 case 5:
                     res = _b.sent();
                     return [4, main_1.appPN.methods.channelMap(channelID).call()];
@@ -534,7 +528,7 @@ exports.ethMethods = {
         var txData;
         return __generator(this, function (_a) {
             txData = main_1.ethPN.methods.settleChannel(channelID).encodeABI();
-            common_1.sendEthTx(main_1.web3_outer, main_1.user, main_1.ethPN.options.address, 0, txData);
+            common_1.sendEthTx(main_1.web3, main_1.user, main_1.ethPN.options.address, 0, txData);
             return [2];
         });
     }); },
@@ -559,8 +553,8 @@ exports.appMethods = {
                         common_1.logger.info('no balance proof now');
                         return [2];
                     }
-                    messageHash = main_1.web3_10.utils.soliditySha3({ t: 'address', v: main_1.ethPN.options.address }, { t: 'bytes32', v: channelID }, { t: 'uint256', v: balance }, { t: 'uint256', v: nonce }, { t: 'bytes32', v: additionalHash }, { t: 'bytes', v: signature });
-                    consignorSignature = common_1.myEcsignToHex(main_1.web3_10, messageHash, main_1.puppet.getAccount().privateKey);
+                    messageHash = web3_utils_1.soliditySha3({ t: 'address', v: main_1.ethPN.options.address }, { t: 'bytes32', v: channelID }, { t: 'uint256', v: balance }, { t: 'uint256', v: nonce }, { t: 'bytes32', v: additionalHash }, { t: 'bytes', v: signature });
+                    consignorSignature = common_1.myEcsignToHex(messageHash, main_1.puppet.getAccount().privateKey);
                     return [4, common_1.getAppTxOption()];
                 case 3:
                     appTx = _b.sent();

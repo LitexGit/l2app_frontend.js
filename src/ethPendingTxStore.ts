@@ -1,12 +1,9 @@
-import { logger, delay, getERC20Allowance } from './utils/common';
-import {
-  CHANNEL_STATUS,
-  CITA_TX_BLOCK_INTERVAL,
-  APPROVAL_STATUS,
-  ADDRESS_ZERO,
-  APPROVE_EVENT,
-} from './utils/constants';
-import { appPN, user, web3_10, ethPN, ERC20, callbacks } from './main';
+import { logger, delay } from './utils/common';
+import { CHANNEL_STATUS, ADDRESS_ZERO, APPROVE_EVENT } from './utils/constants';
+import { appPN, user, ERC20, callbacks } from './main';
+import { sha3 } from 'web3/node_modules/web3-utils';
+import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
+import { ethHelper } from './utils/ethHelper';
 
 export enum TX_TYPE {
   CHANNEL_OPEN = 1,
@@ -30,8 +27,7 @@ export type TXINFO = {
 export default class EthPendingTxStore {
   private enabled: boolean;
   private txList: Array<TXINFO>;
-  private key =
-    'ETHPendingStore_' + web3_10.utils.sha3(user + appPN.options.address);
+  private key = 'ETHPendingStore_' + sha3(user + appPN.options.address);
 
   public constructor() {
     // this.txList = new Array<TXINFO>();
@@ -55,7 +51,7 @@ export default class EthPendingTxStore {
     if (token === ADDRESS_ZERO) {
       return;
     }
-    let key = 'Allowance_' + web3_10.utils.sha3(user + '_' + token);
+    let key = 'Allowance_' + sha3(user + '_' + token);
     localStorage.setItem(key, allowance);
   }
 
@@ -64,7 +60,7 @@ export default class EthPendingTxStore {
       return 0;
     }
 
-    let key = 'Allowance_' + web3_10.utils.sha3(user + '_' + token);
+    let key = 'Allowance_' + sha3(user + '_' + token);
     let allowance = localStorage.getItem(key);
     if (!allowance) {
       return 0;
@@ -93,7 +89,7 @@ export default class EthPendingTxStore {
     )[0].inputs;
     console.log('inputs', inputs);
     console.log('logs[0]', logs[0]);
-    let event = web3_10.eth.abi.decodeLog(
+    let event = new AbiCoder().decodeLog(
       inputs,
       logs[0].data,
       logs[0].topics.slice(1)
@@ -103,17 +99,18 @@ export default class EthPendingTxStore {
     return { user, contractAddress, amount };
   }
 
-  async startWatch(web3: any) {
+  async startWatch() {
     while (true) {
       for (let tx of this.txList) {
         let { txHash, type, token } = tx;
         try {
-          let { status: txStatus, logs } = await web3.eth.getTransactionReceipt(
-            txHash
-          );
+          let {
+            status: txStatus,
+            logs,
+          } = await ethHelper.getTransactionReceipt(txHash);
           logger.info('txHash status', txHash, txStatus);
 
-          if (txStatus === true || txStatus === false) {
+          if (Boolean(txStatus) === true || Boolean(txStatus) === false) {
             console.log('tx is', tx);
             if (type === TX_TYPE.TOKEN_APPROVE) {
               if (txStatus) {

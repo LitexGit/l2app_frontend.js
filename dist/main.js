@@ -56,8 +56,8 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var web3_eth_contract_1 = require("web3/node_modules/web3-eth-contract");
+var web3_utils_1 = require("web3/node_modules/web3-utils");
 var cita_sdk_1 = require("@cryptape/cita-sdk");
-var Web3 = require('web3');
 var puppet_1 = require("./puppet");
 var httpwatcher_1 = require("./httpwatcher");
 var constants_1 = require("./utils/constants");
@@ -67,6 +67,7 @@ var common_1 = require("./utils/common");
 var session_2 = require("./session");
 var ethPendingTxStore_1 = require("./ethPendingTxStore");
 var cancelListener_1 = require("./cancelListener");
+var ethHelper_1 = require("./utils/ethHelper");
 var L2 = (function () {
     function L2() {
         exports.debug = false;
@@ -81,7 +82,7 @@ var L2 = (function () {
     };
     L2.prototype.init = function (userAddress, outerWeb3, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress) {
         return __awaiter(this, void 0, void 0, function () {
-            var ethPNInfo, appPNInfo, appSessionInfo, provider, ERC20Abi, operatorCNAddress, operatorAbi;
+            var ethPNInfo, appPNInfo, appSessionInfo, ERC20Abi, operatorCNAddress, operatorAbi;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -98,24 +99,24 @@ var L2 = (function () {
                             address: appSessionAddress,
                         };
                         common_1.logger.info('start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]', userAddress, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress);
-                        exports.web3_outer = outerWeb3;
-                        provider = outerWeb3.currentProvider;
-                        exports.web3_10 = new Web3(provider);
-                        common_1.logger.info("outer web3 version:", outerWeb3.version, "inner web3 version:", exports.web3_10.version);
-                        exports.ethPN = new web3_eth_contract_1.Contract(provider, ethPNInfo.abi, ethPNInfo.address);
+                        exports.web3 = outerWeb3;
+                        exports.EthProvider = outerWeb3.currentProvider;
+                        common_1.logger.info("outer web3 version:", outerWeb3.version);
+                        exports.ethPN = new web3_eth_contract_1.Contract(exports.EthProvider, ethPNInfo.abi, ethPNInfo.address);
                         exports.ethPN.options.from = exports.user;
                         exports.ethPN.options.address = ethPNInfo.address;
                         ERC20Abi = common_1.abi2jsonInterface(JSON.stringify(require('./config/ERC20.json')));
-                        exports.ERC20 = new web3_eth_contract_1.Contract(provider, ERC20Abi);
+                        exports.ERC20 = new web3_eth_contract_1.Contract(exports.EthProvider, ERC20Abi);
                         exports.ERC20.options.jsonInterface = ERC20Abi;
-                        exports.user = userAddress;
+                        exports.ERC20.options.from = exports.user;
+                        exports.user = (userAddress);
                         return [4, exports.ethPN.methods.provider().call()];
                     case 1:
                         exports.cp = _a.sent();
                         return [4, exports.ethPN.methods.regulator().call()];
                     case 2:
                         exports.l2 = _a.sent();
-                        common_1.logger.info('cp / l2 is ', exports.cp, exports.l2);
+                        common_1.logger.info("cp / l2 is " + exports.cp + " " + exports.l2);
                         exports.cita = cita_sdk_1.default(appRpcUrl);
                         exports.appPN = new exports.cita.base.Contract(appPNInfo.abi, appPNInfo.address);
                         exports.appPN.options.address = appPNInfo.address;
@@ -123,10 +124,11 @@ var L2 = (function () {
                         return [4, exports.appPN.methods.operator().call()];
                     case 3:
                         operatorCNAddress = _a.sent();
-                        common_1.logger.info('op is', operatorCNAddress);
+                        common_1.logger.info("op is " + operatorCNAddress);
                         operatorAbi = common_1.abi2jsonInterface(JSON.stringify(require('./config/operatorContract.json')));
                         exports.appOperator = new exports.cita.base.Contract(operatorAbi, operatorCNAddress);
                         exports.appOperator.options.address = operatorCNAddress;
+                        common_1.logger.info('cita contract init finished');
                         return [4, this.initPuppet()];
                     case 4:
                         _a.sent();
@@ -192,20 +194,19 @@ var L2 = (function () {
     };
     L2.prototype.submitERC20Approval = function (amount, token) {
         return __awaiter(this, void 0, void 0, function () {
-            var toBN, amountBN, allowance, channelID, approveData, res;
+            var amountBN, allowance, channelID, approveData, res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         common_1.logger.info('start submitERC20Approval with params: amount: [%s], token: [%s]', amount + '', token);
-                        if (!exports.web3_10.utils.isAddress(token)) {
+                        if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
-                        toBN = exports.web3_10.utils.toBN;
-                        amountBN = toBN(amount);
+                        amountBN = web3_utils_1.toBN(amount);
                         return [4, this.getERC20Allowance(exports.user, exports.ethPN.options.address, token)];
                     case 1:
                         allowance = _a.sent();
-                        if (toBN(allowance).gte(amountBN)) {
+                        if (web3_utils_1.toBN(allowance).gte(amountBN)) {
                             throw new Error('allowance is great than amount now.');
                         }
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
@@ -214,7 +215,7 @@ var L2 = (function () {
                         approveData = exports.ERC20.methods
                             .approve(exports.ethPN.options.address, amountBN.toString())
                             .encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, token, 0, approveData)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, token, 0, approveData)];
                     case 3:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
@@ -240,7 +241,7 @@ var L2 = (function () {
                     case 0:
                         this.checkInitialized();
                         common_1.logger.info('start deposit with params: amount: [%s], token: [%s]', amount + '', token);
-                        if (!exports.web3_10.utils.isAddress(token)) {
+                        if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
@@ -249,7 +250,7 @@ var L2 = (function () {
                         return [4, exports.ethPN.methods.channels(channelID).call()];
                     case 2:
                         channel = _a.sent();
-                        amount = exports.web3_10.utils.toBN(amount).toString();
+                        amount = web3_utils_1.toBN(amount).toString();
                         ethPNAddress = exports.ethPN.options.address;
                         if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN)) return [3, 8];
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
@@ -261,7 +262,7 @@ var L2 = (function () {
                         }
                         data = exports.ethPN.methods.userDeposit(channelID, amount).encodeABI();
                         if (!(token === constants_1.ADDRESS_ZERO)) return [3, 5];
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, amount, data)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, ethPNAddress, amount, data)];
                     case 4:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
@@ -284,7 +285,7 @@ var L2 = (function () {
                             .openChannel(exports.user, from, constants_1.SETTLE_WINDOW, token, amount)
                             .encodeABI();
                         if (!(token === constants_1.ADDRESS_ZERO)) return [3, 10];
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, amount, data)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, ethPNAddress, amount, data)];
                     case 9:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
@@ -316,20 +317,20 @@ var L2 = (function () {
                     case 0:
                         this.checkInitialized();
                         common_1.logger.info('start withdraw with params:  amount: [%s], token: [%s]', amount + '', token);
-                        if (!exports.web3_10.utils.isAddress(token)) {
+                        if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
-                        amount = exports.web3_10.utils.toBN(amount).toString();
+                        amount = web3_utils_1.toBN(amount).toString();
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
                     case 1:
                         channelID = _j.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _j.sent();
-                        if (exports.web3_10.utils.toBN(channel.userBalance).lt(exports.web3_10.utils.toBN(amount))) {
+                        if (web3_utils_1.toBN(channel.userBalance).lt(web3_utils_1.toBN(amount))) {
                             throw new Error('withdraw amount exceeds the balance');
                         }
-                        if (!exports.web3_10.utils.toBN(channel.userBalance).gt(exports.web3_10.utils.toBN(amount))) return [3, 5];
+                        if (!web3_utils_1.toBN(channel.userBalance).gt(web3_utils_1.toBN(amount))) return [3, 5];
                         if (Number(channel.status) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
                             throw new Error('channel status is not open');
                         }
@@ -339,7 +340,7 @@ var L2 = (function () {
                         _d = [channelID,
                             amount,
                             exports.user];
-                        return [4, common_1.getLCB(exports.web3_10.eth, 'eth')];
+                        return [4, common_1.getLCB(ethHelper_1.ethHelper, 'eth')];
                     case 3: return [4, _a.apply(void 0, [_c.apply(_b, _d.concat([_j.sent()]))])];
                     case 4: return [2, _j.sent()];
                     case 5:
@@ -353,7 +354,7 @@ var L2 = (function () {
                         _g = (_f = exports.appPN.methods).proposeCooperativeSettle;
                         _h = [channelID,
                             amount];
-                        return [4, common_1.getLCB(exports.web3_10.eth, 'eth')];
+                        return [4, common_1.getLCB(ethHelper_1.ethHelper, 'eth')];
                     case 8: return [4, _e.apply(void 0, [_g.apply(_f, _h.concat([_j.sent()]))])];
                     case 9:
                         res = _j.sent();
@@ -384,7 +385,7 @@ var L2 = (function () {
     L2.prototype.cancelWithdraw = function (token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
-            var channelID, _a, isConfirmed, settleBalance, lastCommitBlock, providerSignature, regulatorSignature, toBN, status_2, currentBlockNumber;
+            var channelID, _a, isConfirmed, settleBalance, lastCommitBlock, providerSignature, regulatorSignature, status_2, currentBlockNumber;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
@@ -393,7 +394,6 @@ var L2 = (function () {
                         return [4, exports.appPN.methods.cooperativeSettleProofMap(channelID).call()];
                     case 2:
                         _a = _b.sent(), isConfirmed = _a.isConfirmed, settleBalance = _a.balance, lastCommitBlock = _a.lastCommitBlock, providerSignature = _a.providerSignature, regulatorSignature = _a.regulatorSignature;
-                        toBN = exports.web3_10.utils.toBN;
                         if (!isConfirmed) {
                             common_1.logger.error('cooperativeSettleProof not confirmed');
                             throw new Error('cooperativeSettleProof not confirmed');
@@ -407,10 +407,10 @@ var L2 = (function () {
                         if (Number(status_2) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE) {
                             throw new Error('channels status is not pending co settle, will terminate cancel withdraw');
                         }
-                        return [4, exports.web3_10.eth.getBlockNumber()];
+                        return [4, ethHelper_1.ethHelper.getBlockNumber()];
                     case 5:
                         currentBlockNumber = _b.sent();
-                        if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
+                        if (web3_utils_1.toBN(currentBlockNumber).gt(web3_utils_1.toBN(lastCommitBlock))) {
                             return [3, 7];
                         }
                         common_1.logger.info('wait to unlock coSettle, currentBlockNumber[%s], lastCommitBlockNumber[%s]', currentBlockNumber, lastCommitBlock);
@@ -433,7 +433,7 @@ var L2 = (function () {
                     case 0:
                         this.checkInitialized();
                         common_1.logger.info('start forceWithdraw with params: token: [%s]', token);
-                        if (!exports.web3_10.utils.isAddress(token)) {
+                        if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
@@ -458,7 +458,7 @@ var L2 = (function () {
                         data = exports.ethPN.methods
                             .closeChannel(channelID, balance, nonce, additionalHash, partnerSignature, inAmount, inNonce, regulatorSignature, providerSignature)
                             .encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, exports.ethPN.options.address, 0, data)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, exports.ethPN.options.address, 0, data)];
                     case 4: return [2, _d.sent()];
                 }
             });
@@ -467,46 +467,45 @@ var L2 = (function () {
     L2.prototype.transfer = function (to, amount, token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
-            var _a, isAddress, toBN, channelID, channel, _b, balance, nonce, additionalHash, signature;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var channelID, channel, _a, balance, nonce, additionalHash, signature;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         this.checkInitialized();
                         common_1.logger.info('start transfer with params: to: [%s], amount: [%s], token: [%s]', to, amount + '', token);
-                        _a = exports.web3_10.utils, isAddress = _a.isAddress, toBN = _a.toBN;
-                        if (!isAddress(token)) {
+                        if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
                     case 1:
-                        channelID = _c.sent();
+                        channelID = _b.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 2:
-                        channel = _c.sent();
+                        channel = _b.sent();
                         if (Number(channel.status) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
                             throw new Error('app channel status is not open, can not transfer now');
                         }
-                        if (toBN(channel.userBalance).lt(exports.web3_10.utils.toBN(amount))) {
+                        if (web3_utils_1.toBN(channel.userBalance).lt(web3_utils_1.toBN(amount))) {
                             throw new Error("user's balance is less than transfer amount");
                         }
                         return [4, exports.appPN.methods
                                 .balanceProofMap(channelID, exports.cp)
                                 .call()];
                     case 3:
-                        _b = _c.sent(), balance = _b.balance, nonce = _b.nonce;
-                        balance = toBN(amount)
-                            .add(toBN(balance))
+                        _a = _b.sent(), balance = _a.balance, nonce = _a.nonce;
+                        balance = web3_utils_1.toBN(amount)
+                            .add(web3_utils_1.toBN(balance))
                             .toString();
-                        nonce = toBN(nonce)
-                            .add(toBN(1))
+                        nonce = web3_utils_1.toBN(nonce)
+                            .add(web3_utils_1.toBN(1))
                             .toString();
                         additionalHash = '0x0';
-                        return [4, common_1.prepareSignatureForTransfer(exports.web3_outer, exports.ethPN.options.address, channelID, balance, nonce, additionalHash, exports.user)];
+                        return [4, common_1.prepareSignatureForTransfer(exports.web3, exports.ethPN.options.address, channelID, balance, nonce, additionalHash, exports.user)];
                     case 4:
-                        signature = _c.sent();
+                        signature = _b.sent();
                         common_1.logger.info('start Submit Transfer');
                         return [4, common_1.sendAppTx(exports.appPN.methods.transfer(to, channelID, balance, nonce, additionalHash, signature))];
-                    case 5: return [2, _c.sent()];
+                    case 5: return [2, _b.sent()];
                 }
             });
         });
@@ -649,10 +648,10 @@ var L2 = (function () {
                                 return a[key] - b[key];
                             };
                         };
-                        lastBalance = exports.web3_10.utils.toBN(0);
+                        lastBalance = web3_utils_1.toBN(0);
                         getTX = function (tx) {
                             var _a = tx.returnValues, channelID = _a.channelID, balance = _a.balance, rest = __rest(_a, ["channelID", "balance"]);
-                            balance = new exports.web3_10.utils.toBN(balance);
+                            balance = web3_utils_1.toBN(balance);
                             var amount = balance.sub(lastBalance).toString();
                             lastBalance = balance;
                             return __assign({ id: tx.transactionHash, amount: amount }, rest);
@@ -672,7 +671,7 @@ var L2 = (function () {
                 switch (_a.label) {
                     case 0:
                         _a.trys.push([0, 3, , 4]);
-                        return [4, exports.web3_10.eth.getTransactionReceipt(txHash)];
+                        return [4, ethHelper_1.ethHelper.getTransactionReceipt(txHash)];
                     case 1:
                         ethStatus = (_a.sent()).status;
                         if (!ethStatus) {
@@ -756,7 +755,7 @@ var L2 = (function () {
                     case 0:
                         this.checkInitialized();
                         data = exports.ethPN.methods.disablePuppet(puppet).encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, exports.ethPN.options.address, 0, data)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, exports.ethPN.options.address, 0, data)];
                     case 1: return [2, _a.sent()];
                 }
             });
@@ -765,16 +764,15 @@ var L2 = (function () {
     L2.prototype.getOnchainBalance = function (token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
-            var contract;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         if (!(token === constants_1.ADDRESS_ZERO)) return [3, 2];
-                        return [4, exports.web3_10.eth.getBalance(exports.user)];
+                        return [4, ethHelper_1.ethHelper.getBalance(exports.user)];
                     case 1: return [2, _a.sent()];
                     case 2:
-                        contract = new exports.web3_10.eth.Contract(require('./config/ERC20.json'), token);
-                        return [4, contract.methods.balanceOf(exports.user).call()];
+                        exports.ERC20.options.address = token;
+                        return [4, exports.ERC20.methods.balanceOf(exports.user).call()];
                     case 3: return [2, _a.sent()];
                 }
             });
@@ -800,13 +798,12 @@ var L2 = (function () {
     };
     L2.prototype.depositERC20Token = function (channelID, amount, token, data) {
         return __awaiter(this, void 0, void 0, function () {
-            var toBN, ethPNAddress, res;
+            var ethPNAddress, res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        toBN = exports.web3_10.utils.toBN;
                         ethPNAddress = exports.ethPN.options.address;
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, ethPNAddress, 0, data)];
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, ethPNAddress, 0, data)];
                     case 1:
                         res = _a.sent();
                         exports.ethPendingTxStore.addTx({
@@ -829,38 +826,43 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        exports.puppet = puppet_1.default.get(exports.user, exports.ethPN.options.address);
-                        if (!exports.puppet) return [3, 2];
-                        common_1.logger.info('puppet is ', exports.puppet);
+                        common_1.logger.info('start init Pupept');
+                        return [4, puppet_1.default.get(exports.user, exports.ethPN.options.address)];
+                    case 1:
+                        exports.puppet = _a.sent();
+                        common_1.logger.info("puppet is " + exports.puppet);
+                        if (!exports.puppet) return [3, 3];
+                        common_1.logger.info('puppet is ' + JSON.stringify(exports.puppet));
                         return [4, exports.appPN.methods
                                 .isPuppet(exports.user, exports.puppet.getAccount().address)
                                 .call()];
-                    case 1:
+                    case 2:
                         puppetStatus = _a.sent();
                         common_1.logger.info('puppetStatus', puppetStatus);
                         if (puppetStatus) {
                             common_1.logger.info('puppet is active');
                             return [2];
                         }
-                        return [3, 3];
-                    case 2:
-                        exports.puppet = puppet_1.default.create(exports.user, exports.ethPN.options.address);
-                        _a.label = 3;
-                    case 3:
-                        _a.trys.push([3, 5, , 6]);
-                        return [4, exports.appPN.methods.puppets(exports.user, 0).call()];
+                        return [3, 5];
+                    case 3: return [4, puppet_1.default.create(exports.user, exports.ethPN.options.address)];
                     case 4:
+                        exports.puppet = _a.sent();
+                        _a.label = 5;
+                    case 5:
+                        _a.trys.push([5, 7, , 8]);
+                        return [4, exports.appPN.methods.puppets(exports.user, 0).call()];
+                    case 6:
                         firstPuppetAddress = _a.sent();
                         common_1.logger.info('firstPuppetAddress is exist', firstPuppetAddress);
-                        return [3, 6];
-                    case 5:
+                        return [3, 8];
+                    case 7:
                         err_4 = _a.sent();
                         common_1.logger.info('first puppet not exist, it is new user', err_4);
                         return [2];
-                    case 6:
+                    case 8:
                         data = exports.ethPN.methods.addPuppet(exports.puppet.getAccount().address).encodeABI();
-                        return [4, common_1.sendEthTx(exports.web3_outer, exports.user, exports.ethPN.options.address, 0, data)];
-                    case 7:
+                        return [4, common_1.sendEthTx(exports.web3, exports.user, exports.ethPN.options.address, 0, data)];
+                    case 9:
                         _a.sent();
                         return [2];
                 }
@@ -871,7 +873,7 @@ var L2 = (function () {
         return __awaiter(this, void 0, void 0, function () {
             var appWatchList;
             return __generator(this, function (_a) {
-                this.ethWatcher && this.ethWatcher.stop();
+                common_1.logger.info('start init Listener');
                 this.appWatcher && this.appWatcher.stop();
                 appWatchList = [
                     { contract: exports.appPN, listener: cita_1.events },
@@ -888,12 +890,13 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        common_1.logger.info('start init initEthPendingTxStore');
                         exports.ethPendingTxStore && exports.ethPendingTxStore.stopWatch();
                         exports.ethPendingTxStore = new ethPendingTxStore_1.default();
                         return [4, exports.ethPendingTxStore.load()];
                     case 1:
                         _a.sent();
-                        exports.ethPendingTxStore.startWatch(exports.web3_10);
+                        exports.ethPendingTxStore.startWatch();
                         return [2];
                 }
             });
@@ -904,6 +907,7 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        common_1.logger.info('start initCancelListener');
                         exports.cancelListener && exports.cancelListener.stop();
                         exports.cancelListener = new cancelListener_1.default();
                         return [4, exports.cancelListener.load()];
@@ -921,7 +925,7 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        common_1.logger.info('start initMissingEvent');
+                        common_1.logger.info('start init Missing Event');
                         return [4, exports.ethPN.getPastEvents('ChannelOpened', {
                                 filter: { user: exports.user },
                                 fromBlock: 0,

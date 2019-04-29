@@ -5,8 +5,7 @@ import {
   callbacks,
   puppet,
   cita,
-  web3_10,
-  web3_outer,
+  web3,
   ethPendingTxStore,
   cancelListener,
 } from '../main';
@@ -30,6 +29,14 @@ import {
   CITA_SYNC_EVENT_TIMEOUT,
 } from '../utils/constants';
 import { TX_TYPE } from '../ethPendingTxStore';
+import {
+  toBN,
+  isAddress,
+  soliditySha3,
+  sha3,
+  hexToUtf8,
+} from 'web3/node_modules/web3-utils';
+import { ethHelper } from '../utils/ethHelper';
 
 /**
  * Handle events from cita payment contract, only filter current user related event
@@ -88,7 +95,7 @@ export const events = {
           user
         )
         .encodeABI();
-      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
+      sendEthTx(web3, user, ethPN.options.address, 0, txData);
     },
   },
 
@@ -184,7 +191,6 @@ export const events = {
       ) {
         let amount = transferAmount;
 
-        let { toBN } = web3_10.utils;
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
           let channelInfo = await appPN.methods
@@ -275,7 +281,6 @@ export const events = {
         amount,
         channelID
       );
-      let { toBN } = web3_10.utils;
 
       if (callbacks.get('Deposit')) {
         let time = 0;
@@ -332,7 +337,6 @@ export const events = {
         totalDeposit
       );
 
-      let { toBN } = web3_10.utils;
       if (callbacks.get('Deposit')) {
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
@@ -392,7 +396,6 @@ export const events = {
         lastCommitBlock
       );
 
-      let { toBN } = web3_10.utils;
       if (callbacks.get('Withdraw')) {
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
@@ -555,12 +558,8 @@ export const ethMethods = {
       return;
     }
 
-    let currentBlockNumber = await web3_10.eth.getBlockNumber();
-    if (
-      web3_10.utils
-        .toBN(currentBlockNumber)
-        .gt(web3_10.utils.toBN(lastCommitBlock))
-    ) {
+    let currentBlockNumber = await ethHelper.getBlockNumber();
+    if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
       logger.info('unlock user withdraw now');
 
       sendAppTx(appPN.methods.unlockUserWithdrawProof(channelID));
@@ -577,7 +576,7 @@ export const ethMethods = {
           receiver
         )
         .encodeABI();
-      sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
+      sendEthTx(web3, user, ethPN.options.address, 0, txData);
     }
   },
 
@@ -610,12 +609,8 @@ export const ethMethods = {
       return null;
     }
 
-    let currentBlockNumber = await web3_10.eth.getBlockNumber();
-    if (
-      web3_10.utils
-        .toBN(currentBlockNumber)
-        .gt(web3_10.utils.toBN(lastCommitBlock))
-    ) {
+    let currentBlockNumber = await ethHelper.getBlockNumber();
+    if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
       return await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
     } else {
       // TODO: check the eth tx has been submited before
@@ -629,7 +624,7 @@ export const ethMethods = {
         )
         .encodeABI();
       let res = await sendEthTx(
-        web3_outer,
+        web3,
         user,
         ethPN.options.address,
         0,
@@ -652,7 +647,7 @@ export const ethMethods = {
 
   ethSettleChannel: async (channelID: string) => {
     let txData = ethPN.methods.settleChannel(channelID).encodeABI();
-    sendEthTx(web3_outer, user, ethPN.options.address, 0, txData);
+    sendEthTx(web3, user, ethPN.options.address, 0, txData);
   },
 };
 
@@ -695,7 +690,7 @@ export const appMethods = {
     }
 
     // sign the received transfer
-    let messageHash = web3_10.utils.soliditySha3(
+    let messageHash = soliditySha3(
       { t: 'address', v: ethPN.options.address },
       { t: 'bytes32', v: channelID },
       { t: 'uint256', v: balance },
@@ -705,7 +700,6 @@ export const appMethods = {
     );
 
     consignorSignature = myEcsignToHex(
-      web3_10,
       messageHash,
       puppet.getAccount().privateKey
     );

@@ -38,9 +38,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var common_1 = require("./utils/common");
 var main_1 = require("./main");
 var constants_1 = require("./utils/constants");
+var web3_utils_1 = require("web3/node_modules/web3-utils");
 var CancelListener = (function () {
     function CancelListener() {
-        this.key = 'CancelListenerStore_' + main_1.web3_10.utils.sha3(main_1.user + main_1.appPN.options.address);
+        this.key = 'CancelListenerStore_' + web3_utils_1.sha3(main_1.user + main_1.appPN.options.address);
     }
     CancelListener.prototype.load = function () {
         return __awaiter(this, void 0, void 0, function () {

@@ -51,13 +51,15 @@ var constants_1 = require("./constants");
 var TypedData_1 = require("../config/TypedData");
 var main_1 = require("../main");
 var ethereumjs_util_2 = require("ethereumjs-util");
-function myEcsign(web3, messageHash, privateKey) {
-    var signatureHexString = myEcsignToHex(web3, messageHash, privateKey);
-    var signatureBytes = web3.utils.hexToBytes(signatureHexString);
+var web3_utils_1 = require("web3/node_modules/web3-utils");
+var web3_eth_abi_1 = require("web3/node_modules/web3-eth-abi");
+function myEcsign(messageHash, privateKey) {
+    var signatureHexString = myEcsignToHex(messageHash, privateKey);
+    var signatureBytes = web3_utils_1.hexToBytes(signatureHexString);
     return signatureBytes;
 }
 exports.myEcsign = myEcsign;
-function myEcsignToHex(web3, messageHash, privateKey) {
+function myEcsignToHex(messageHash, privateKey) {
     var privateKeyBuffer = new Buffer(privateKey.replace('0x', ''), 'hex');
     var messageHashBuffer = new Buffer(messageHash.replace('0x', ''), 'hex');
     var signatureObj = ethereumjs_util_1.ecsign(messageHashBuffer, privateKeyBuffer);
@@ -90,11 +92,11 @@ function signMessage(web3, from, typedData) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    if (!!main_1.web3_outer.currentProvider.isMetaMask) return [3, 2];
+                    if (!!web3.currentProvider.isMetaMask) return [3, 2];
                     typedDataHash_1 = ethereumjs_util_2.bufferToHex(TypedData_1.signHash(typedData));
                     console.log('typedDataHash, from', typedDataHash_1, from);
                     signFunc = new Promise(function (resolve, reject) {
-                        main_1.web3_outer.eth.sign(from, typedDataHash_1, function (err, result) {
+                        web3.eth.sign(from, typedDataHash_1, function (err, result) {
                             if (err) {
                                 reject(err);
                             }
@@ -113,7 +115,7 @@ function signMessage(web3, from, typedData) {
                     params_1 = [from, JSON.stringify(typedData)];
                     method_1 = 'eth_signTypedData_v3';
                     return [2, new Promise(function (resolve, reject) {
-                            main_1.web3_outer.currentProvider.sendAsync({
+                            web3.currentProvider.sendAsync({
                                 method: method_1,
                                 params: params_1,
                                 from: from,
@@ -232,11 +234,12 @@ function extractEventFromReceipt(web3, receipt, contract, name) {
     if (eventDefinition === null) {
         return null;
     }
-    var eventSignature = web3.eth.abi.encodeEventSignature(eventDefinition);
+    var abiCoder = new web3_eth_abi_1.AbiCoder();
+    var eventSignature = abiCoder.encodeEventSignature(eventDefinition);
     for (var _a = 0, _b = receipt.logs; _a < _b.length; _a++) {
         var log = _b[_a];
         if (log.topics[0] === eventSignature) {
-            return web3.eth.abi.decodeLog(eventDefinition.inputs, log.data, log.topics.slice(1));
+            return abiCoder.decodeLog(eventDefinition.inputs, log.data, log.topics.slice(1));
         }
     }
     return null;
@@ -297,12 +300,12 @@ function sendAppTx(action) {
 exports.sendAppTx = sendAppTx;
 function getERC20Allowance(owner, spender, token) {
     return __awaiter(this, void 0, void 0, function () {
-        var contract, allowance;
+        var allowance;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    contract = new main_1.web3_10.eth.Contract(require('../config/ERC20.json'), token);
-                    return [4, contract.methods.allowance(owner, spender).call()];
+                    main_1.ERC20.options.address = token;
+                    return [4, main_1.ERC20.methods.allowance(owner, spender).call()];
                 case 1:
                     allowance = _a.sent();
                     return [2, allowance];
@@ -313,19 +316,20 @@ function getERC20Allowance(owner, spender, token) {
 exports.getERC20Allowance = getERC20Allowance;
 function extractEthTxHashFromAppTx(appTxHash) {
     return __awaiter(this, void 0, void 0, function () {
-        var receipt, executionABIs, _i, _a, log, transactionId, txHash;
+        var receipt, executionABIs, abiCoder, _i, _a, log, transactionId, txHash;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4, main_1.cita.listeners.listenToTransactionReceipt(appTxHash)];
                 case 1:
                     receipt = _b.sent();
                     executionABIs = main_1.appOperator.options.jsonInterface.filter(function (item) { return item.name === 'Execution'; });
+                    abiCoder = new web3_eth_abi_1.AbiCoder();
                     _i = 0, _a = receipt.logs;
                     _b.label = 2;
                 case 2:
                     if (!(_i < _a.length)) return [3, 5];
                     log = _a[_i];
-                    if (!(log.topics[0] === main_1.web3_10.eth.abi.encodeEventSignature(executionABIs[0]))) return [3, 4];
+                    if (!(log.topics[0] === abiCoder.encodeEventSignature(executionABIs[0]))) return [3, 4];
                     transactionId = log.topics[1];
                     return [4, main_1.appOperator.methods
                             .transactions(transactionId)

@@ -38,6 +38,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var common_1 = require("./utils/common");
 var constants_1 = require("./utils/constants");
 var main_1 = require("./main");
+var web3_utils_1 = require("web3/node_modules/web3-utils");
+var web3_eth_abi_1 = require("web3/node_modules/web3-eth-abi");
+var ethHelper_1 = require("./utils/ethHelper");
 var TX_TYPE;
 (function (TX_TYPE) {
     TX_TYPE[TX_TYPE["CHANNEL_OPEN"] = 1] = "CHANNEL_OPEN";
@@ -49,7 +52,7 @@ var TX_TYPE;
 })(TX_TYPE = exports.TX_TYPE || (exports.TX_TYPE = {}));
 var EthPendingTxStore = (function () {
     function EthPendingTxStore() {
-        this.key = 'ETHPendingStore_' + main_1.web3_10.utils.sha3(main_1.user + main_1.appPN.options.address);
+        this.key = 'ETHPendingStore_' + web3_utils_1.sha3(main_1.user + main_1.appPN.options.address);
     }
     EthPendingTxStore.prototype.load = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -77,14 +80,14 @@ var EthPendingTxStore = (function () {
         if (token === constants_1.ADDRESS_ZERO) {
             return;
         }
-        var key = 'Allowance_' + main_1.web3_10.utils.sha3(main_1.user + '_' + token);
+        var key = 'Allowance_' + web3_utils_1.sha3(main_1.user + '_' + token);
         localStorage.setItem(key, allowance);
     };
     EthPendingTxStore.prototype.getTokenAllowance = function (token) {
         if (token === constants_1.ADDRESS_ZERO) {
             return 0;
         }
-        var key = 'Allowance_' + main_1.web3_10.utils.sha3(main_1.user + '_' + token);
+        var key = 'Allowance_' + web3_utils_1.sha3(main_1.user + '_' + token);
         var allowance = localStorage.getItem(key);
         if (!allowance) {
             return 0;
@@ -113,14 +116,14 @@ var EthPendingTxStore = (function () {
                 inputs = main_1.ERC20.options.jsonInterface.filter(function (item) { return item.name === 'Approval' && item.type === 'event'; })[0].inputs;
                 console.log('inputs', inputs);
                 console.log('logs[0]', logs[0]);
-                event = main_1.web3_10.eth.abi.decodeLog(inputs, logs[0].data, logs[0].topics.slice(1));
+                event = new web3_eth_abi_1.AbiCoder().decodeLog(inputs, logs[0].data, logs[0].topics.slice(1));
                 console.log(event);
                 user = event.owner, contractAddress = event.spender, amount = event.value;
                 return [2, { user: user, contractAddress: contractAddress, amount: amount }];
             });
         });
     };
-    EthPendingTxStore.prototype.startWatch = function (web3) {
+    EthPendingTxStore.prototype.startWatch = function () {
         return __awaiter(this, void 0, void 0, function () {
             var _i, _a, tx, txHash, type, token, _b, txStatus, logs, _c, user_1, amount, approveEvent, err_1, err_2;
             return __generator(this, function (_d) {
@@ -136,11 +139,11 @@ var EthPendingTxStore = (function () {
                         _d.label = 2;
                     case 2:
                         _d.trys.push([2, 10, , 11]);
-                        return [4, web3.eth.getTransactionReceipt(txHash)];
+                        return [4, ethHelper_1.ethHelper.getTransactionReceipt(txHash)];
                     case 3:
                         _b = _d.sent(), txStatus = _b.status, logs = _b.logs;
                         common_1.logger.info('txHash status', txHash, txStatus);
-                        if (!(txStatus === true || txStatus === false)) return [3, 9];
+                        if (!(Boolean(txStatus) === true || Boolean(txStatus) === false)) return [3, 9];
                         console.log('tx is', tx);
                         if (!(type === TX_TYPE.TOKEN_APPROVE)) return [3, 8];
                         if (!txStatus) return [3, 8];

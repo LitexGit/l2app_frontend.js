@@ -7,10 +7,9 @@ import {
   appSession,
   appPN,
   ethPN,
-  web3_10,
   user,
   puppet,
-  web3_outer,
+  web3,
   cp,
 } from './main';
 import {
@@ -20,6 +19,14 @@ import {
   logger,
 } from './utils/common';
 import * as rlp from 'rlp';
+import {
+  toBN,
+  isAddress,
+  soliditySha3,
+  sha3,
+  hexToUtf8,
+  toHex,
+} from 'web3/node_modules/web3-utils';
 
 /**
  * Session manager
@@ -132,7 +139,7 @@ export default class L2Session {
     } = await appSession.methods.sessions(this.sessionID).call();
     this.status = Number(status);
     this.game = game;
-    this.data = web3_10.utils.hexToUtf8(data);
+    this.data = hexToUtf8(data);
     this.provider = provider;
 
     this.callbacks = this.callbacks || new Map<string, () => void>();
@@ -178,22 +185,18 @@ export default class L2Session {
 
     // build session message
     let from = user;
-    let messageHash = web3_10.utils.soliditySha3(
+    let messageHash = soliditySha3(
       { t: 'address', v: from },
       { t: 'address', v: to },
       { t: 'bytes32', v: this.sessionID },
       { t: 'uint8', v: type },
       { t: 'bytes', v: content }
     );
-    let signature = myEcsignToHex(
-      web3_10,
-      messageHash,
-      puppet.getAccount().privateKey
-    );
+    let signature = myEcsignToHex(messageHash, puppet.getAccount().privateKey);
 
     let paymentData = await this.buildTransferData(
       from,
-      web3_10.utils.toBN(amount).toString(),
+      toBN(amount).toString(),
       token,
       messageHash
     );
@@ -241,7 +244,6 @@ export default class L2Session {
       token,
       messageHash
     );
-    let { bytesToHex, toHex, soliditySha3, toBN } = web3_10.utils;
     let channelID =
       '0x0000000000000000000000000000000000000000000000000000000000000000';
     let balance = '0';
@@ -282,7 +284,7 @@ export default class L2Session {
         { t: 'uint256', v: amount }
       );
       paymentSignature = await prepareSignatureForTransfer(
-        web3_outer,
+        web3,
         ethPN.options.address,
         channelID,
         balance,

@@ -38,17 +38,20 @@ export default class Puppet {
         { v: pnAddress, t: 'address' }
       )
     );
-
     if (!key) {
       return null;
     }
 
-    key = new SimpleCrypto(getPassword(masterAddress)).decrypt(key).toString();
-
-    let puppet = new Puppet();
-    puppet.account = cita.base.accounts.privateKeyToAccount(key);
-
-    return puppet;
+    try {
+      key = new SimpleCrypto(getPassword(masterAddress))
+        .decrypt(key)
+        .toString();
+      let puppet = new Puppet();
+      puppet.account = cita.base.accounts.privateKeyToAccount(key);
+      return puppet;
+    } catch (err) {
+      return null;
+    }
   }
 
   getAccount() {

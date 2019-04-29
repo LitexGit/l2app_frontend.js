@@ -9,8 +9,17 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES, signHash, recoverTypedData } from '../config/TypedData';
-import { cita, puppet, debug, appOperator, web3_10, web3_outer } from '../main';
+import {
+  cita,
+  puppet,
+  debug,
+  appOperator,
+  web3,
+  ERC20,
+} from '../main';
 import { bufferToHex } from 'ethereumjs-util';
+import { hexToBytes } from 'web3/node_modules/web3-utils';
+import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
 
 /**
  * 用私钥签署消息
@@ -21,9 +30,9 @@ import { bufferToHex } from 'ethereumjs-util';
  *
  * @returns {Bytes} 返回bytes格式的签名结果
  */
-export function myEcsign(web3: any, messageHash: string, privateKey: string) {
-  let signatureHexString = myEcsignToHex(web3, messageHash, privateKey);
-  let signatureBytes = web3.utils.hexToBytes(signatureHexString);
+export function myEcsign(messageHash: string, privateKey: string) {
+  let signatureHexString = myEcsignToHex(messageHash, privateKey);
+  let signatureBytes = hexToBytes(signatureHexString);
   return signatureBytes;
 }
 
@@ -36,11 +45,7 @@ export function myEcsign(web3: any, messageHash: string, privateKey: string) {
  *
  * @returns {String} 返回hex格式的签名结果
  */
-export function myEcsignToHex(
-  web3: any,
-  messageHash: string,
-  privateKey: string
-): string {
+export function myEcsignToHex(messageHash: string, privateKey: string): string {
   let privateKeyBuffer = new Buffer(privateKey.replace('0x', ''), 'hex');
   let messageHashBuffer = new Buffer(messageHash.replace('0x', ''), 'hex');
   let signatureObj = ecsign(messageHashBuffer, privateKeyBuffer);
@@ -97,11 +102,11 @@ export async function signMessage(
   from: string,
   typedData: any
 ): Promise<string> {
-  if (!(web3_outer.currentProvider as any).isMetaMask) {
+  if (!(web3.currentProvider as any).isMetaMask) {
     const typedDataHash = bufferToHex(signHash(typedData));
     console.log('typedDataHash, from', typedDataHash, from);
     let signFunc = new Promise((resolve, reject) => {
-      web3_outer.eth.sign(from, typedDataHash, (err, result) => {
+      web3.eth.sign(from, typedDataHash, (err, result) => {
         if (err) {
           reject(err);
         }
@@ -124,7 +129,7 @@ export async function signMessage(
     let method = 'eth_signTypedData_v3';
 
     return new Promise<string>((resolve, reject) => {
-      web3_outer.currentProvider.sendAsync(
+      web3.currentProvider.sendAsync(
         {
           method,
           params,
@@ -272,11 +277,13 @@ export function extractEventFromReceipt(
     return null;
   }
 
-  let eventSignature = web3.eth.abi.encodeEventSignature(eventDefinition);
+  let abiCoder = new AbiCoder();
+
+  let eventSignature = abiCoder.encodeEventSignature(eventDefinition);
 
   for (let log of receipt.logs) {
     if (log.topics[0] === eventSignature) {
-      return web3.eth.abi.decodeLog(
+      return abiCoder.decodeLog(
         eventDefinition.inputs,
         log.data,
         log.topics.slice(1)
@@ -328,11 +335,8 @@ export async function getERC20Allowance(
   spender: string,
   token: string
 ) {
-  let contract = new web3_10.eth.Contract(
-    require('../config/ERC20.json'),
-    token
-  );
-  let allowance = await contract.methods.allowance(owner, spender).call();
+  ERC20.options.address = token;
+  let allowance = await ERC20.methods.allowance(owner, spender).call();
   // ethPendingTxStore.setTokenAllowance(token, allowance);
   return allowance;
 }
@@ -352,10 +356,9 @@ export async function extractEthTxHashFromAppTx(
     item => item.name === 'Execution'
   );
 
+  let abiCoder = new AbiCoder();
   for (let log of receipt.logs) {
-    if (
-      log.topics[0] === web3_10.eth.abi.encodeEventSignature(executionABIs[0])
-    ) {
+    if (log.topics[0] === abiCoder.encodeEventSignature(executionABIs[0])) {
       let transactionId = log.topics[1];
       let { txHash } = await appOperator.methods
         .transactions(transactionId)

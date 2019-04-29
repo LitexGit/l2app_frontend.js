@@ -28,11 +28,11 @@ export default class EthPendingTxStore {
     addTx(info: TXINFO): void;
     removeTx(txHash: string): void;
     getApproveEventFromLogs(logs: any): Promise<{
-        user: any;
-        contractAddress: any;
-        amount: any;
+        user: string;
+        contractAddress: string;
+        amount: string;
     }>;
-    startWatch(web3: any): Promise<void>;
+    startWatch(): Promise<void>;
     getPendingTxByChannelID(channelID: string): false | TXINFO;
     getPendingTxByUser(user: string, token: string): false | TXINFO;
     getChannelStatus(channelID: string, appStatus: CHANNEL_STATUS, user: string, token: string): Promise<CHANNEL_STATUS>;

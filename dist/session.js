@@ -39,6 +39,7 @@ var constants_1 = require("./utils/constants");
 var main_1 = require("./main");
 var common_1 = require("./utils/common");
 var rlp = require("rlp");
+var web3_utils_1 = require("web3/node_modules/web3-utils");
 var L2Session = (function () {
     function L2Session(_sessionID) {
         this.sessionID = _sessionID;
@@ -121,7 +122,7 @@ var L2Session = (function () {
                         _a = _b.sent(), status = _a.status, provider = _a.provider, game = _a.game, paymentContract = _a.paymentContract, data = _a.data;
                         this.status = Number(status);
                         this.game = game;
-                        this.data = main_1.web3_10.utils.hexToUtf8(data);
+                        this.data = web3_utils_1.hexToUtf8(data);
                         this.provider = provider;
                         this.callbacks = this.callbacks || new Map();
                         return [2];
@@ -139,9 +140,9 @@ var L2Session = (function () {
                     case 0:
                         common_1.logger.info('sendMessage start execute with params: to: [%s], type: [%s], content: [%s], amount: [%s], token: [%s]', to, type, content, amount + '', token);
                         from = main_1.user;
-                        messageHash = main_1.web3_10.utils.soliditySha3({ t: 'address', v: from }, { t: 'address', v: to }, { t: 'bytes32', v: this.sessionID }, { t: 'uint8', v: type }, { t: 'bytes', v: content });
-                        signature = common_1.myEcsignToHex(main_1.web3_10, messageHash, main_1.puppet.getAccount().privateKey);
-                        return [4, this.buildTransferData(from, main_1.web3_10.utils.toBN(amount).toString(), token, messageHash)];
+                        messageHash = web3_utils_1.soliditySha3({ t: 'address', v: from }, { t: 'address', v: to }, { t: 'bytes32', v: this.sessionID }, { t: 'uint8', v: type }, { t: 'bytes', v: content });
+                        signature = common_1.myEcsignToHex(messageHash, main_1.puppet.getAccount().privateKey);
+                        return [4, this.buildTransferData(from, web3_utils_1.toBN(amount).toString(), token, messageHash)];
                     case 1:
                         paymentData = _a.sent();
                         return [4, common_1.sendAppTx(main_1.appSession.methods.sendMessage(from, to, this.sessionID, type, content, signature, paymentData))];
@@ -168,12 +169,11 @@ var L2Session = (function () {
     };
     L2Session.prototype.buildTransferData = function (from, amount, token, messageHash) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, bytesToHex, toHex, soliditySha3, toBN, channelID, balance, nonce, additionalHash, paymentSignature, channel, balanceProof, paymentData, rlpencode;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var channelID, balance, nonce, additionalHash, paymentSignature, channel, balanceProof, paymentData, rlpencode;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
                         common_1.logger.info('start buildTransferData with params: from[%s], amount[%s], token[%s], messageHash[%s]', from, amount, token, messageHash);
-                        _a = main_1.web3_10.utils, bytesToHex = _a.bytesToHex, toHex = _a.toHex, soliditySha3 = _a.soliditySha3, toBN = _a.toBN;
                         channelID = '0x0000000000000000000000000000000000000000000000000000000000000000';
                         balance = '0';
                         nonce = '0';
@@ -183,15 +183,15 @@ var L2Session = (function () {
                         common_1.logger.info('start get channelID');
                         return [4, main_1.ethPN.methods.getChannelID(from, token).call()];
                     case 1:
-                        channelID = _b.sent();
+                        channelID = _a.sent();
                         common_1.logger.info('start get channel status');
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
                     case 2:
-                        channel = _b.sent();
+                        channel = _a.sent();
                         if (Number(channel.status) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
                             throw new Error('app channel status is not open, can not transfer now');
                         }
-                        if (toBN(channel.userBalance).lt(toBN(amount))) {
+                        if (web3_utils_1.toBN(channel.userBalance).lt(web3_utils_1.toBN(amount))) {
                             throw new Error("user's balance is less than transfer amount");
                         }
                         common_1.logger.info('start get channel balanceProof');
@@ -199,24 +199,24 @@ var L2Session = (function () {
                                 .balanceProofMap(channelID, main_1.cp)
                                 .call()];
                     case 3:
-                        balanceProof = _b.sent();
-                        balance = toBN(amount)
-                            .add(toBN(balanceProof.balance))
+                        balanceProof = _a.sent();
+                        balance = web3_utils_1.toBN(amount)
+                            .add(web3_utils_1.toBN(balanceProof.balance))
                             .toString();
-                        nonce = toBN(balanceProof.nonce)
-                            .add(toBN(1))
+                        nonce = web3_utils_1.toBN(balanceProof.nonce)
+                            .add(web3_utils_1.toBN(1))
                             .toString();
-                        additionalHash = soliditySha3({ t: 'bytes32', v: messageHash }, { t: 'uint256', v: amount });
-                        return [4, common_1.prepareSignatureForTransfer(main_1.web3_outer, main_1.ethPN.options.address, channelID, balance, nonce, additionalHash, main_1.user)];
+                        additionalHash = web3_utils_1.soliditySha3({ t: 'bytes32', v: messageHash }, { t: 'uint256', v: amount });
+                        return [4, common_1.prepareSignatureForTransfer(main_1.web3, main_1.ethPN.options.address, channelID, balance, nonce, additionalHash, main_1.user)];
                     case 4:
-                        paymentSignature = _b.sent();
-                        _b.label = 5;
+                        paymentSignature = _a.sent();
+                        _a.label = 5;
                     case 5:
                         paymentData = [
                             channelID,
-                            toHex(balance),
-                            toHex(nonce),
-                            toHex(amount),
+                            web3_utils_1.toHex(balance),
+                            web3_utils_1.toHex(nonce),
+                            web3_utils_1.toHex(amount),
                             additionalHash,
                             paymentSignature,
                         ];

@@ -20,10 +20,17 @@ var Puppet = (function () {
         if (!key) {
             return null;
         }
-        key = new simple_crypto_js_1.default(getPassword(masterAddress)).decrypt(key).toString();
-        var puppet = new Puppet();
-        puppet.account = main_1.cita.base.accounts.privateKeyToAccount(key);
-        return puppet;
+        try {
+            key = new simple_crypto_js_1.default(getPassword(masterAddress))
+                .decrypt(key)
+                .toString();
+            var puppet = new Puppet();
+            puppet.account = main_1.cita.base.accounts.privateKeyToAccount(key);
+            return puppet;
+        }
+        catch (err) {
+            return null;
+        }
     };
     Puppet.prototype.getAccount = function () {
         return this.account;
