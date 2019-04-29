@@ -50,6 +50,7 @@ var ethereumjs_util_1 = require("ethereumjs-util");
 var constants_1 = require("./constants");
 var TypedData_1 = require("../config/TypedData");
 var main_1 = require("../main");
+var ethereumjs_util_2 = require("ethereumjs-util");
 function myEcsign(web3, messageHash, privateKey) {
     var signatureHexString = myEcsignToHex(web3, messageHash, privateKey);
     var signatureBytes = web3.utils.hexToBytes(signatureHexString);
@@ -84,32 +85,55 @@ function sendEthTx(web3, from, to, value, data) {
 exports.sendEthTx = sendEthTx;
 function signMessage(web3, from, typedData) {
     return __awaiter(this, void 0, void 0, function () {
-        var params, method;
+        var typedDataHash_1, signFunc, sig, recoveredAddress, params_1, method_1;
         var _this = this;
         return __generator(this, function (_a) {
-            params = [from, JSON.stringify(typedData)];
-            method = 'eth_signTypedData_v3';
-            return [2, new Promise(function (resolve, reject) {
-                    web3.currentProvider.sendAsync({
-                        method: method,
-                        params: params,
-                        from: from,
-                    }, function (err, result) { return __awaiter(_this, void 0, void 0, function () {
-                        return __generator(this, function (_a) {
-                            exports.logger.info('sign Result', err, result);
+            switch (_a.label) {
+                case 0:
+                    if (!!main_1.web3_outer.currentProvider.isMetaMask) return [3, 2];
+                    typedDataHash_1 = ethereumjs_util_2.bufferToHex(TypedData_1.signHash(typedData));
+                    console.log('typedDataHash, from', typedDataHash_1, from);
+                    signFunc = new Promise(function (resolve, reject) {
+                        main_1.web3_outer.eth.sign(from, typedDataHash_1, function (err, result) {
                             if (err) {
                                 reject(err);
                             }
-                            else if (result.error) {
-                                reject(result.error);
-                            }
-                            else {
-                                resolve(result.result);
-                            }
-                            return [2];
+                            resolve(result);
                         });
-                    }); });
-                })];
+                    });
+                    return [4, signFunc];
+                case 1:
+                    sig = (_a.sent());
+                    recoveredAddress = TypedData_1.recoverTypedData(typedData, sig);
+                    if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
+                        throw new Error("Invalid sig " + sig + " of hash " + typedDataHash_1 + " of data " + JSON.stringify(typedData) + " recovered " + recoveredAddress + " instead of " + from + ".");
+                    }
+                    return [2, sig];
+                case 2:
+                    params_1 = [from, JSON.stringify(typedData)];
+                    method_1 = 'eth_signTypedData_v3';
+                    return [2, new Promise(function (resolve, reject) {
+                            main_1.web3_outer.currentProvider.sendAsync({
+                                method: method_1,
+                                params: params_1,
+                                from: from,
+                            }, function (err, result) { return __awaiter(_this, void 0, void 0, function () {
+                                return __generator(this, function (_a) {
+                                    exports.logger.info('sign Result', err, result);
+                                    if (err) {
+                                        reject(err);
+                                    }
+                                    else if (result.error) {
+                                        reject(result.error);
+                                    }
+                                    else {
+                                        resolve(result.result);
+                                    }
+                                    return [2];
+                                });
+                            }); });
+                        })];
+            }
         });
     });
 }
@@ -154,7 +178,7 @@ function delay(duration) {
     });
 }
 exports.delay = delay;
-function prepareSignatureForTransfer(web3_outer, ethPNAddress, channelID, balance, nonce, additionalHash, user) {
+function prepareSignatureForTransfer(web3, ethPNAddress, channelID, balance, nonce, additionalHash, user) {
     return __awaiter(this, void 0, void 0, function () {
         var typedData, signature, err_1;
         return __generator(this, function (_a) {
@@ -181,7 +205,7 @@ function prepareSignatureForTransfer(web3_outer, ethPNAddress, channelID, balanc
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    return [4, signMessage(web3_outer, user, typedData)];
+                    return [4, signMessage(web3, user, typedData)];
                 case 2:
                     signature = _a.sent();
                     return [3, 4];

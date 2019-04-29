@@ -7,7 +7,7 @@ export declare function signMessage(web3: any, from: string, typedData: any): Pr
 export declare function abi2jsonInterface(abi: string): AbiItem[] | undefined;
 export declare function getLCB(base: any, chain: string): Promise<any>;
 export declare function delay(duration: number): Promise<any>;
-export declare function prepareSignatureForTransfer(web3_outer: any, ethPNAddress: string, channelID: string, balance: string, nonce: string, additionalHash: string, user: string): Promise<string>;
+export declare function prepareSignatureForTransfer(web3: any, ethPNAddress: string, channelID: string, balance: string, nonce: string, additionalHash: string, user: string): Promise<string>;
 export declare function extractEventFromReceipt(web3: any, receipt: any, contract: Contract, name: string): any;
 export declare function getAppTxOption(): Promise<{
     validUntilBlock: any;

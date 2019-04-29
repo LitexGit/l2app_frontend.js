@@ -8,17 +8,9 @@ import {
   CITA_TX_COMMIT_BLOCK_EXPERITION,
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
-import { EIP712_TYPES } from '../config/TypedData';
-import {
-  cita,
-  puppet,
-  debug,
-  appOperator,
-  web3_10,
-  ethPendingTxStore,
-} from '../main';
-import mylog from '../utils/mylog';
-import EthPendingTxStore from '../ethPendingTxStore';
+import { EIP712_TYPES, signHash, recoverTypedData } from '../config/TypedData';
+import { cita, puppet, debug, appOperator, web3_10, web3_outer } from '../main';
+import { bufferToHex } from 'ethereumjs-util';
 
 /**
  * 用私钥签署消息
@@ -105,41 +97,52 @@ export async function signMessage(
   from: string,
   typedData: any
 ): Promise<string> {
-  // if (!(web3.currentProvider as any).isMetaMask) {
-
-  //     const typedDataHash = ethUtil.bufferToHex(hashTypedData(typedData));
-  //     const sig = await web3.eth.sign(typedDataHash, from);
-  //     const recoveredAddress = recoverTypedData(typedData, sig);
-  //     if (recoveredAddress !== from) {
-  //     }
-  //     return sig;
-
-  // }else {
-  let params = [from, JSON.stringify(typedData)];
-  // console.dir(params);
-  let method = 'eth_signTypedData_v3';
-
-  return new Promise<string>((resolve, reject) => {
-    web3.currentProvider.sendAsync(
-      {
-        method,
-        params,
-        from,
-      },
-      async (err: any, result: any) => {
-        logger.info('sign Result', err, result);
+  if (!(web3_outer.currentProvider as any).isMetaMask) {
+    const typedDataHash = bufferToHex(signHash(typedData));
+    console.log('typedDataHash, from', typedDataHash, from);
+    let signFunc = new Promise((resolve, reject) => {
+      web3_outer.eth.sign(from, typedDataHash, (err, result) => {
         if (err) {
           reject(err);
-        } else if (result.error) {
-          reject(result.error);
-        } else {
-          resolve(result.result);
         }
-      }
-    );
-  });
+        resolve(result);
+      });
+    });
+    const sig = (await signFunc) as string;
+    const recoveredAddress = recoverTypedData(typedData, sig);
+    if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
+      throw new Error(
+        `Invalid sig ${sig} of hash ${typedDataHash} of data ${JSON.stringify(
+          typedData
+        )} recovered ${recoveredAddress} instead of ${from}.`
+      );
+    }
+    return sig;
+  } else {
+    let params = [from, JSON.stringify(typedData)];
+    // console.dir(params);
+    let method = 'eth_signTypedData_v3';
 
-  // }
+    return new Promise<string>((resolve, reject) => {
+      web3_outer.currentProvider.sendAsync(
+        {
+          method,
+          params,
+          from,
+        },
+        async (err: any, result: any) => {
+          logger.info('sign Result', err, result);
+          if (err) {
+            reject(err);
+          } else if (result.error) {
+            reject(result.error);
+          } else {
+            resolve(result.result);
+          }
+        }
+      );
+    });
+  }
 }
 
 /**
@@ -190,7 +193,7 @@ export async function delay(duration: number): Promise<any> {
 /**
  * ask outer wallet to sign transfer message
  *
- * @param {any} web3_outer
+ * @param {any} web3
  * @param {string} ethPNAddress
  * @param {string} channelID
  * @param {string} balance
@@ -201,7 +204,7 @@ export async function delay(duration: number): Promise<any> {
  * @returns {Promise<string>} signature for transfer message
  */
 export async function prepareSignatureForTransfer(
-  web3_outer: any,
+  web3: any,
   ethPNAddress: string,
   channelID: string,
   balance: string,
@@ -231,7 +234,7 @@ export async function prepareSignatureForTransfer(
 
   let signature = '';
   try {
-    signature = await signMessage(web3_outer, user, typedData);
+    signature = await signMessage(web3, user, typedData);
   } catch (err) {
     logger.info('user reject the sign action');
     throw err;

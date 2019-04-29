@@ -260,6 +260,9 @@
       initServer();
       initOperator();
     }
+    // console.log = (message) =>{
+    //   document.getElementById('info').innerHTML += message + '<br/>';
+    // }
 
     function initUser() {
       /******************************************The First Line******************************************************/
@@ -361,13 +364,17 @@
         .getElementById('transfer')
         .addEventListener('click', async event => {
           console.log('transfer button clicked');
-          let res = await L2.getInstance().transfer(
-            '0xa08105d7650Fe007978a291CcFECbB321fC21ffe',
-            1e15 + '',
-            token
-          );
-          console.log('transfer res', res);
-          refresh();
+          try {
+            let res = await L2.getInstance().transfer(
+              '0xa08105d7650Fe007978a291CcFECbB321fC21ffe',
+              1e15 + '',
+              token
+            );
+            console.log('transfer res', res);
+            refresh();
+          } catch (err) {
+            document.getElementById('info').innerHTML += 'TransferError:' + err + '<br/>';
+          }
 
           var msg =
             '0x879a053d4800c6354e76c7985a865d2922c82fb5b3f4577b2fe08b998954f2e0';
