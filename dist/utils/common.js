@@ -268,7 +268,7 @@ function getAppTxOption() {
     });
 }
 exports.getAppTxOption = getAppTxOption;
-function sendAppTx(action) {
+function sendAppTx(action, name) {
     return __awaiter(this, void 0, void 0, function () {
         var tx, res, receipt;
         return __generator(this, function (_a) {
@@ -284,14 +284,17 @@ function sendAppTx(action) {
                 case 3:
                     receipt = _a.sent();
                     if (receipt.errorMessage) {
-                        throw new Error(receipt.errorMessage);
+                        exports.logger.error("CTIATX " + name + " confirm error " + receipt.errorMessage, res.hash, action.arguments, tx);
+                        throw new Error("CTIATX " + name + " confirm error " + receipt.errorMessage);
                     }
                     else {
-                        exports.logger.info('submit sendMessage success');
+                        exports.logger.info("CTIATX " + name + " success", res.hash);
                         return [2, res.hash];
                     }
                     return [3, 5];
-                case 4: throw new Error('submit sendMessage failed');
+                case 4:
+                    exports.logger.error("CITATX " + name + " submit failed", res.hash, action.arguments, tx);
+                    throw new Error("CITATX " + name + " submit failed");
                 case 5: return [2];
             }
         });

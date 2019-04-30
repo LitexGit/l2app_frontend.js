@@ -4,7 +4,13 @@ import {
   mock_prepareSignatureForTransfer,
 } from './mock_metamask';
 import * as common from '../src/utils/common';
-import { cp, appSession, appPN, cita, web3_10 } from '../src/main';
+import { cp, appSession, appPN, cita } from '../src/main';
+import {
+  sha3,
+  utf8ToHex,
+  toHex,
+  soliditySha3,
+} from 'web3/node_modules/web3-utils';
 
 const Web3 = require('web3');
 
@@ -12,7 +18,6 @@ import { config } from './config';
 import { resolve } from 'url';
 import { SESSION_MESSAGE_EVENT } from '../src/utils/constants';
 import * as rlp from 'rlp';
-
 
 let {
   ethPNAddress,
@@ -104,7 +109,7 @@ async function closeChannelIfExist(l2: L2) {
 
 async function createSession() {
   let str = new Date().getTime() + userAddress + 'hello world';
-  sessionID = web3_10.utils.sha3(str);
+  sessionID = sha3(str);
   let game = providerAddress;
   let user = userAddress;
   let data = 'my lord';
@@ -119,7 +124,7 @@ async function createSession() {
       game,
       [user, cp],
       appPN.options.address,
-      web3_10.utils.utf8ToHex(data)
+      utf8ToHex(data)
     )
     .send(tx);
 
@@ -145,8 +150,6 @@ async function providerSendMessage(type, content) {
   let from = providerAddress;
   let to = userAddress;
 
-  let { toHex, soliditySha3 } = web3_10.utils;
-
   console.log(
     'providerSendMessage params:',
     from,
@@ -162,11 +165,7 @@ async function providerSendMessage(type, content) {
     { t: 'uint8', v: type },
     { t: 'bytes', v: content }
   );
-  let signature = await common.myEcsignToHex(
-    web3_10,
-    messageHash,
-    providerPrivateKey
-  );
+  let signature = await common.myEcsignToHex(messageHash, providerPrivateKey);
 
   let channelID =
     '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -243,6 +242,7 @@ describe('L2 unit tests', () => {
     let accounts = await outerWeb3.eth.getAccounts();
     console.log('accounts', accounts);
     l2 = L2.getInstance();
+    l2.setDebug(true);
     Promise.all([
       await l2.init(
         userAddress,
@@ -259,6 +259,7 @@ describe('L2 unit tests', () => {
         });
       }),
     ]);
+    console.log('finish l2 init');
 
     await closeChannelIfExist(l2);
 
@@ -364,7 +365,7 @@ describe('L2 unit tests', () => {
 
   it('listen session message event', async () => {
     let type = 4;
-    let content = web3_10.utils.sha3('hello world');
+    let content = sha3('hello world');
 
     let receiveMessagePromise = new Promise<SESSION_MESSAGE_EVENT>(
       (resolve, reject) => {

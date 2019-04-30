@@ -3,15 +3,7 @@ import {
   SESSION_STATUS,
   CHANNEL_STATUS,
 } from './utils/constants';
-import {
-  appSession,
-  appPN,
-  ethPN,
-  user,
-  puppet,
-  web3,
-  cp,
-} from './main';
+import { appSession, appPN, ethPN, user, puppet, web3, cp } from './main';
 import {
   myEcsignToHex,
   prepareSignatureForTransfer,
@@ -210,7 +202,8 @@ export default class L2Session {
         content,
         signature,
         paymentData
-      )
+      ),
+      'appSession.methods.sendMessage'
     );
   }
 

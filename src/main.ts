@@ -166,7 +166,7 @@ export class L2 {
     ERC20.options.jsonInterface = ERC20Abi;
     ERC20.options.from = user;
 
-    user = (userAddress);
+    user = userAddress;
     cp = await ethPN.methods.provider().call();
     l2 = await ethPN.methods.regulator().call();
 
@@ -418,7 +418,8 @@ export class L2 {
           amount,
           user,
           await getLCB(ethHelper, 'eth')
-        )
+        ),
+        'appPN.methods.userProposeWithdraw'
       );
     } else {
       if (
@@ -433,7 +434,8 @@ export class L2 {
           channelID,
           amount,
           await getLCB(ethHelper, 'eth')
-        )
+        ),
+        'appPN.methods.proposeCooperativeSettle'
       );
 
       let repeatTime = 0;
@@ -494,7 +496,10 @@ export class L2 {
       await delay(3000);
     }
 
-    return await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
+    return await sendAppTx(
+      appPN.methods.unlockCooperativeSettle(channelID),
+      'appPN.methods.unlockCooperativeSettle'
+    );
   }
 
   /**
@@ -634,7 +639,8 @@ export class L2 {
         nonce,
         additionalHash,
         signature
-      )
+      ),
+      'appPN.methods.transfer'
     );
   }
 

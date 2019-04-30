@@ -120,7 +120,7 @@ var CancelListener = (function () {
                             this.remove(channelID);
                             return [3, 8];
                         }
-                        return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID))];
+                        return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID), 'appPN.methods.unlockCooperativeSettle')];
                     case 6:
                         _c.sent();
                         this.remove(channelID);

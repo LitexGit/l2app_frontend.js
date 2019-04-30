@@ -21,7 +21,7 @@ export declare function getAppTxOption(): Promise<{
     version: number;
     value: string;
 }>;
-export declare function sendAppTx(action: any): Promise<string>;
+export declare function sendAppTx(action: any, name: string): Promise<string>;
 export declare function getERC20Allowance(owner: string, spender: string, token: string): Promise<any>;
 export declare function extractEthTxHashFromAppTx(appTxHash: any): Promise<string>;
 export declare let logger: any;

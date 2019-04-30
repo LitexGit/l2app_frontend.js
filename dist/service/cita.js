@@ -469,7 +469,7 @@ exports.ethMethods = {
                         currentBlockNumber = _b.sent();
                         if (web3_utils_1.toBN(currentBlockNumber).gt(web3_utils_1.toBN(lastCommitBlock))) {
                             common_1.logger.info('unlock user withdraw now');
-                            common_1.sendAppTx(main_1.appPN.methods.unlockUserWithdrawProof(channelID));
+                            common_1.sendAppTx(main_1.appPN.methods.unlockUserWithdrawProof(channelID), 'appPN.methods.unlockUserWithdrawProof');
                         }
                         else {
                             common_1.logger.info('submit user withdraw now');
@@ -499,7 +499,7 @@ exports.ethMethods = {
                 case 2:
                     currentBlockNumber = _b.sent();
                     if (!web3_utils_1.toBN(currentBlockNumber).gt(web3_utils_1.toBN(lastCommitBlock))) return [3, 4];
-                    return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID))];
+                    return [4, common_1.sendAppTx(main_1.appPN.methods.unlockCooperativeSettle(channelID), 'appPN.methods.unlockCooperativeSettle')];
                 case 3: return [2, _b.sent()];
                 case 4:
                     txData = main_1.ethPN.methods

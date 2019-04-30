@@ -109,7 +109,7 @@ var L2 = (function () {
                         exports.ERC20 = new web3_eth_contract_1.Contract(exports.EthProvider, ERC20Abi);
                         exports.ERC20.options.jsonInterface = ERC20Abi;
                         exports.ERC20.options.from = exports.user;
-                        exports.user = (userAddress);
+                        exports.user = userAddress;
                         return [4, exports.ethPN.methods.provider().call()];
                     case 1:
                         exports.cp = _a.sent();
@@ -341,7 +341,8 @@ var L2 = (function () {
                             amount,
                             exports.user];
                         return [4, common_1.getLCB(ethHelper_1.ethHelper, 'eth')];
-                    case 3: return [4, _a.apply(void 0, [_c.apply(_b, _d.concat([_j.sent()]))])];
+                    case 3: return [4, _a.apply(void 0, [_c.apply(_b, _d.concat([_j.sent()])),
+                            'appPN.methods.userProposeWithdraw'])];
                     case 4: return [2, _j.sent()];
                     case 5:
                         if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE)) return [3, 7];
@@ -355,7 +356,8 @@ var L2 = (function () {
                         _h = [channelID,
                             amount];
                         return [4, common_1.getLCB(ethHelper_1.ethHelper, 'eth')];
-                    case 8: return [4, _e.apply(void 0, [_g.apply(_f, _h.concat([_j.sent()]))])];
+                    case 8: return [4, _e.apply(void 0, [_g.apply(_f, _h.concat([_j.sent()])),
+                            'appPN.methods.proposeCooperativeSettle'])];
                     case 9:
                         res = _j.sent();
                         repeatTime = 0;
@@ -418,7 +420,7 @@ var L2 = (function () {
                     case 6:
                         _b.sent();
                         return [3, 3];
-                    case 7: return [4, common_1.sendAppTx(exports.appPN.methods.unlockCooperativeSettle(channelID))];
+                    case 7: return [4, common_1.sendAppTx(exports.appPN.methods.unlockCooperativeSettle(channelID), 'appPN.methods.unlockCooperativeSettle')];
                     case 8: return [2, _b.sent()];
                 }
             });
@@ -504,7 +506,7 @@ var L2 = (function () {
                     case 4:
                         signature = _b.sent();
                         common_1.logger.info('start Submit Transfer');
-                        return [4, common_1.sendAppTx(exports.appPN.methods.transfer(to, channelID, balance, nonce, additionalHash, signature))];
+                        return [4, common_1.sendAppTx(exports.appPN.methods.transfer(to, channelID, balance, nonce, additionalHash, signature), 'appPN.methods.transfer')];
                     case 5: return [2, _b.sent()];
                 }
             });

@@ -9,14 +9,7 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES, signHash, recoverTypedData } from '../config/TypedData';
-import {
-  cita,
-  puppet,
-  debug,
-  appOperator,
-  web3,
-  ERC20,
-} from '../main';
+import { cita, puppet, debug, appOperator, web3, ERC20 } from '../main';
 import { bufferToHex } from 'ethereumjs-util';
 import { hexToBytes } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
@@ -314,22 +307,33 @@ export async function getAppTxOption() {
   };
 }
 
-export async function sendAppTx(action: any): Promise<string> {
+export async function sendAppTx(action: any, name: string): Promise<string> {
   let tx = await getAppTxOption();
   let res = await action.send(tx);
   if (res.hash) {
     let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
     if (receipt.errorMessage) {
-      throw new Error(receipt.errorMessage);
+      logger.error(
+        `CTIATX ${name} confirm error ${receipt.errorMessage}`,
+        res.hash,
+        action.arguments,
+        tx
+      );
+      throw new Error(`CTIATX ${name} confirm error ${receipt.errorMessage}`);
     } else {
-      logger.info('submit sendMessage success');
+      logger.info(`CTIATX ${name} success`, res.hash);
       return res.hash;
     }
   } else {
-    throw new Error('submit sendMessage failed');
+    logger.error(
+      `CITATX ${name} submit failed`,
+      res.hash,
+      action.arguments,
+      tx
+    );
+    throw new Error(`CITATX ${name} submit failed`);
   }
 }
-
 export async function getERC20Allowance(
   owner: string,
   spender: string,

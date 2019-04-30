@@ -101,6 +101,6 @@ export async function mock_prepareSignatureForTransfer(
   console.log('typedData ', typedData);
 
   let messageHash = bufferToHex(signHash(typedData));
-  let signature = myEcsignToHex(web3_outer, messageHash, privateKey);
+  let signature = myEcsignToHex(messageHash, privateKey);
   return signature;
 }

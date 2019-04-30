@@ -562,7 +562,10 @@ export const ethMethods = {
     if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
       logger.info('unlock user withdraw now');
 
-      sendAppTx(appPN.methods.unlockUserWithdrawProof(channelID));
+      sendAppTx(
+        appPN.methods.unlockUserWithdrawProof(channelID),
+        'appPN.methods.unlockUserWithdrawProof'
+      );
     } else {
       logger.info('submit user withdraw now');
       // TODO: check the eth tx has been submited before
@@ -611,7 +614,10 @@ export const ethMethods = {
 
     let currentBlockNumber = await ethHelper.getBlockNumber();
     if (toBN(currentBlockNumber).gt(toBN(lastCommitBlock))) {
-      return await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
+      return await sendAppTx(
+        appPN.methods.unlockCooperativeSettle(channelID),
+        'appPN.methods.unlockCooperativeSettle'
+      );
     } else {
       // TODO: check the eth tx has been submited before
       let txData = ethPN.methods
@@ -623,13 +629,7 @@ export const ethMethods = {
           regulatorSignature
         )
         .encodeABI();
-      let res = await sendEthTx(
-        web3,
-        user,
-        ethPN.options.address,
-        0,
-        txData
-      );
+      let res = await sendEthTx(web3, user, ethPN.options.address, 0, txData);
 
       let { token } = await appPN.methods.channelMap(channelID).call();
       ethPendingTxStore.addTx({

@@ -145,7 +145,7 @@ var L2Session = (function () {
                         return [4, this.buildTransferData(from, web3_utils_1.toBN(amount).toString(), token, messageHash)];
                     case 1:
                         paymentData = _a.sent();
-                        return [4, common_1.sendAppTx(main_1.appSession.methods.sendMessage(from, to, this.sessionID, type, content, signature, paymentData))];
+                        return [4, common_1.sendAppTx(main_1.appSession.methods.sendMessage(from, to, this.sessionID, type, content, signature, paymentData), 'appSession.methods.sendMessage')];
                     case 2: return [2, _a.sent()];
                 }
             });

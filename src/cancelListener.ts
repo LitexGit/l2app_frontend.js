@@ -74,7 +74,10 @@ export default class CancelListener {
                 continue;
               }
 
-              await sendAppTx(appPN.methods.unlockCooperativeSettle(channelID));
+              await sendAppTx(
+                appPN.methods.unlockCooperativeSettle(channelID),
+                'appPN.methods.unlockCooperativeSettle'
+              );
               this.remove(channelID);
 
               let withdrawUnlockedEvent: WITHDRAW_UNLOCKED_EVENT = {
