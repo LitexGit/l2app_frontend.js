@@ -193,6 +193,10 @@ exports.events = {
                         common_1.logger.info('--------------------Handle CITA OnchainOpenChannel--------------------');
                         _a = event.returnValues, user = _a.user, token = _a.token, amount = _a.amount, channelID = _a.channelID, transactionHash = event.transactionHash;
                         common_1.logger.info(' user: [%s], token: [%s], amount: [%s], channelID: [%s] ', user, token, amount, channelID);
+                        if (web3_utils_1.toBN(amount).eq(web3_utils_1.toBN(0))) {
+                            common_1.logger.info('channel opened by provider, not emit event');
+                            return [2];
+                        }
                         if (!main_1.callbacks.get('Deposit')) return [3, 8];
                         time = 0;
                         channelInfo = void 0;

@@ -282,6 +282,11 @@ export const events = {
         channelID
       );
 
+      if (toBN(amount).eq(toBN(0))) {
+        logger.info('channel opened by provider, not emit event');
+        return;
+      }
+
       if (callbacks.get('Deposit')) {
         let time = 0;
         let channelInfo;
