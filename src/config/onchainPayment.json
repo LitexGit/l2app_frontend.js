@@ -85,12 +85,21 @@
   },
   {
     "constant": true,
-    "inputs": [],
-    "name": "version",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "channelCounterMap",
     "outputs": [
       {
         "name": "",
-        "type": "string"
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -119,7 +128,7 @@
         "type": "bytes32"
       }
     ],
-    "name": "channels",
+    "name": "channelMap",
     "outputs": [
       {
         "name": "status",
@@ -199,12 +208,17 @@
   },
   {
     "constant": true,
-    "inputs": [],
-    "name": "settleWindowMax",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "providerBalanceMap",
     "outputs": [
       {
         "name": "",
-        "type": "uint256"
+        "type": "int256"
       }
     ],
     "payable": false,
@@ -213,17 +227,12 @@
   },
   {
     "constant": true,
-    "inputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "providerBalance",
+    "inputs": [],
+    "name": "settleWindowMax",
     "outputs": [
       {
         "name": "",
-        "type": "int256"
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -248,29 +257,6 @@
     "constant": true,
     "inputs": [],
     "name": "settleWindowMin",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "",
-        "type": "address"
-      },
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "channelCounter",
     "outputs": [
       {
         "name": "",

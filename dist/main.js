@@ -247,7 +247,7 @@ var L2 = (function () {
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
                     case 1:
                         channelID = _a.sent();
-                        return [4, exports.ethPN.methods.channels(channelID).call()];
+                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _a.sent();
                         amount = web3_utils_1.toBN(amount).toString();
@@ -441,7 +441,7 @@ var L2 = (function () {
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
                     case 1:
                         channelID = _d.sent();
-                        return [4, exports.ethPN.methods.channels(channelID).call()];
+                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _d.sent();
                         if (Number(channel.status) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
@@ -607,7 +607,7 @@ var L2 = (function () {
                         return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
                     case 1:
                         channelID = _b.sent();
-                        return [4, exports.ethPN.methods.channels(channelID).call()];
+                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
                     case 2:
                         ethChannel = _b.sent();
                         common_1.logger.info('ChannelID is ', channelID, ethChannel);
@@ -943,7 +943,7 @@ var L2 = (function () {
                         event_1 = allChannelOpenedEvent_1[_i];
                         returnValues = event_1.returnValues;
                         channelID = returnValues.channelID;
-                        return [4, exports.ethPN.methods.channels(channelID).call()];
+                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
                     case 3:
                         channel = _a.sent();
                         if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN)) return [3, 5];

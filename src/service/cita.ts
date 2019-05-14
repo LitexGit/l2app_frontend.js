@@ -291,7 +291,7 @@ export const events = {
         let time = 0;
         let channelInfo;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let ethChannelInfo = await ethPN.methods.channels(channelID).call();
+          let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
           // logger.info('ethChannelInfo', ethChannelInfo);
           channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
@@ -466,7 +466,7 @@ export const events = {
       if (callbacks.get('Withdraw')) {
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let ethChannelInfo = await ethPN.methods.channels(channelID).call();
+          let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
           let channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
             Number(channelInfo.status) ===

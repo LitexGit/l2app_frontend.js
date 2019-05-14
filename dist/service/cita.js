@@ -203,7 +203,7 @@ exports.events = {
                         _b.label = 1;
                     case 1:
                         if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
-                        return [4, main_1.ethPN.methods.channels(channelID).call()];
+                        return [4, main_1.ethPN.methods.channelMap(channelID).call()];
                     case 2:
                         ethChannelInfo = _b.sent();
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
@@ -387,7 +387,7 @@ exports.events = {
                         _b.label = 4;
                     case 4:
                         if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 8];
-                        return [4, main_1.ethPN.methods.channels(channelID).call()];
+                        return [4, main_1.ethPN.methods.channelMap(channelID).call()];
                     case 5:
                         ethChannelInfo = _b.sent();
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
