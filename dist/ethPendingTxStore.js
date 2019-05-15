@@ -286,7 +286,7 @@ var EthPendingTxStore = (function () {
     };
     EthPendingTxStore.prototype.getOpenSubStatus = function (channelID, user, token) {
         return __awaiter(this, void 0, void 0, function () {
-            var tx, allowance, _a, isConfirmed, lastCommitBlock;
+            var tx, allowance, _a, isConfirmed, lastCommitBlock, currentBlockNumber;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -302,7 +302,7 @@ var EthPendingTxStore = (function () {
                         if (tx.type === TX_TYPE.TOKEN_APPROVE) {
                             return [2, constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_ERC20_APPROVAL];
                         }
-                        return [3, 3];
+                        return [3, 4];
                     case 1:
                         if (token !== constants_1.ADDRESS_ZERO) {
                             allowance = this.getTokenAllowance(token);
@@ -314,11 +314,18 @@ var EthPendingTxStore = (function () {
                         return [4, main_1.appPN.methods.cooperativeSettleProofMap(channelID).call()];
                     case 2:
                         _a = _b.sent(), isConfirmed = _a.isConfirmed, lastCommitBlock = _a.lastCommitBlock;
-                        if (!isConfirmed && Number(lastCommitBlock) > 0) {
+                        return [4, main_1.appOperator.methods
+                                .ethBlockNumber()
+                                .call()];
+                    case 3:
+                        currentBlockNumber = _b.sent();
+                        if (!isConfirmed &&
+                            Number(lastCommitBlock) > 0 &&
+                            Number(lastCommitBlock) >= Number(currentBlockNumber)) {
                             return [2, constants_1.CHANNEL_STATUS.CHANNEL_STATUS_PENDING_APP_CO_SETTLE];
                         }
-                        _b.label = 3;
-                    case 3: return [2, constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN];
+                        _b.label = 4;
+                    case 4: return [2, constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN];
                 }
             });
         });

@@ -1,6 +1,6 @@
 import { logger, delay } from './utils/common';
 import { CHANNEL_STATUS, ADDRESS_ZERO, APPROVE_EVENT } from './utils/constants';
-import { appPN, user, ERC20, callbacks } from './main';
+import { appPN, user, ERC20, callbacks, appOperator } from './main';
 import { sha3 } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
 import { ethHelper } from './utils/ethHelper';
@@ -283,7 +283,15 @@ export default class EthPendingTxStore {
         lastCommitBlock,
       } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
 
-      if (!isConfirmed && Number(lastCommitBlock) > 0) {
+      let currentBlockNumber = await appOperator.methods
+        .ethBlockNumber()
+        .call();
+
+      if (
+        !isConfirmed &&
+        Number(lastCommitBlock) > 0 &&
+        Number(lastCommitBlock) >= Number(currentBlockNumber)
+      ) {
         return CHANNEL_STATUS.CHANNEL_STATUS_PENDING_APP_CO_SETTLE;
       }
     }
