@@ -13,6 +13,7 @@ import { cita, puppet, debug, appOperator, web3, ERC20 } from '../main';
 import { bufferToHex } from 'ethereumjs-util';
 import { hexToBytes } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
+import { resolve } from 'path';
 
 /**
  * 用私钥签署消息
@@ -51,6 +52,25 @@ export function myEcsignToHex(messageHash: string, privateKey: string): string {
 }
 
 /**
+ * get eth current gas price
+ *
+ * @param web3
+ */
+export async function getEthGasPrice(web3: any) {
+  const { toBigNumber } = web3;
+  return new Promise((resolve, reject) => {
+    web3.eth.getGasPrice((error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        const biggerPrice = result.mul(toBigNumber(11)).div(toBigNumber(10));
+        resolve(biggerPrice.toString(10));
+      }
+    });
+  });
+}
+
+/**
  * submit a transaction to ethereum
  *
  * @param {string} from from eth address
@@ -67,18 +87,19 @@ export async function sendEthTx(
   value: number | string,
   data: string
 ): Promise<string> {
+  const gasPrice = await getEthGasPrice(web3);
   return new Promise<string>((resolve, reject) => {
-    web3.eth.sendTransaction(
-      { from, to, value, data, gasPrice: 1e10 },
-      function(err: any, result: any) {
-        logger.info('send Transaction', err, result);
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
+    web3.eth.sendTransaction({ from, to, value, data, gasPrice }, function(
+      err: any,
+      result: any
+    ) {
+      logger.info('send Transaction', err, result);
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
       }
-    );
+    });
   });
 }
 
