@@ -103,21 +103,21 @@ export default class HttpWatcher {
     lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
 
     logger.info('start syncing process', lastBlockNumber, currentBlockNumber);
-    while (lastBlockNumber <= currentBlockNumber) {
-      for (let watchItem of this.watchList) {
-        await this.processAllEvent(
-          lastBlockNumber,
-          currentBlockNumber,
-          watchItem
-        );
-        if (this.enabled === false) {
-          return;
-        }
-      }
+    // while (lastBlockNumber <= currentBlockNumber) {
+    //   for (let watchItem of this.watchList) {
+    //     await this.processAllEvent(
+    //       lastBlockNumber,
+    //       currentBlockNumber,
+    //       watchItem
+    //     );
+    //     if (this.enabled === false) {
+    //       return;
+    //     }
+    //   }
 
-      lastBlockNumber = currentBlockNumber + 1;
-      currentBlockNumber = await this.base.getBlockNumber();
-    }
+    //   lastBlockNumber = currentBlockNumber + 1;
+    //   currentBlockNumber = await this.base.getBlockNumber();
+    // }
 
     // finish sync process;
     logger.info('finish syncing process', currentBlockNumber);

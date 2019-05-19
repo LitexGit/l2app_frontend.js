@@ -70,7 +70,7 @@ var cancelListener_1 = require("./cancelListener");
 var ethHelper_1 = require("./utils/ethHelper");
 var L2 = (function () {
     function L2() {
-        exports.debug = false;
+        exports.debug = true;
         common_1.setLogger();
     }
     L2.getInstance = function () {
@@ -110,16 +110,16 @@ var L2 = (function () {
                         exports.ERC20.options.jsonInterface = ERC20Abi;
                         exports.ERC20.options.from = exports.user;
                         exports.user = userAddress;
-                        return [4, exports.ethPN.methods.provider().call()];
-                    case 1:
-                        exports.cp = _a.sent();
-                        return [4, exports.ethPN.methods.regulator().call()];
-                    case 2:
-                        exports.l2 = _a.sent();
-                        common_1.logger.info("cp / l2 is " + exports.cp + " " + exports.l2);
                         exports.cita = cita_sdk_1.default(appRpcUrl);
                         exports.appPN = new exports.cita.base.Contract(appPNInfo.abi, appPNInfo.address);
                         exports.appPN.options.address = appPNInfo.address;
+                        return [4, exports.appPN.methods.provider().call()];
+                    case 1:
+                        exports.cp = _a.sent();
+                        return [4, exports.appPN.methods.regulator().call()];
+                    case 2:
+                        exports.l2 = _a.sent();
+                        common_1.logger.info("cp / l2 is " + exports.cp + " " + exports.l2);
                         exports.appSession = new exports.cita.base.Contract(appSessionInfo.abi, appSessionInfo.address);
                         return [4, exports.appPN.methods.operator().call()];
                     case 3:
@@ -133,7 +133,6 @@ var L2 = (function () {
                     case 4:
                         _a.sent();
                         this.initListeners();
-                        this.initMissingEvent();
                         return [4, this.initEthPendingTxStore()];
                     case 5:
                         _a.sent();
@@ -162,12 +161,12 @@ var L2 = (function () {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        _i = 0, tokenList_1 = tokenList;
-                        _b.label = 1;
+                        common_1.logger.info('initTokenList: ', tokenList);
+                        return [2];
                     case 1:
                         if (!(_i < tokenList_1.length)) return [3, 6];
                         token = tokenList_1[_i];
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 2:
                         channelID = _b.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
@@ -478,7 +477,7 @@ var L2 = (function () {
                         if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _b.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
@@ -584,13 +583,17 @@ var L2 = (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        common_1.logger.info('getBalance called');
                         this.checkInitialized();
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _a.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _a.sent();
+                        if (Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
+                            channel.userBalance = '0';
+                        }
                         return [2, channel.userBalance];
                 }
             });
@@ -599,25 +602,37 @@ var L2 = (function () {
     L2.prototype.getChannelInfo = function (token) {
         if (token === void 0) { token = constants_1.ADDRESS_ZERO; }
         return __awaiter(this, void 0, void 0, function () {
-            var channelID, ethChannel, channel, _a;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var channelID, channel, _a, isConfirmed, balance, lastCommitBlock, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
+                        common_1.logger.info('getChannelInfo called');
                         this.checkInitialized();
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
-                        channelID = _b.sent();
-                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
-                    case 2:
-                        ethChannel = _b.sent();
-                        common_1.logger.info('ChannelID is ', channelID, ethChannel);
+                        channelID = _c.sent();
+                        common_1.logger.info('ChannelID is ', channelID);
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
+                    case 2:
+                        channel = _c.sent();
+                        if (Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
+                            channel.userBalance = '0';
+                        }
+                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE)) return [3, 4];
+                        return [4, exports.appPN.methods.cooperativeSettleProofMap(channelID).call()];
                     case 3:
-                        channel = _b.sent();
-                        _a = channel;
-                        return [4, exports.ethPendingTxStore.getChannelStatus(channelID, Number(channel.status), exports.user, token)];
+                        _a = _c.sent(), isConfirmed = _a.isConfirmed, balance = _a.balance, lastCommitBlock = _a.lastCommitBlock;
+                        exports.cancelListener.add({
+                            channelID: channelID,
+                            balance: balance,
+                            lastCommitBlock: Number(lastCommitBlock),
+                        });
+                        _c.label = 4;
                     case 4:
-                        _a.status = _b.sent();
+                        _b = channel;
+                        return [4, exports.ethPendingTxStore.getChannelStatus(channelID, Number(channel.status), exports.user, token)];
+                    case 5:
+                        _b.status = _c.sent();
                         return [2, __assign({ channelID: channelID }, channel)];
                 }
             });
@@ -881,7 +896,7 @@ var L2 = (function () {
                     { contract: exports.appPN, listener: cita_1.events },
                     { contract: exports.appSession, listener: session_1.events },
                 ];
-                this.appWatcher = new httpwatcher_1.default(exports.cita.base, 1000, appWatchList);
+                this.appWatcher = new httpwatcher_1.default(exports.cita.base, 2000, appWatchList);
                 this.appWatcher.start();
                 return [2];
             });

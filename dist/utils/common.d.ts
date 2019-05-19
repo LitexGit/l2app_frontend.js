@@ -2,6 +2,7 @@ import { AbiItem } from 'web3/node_modules/web3-utils';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 export declare function myEcsign(messageHash: string, privateKey: string): number[];
 export declare function myEcsignToHex(messageHash: string, privateKey: string): string;
+export declare function getEthGasPrice(web3: any): Promise<{}>;
 export declare function sendEthTx(web3: any, from: string, to: string, value: number | string, data: string): Promise<string>;
 export declare function signMessage(web3: any, from: string, typedData: any): Promise<string>;
 export declare function abi2jsonInterface(abi: string): AbiItem[] | undefined;

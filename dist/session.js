@@ -181,7 +181,7 @@ var L2Session = (function () {
                         paymentSignature = '0x0';
                         if (!(Number(amount) > 0)) return [3, 5];
                         common_1.logger.info('start get channelID');
-                        return [4, main_1.ethPN.methods.getChannelID(from, token).call()];
+                        return [4, main_1.appPN.methods.channelIDMap(from, token).call()];
                     case 1:
                         channelID = _a.sent();
                         common_1.logger.info('start get channel status');

@@ -189,8 +189,8 @@ var EthPendingTxStore = (function () {
                         if (this.enabled === false) {
                             return [2];
                         }
-                        console.log('ethPendingTxStore watching');
-                        return [4, common_1.delay(3000)];
+                        common_1.logger.info('ethPendingTxStore watching');
+                        return [4, common_1.delay(5000)];
                     case 13:
                         _d.sent();
                         return [3, 0];

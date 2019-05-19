@@ -67,20 +67,46 @@ function myEcsignToHex(messageHash, privateKey) {
     return signatureHexString;
 }
 exports.myEcsignToHex = myEcsignToHex;
-function sendEthTx(web3, from, to, value, data) {
+function getEthGasPrice(web3) {
     return __awaiter(this, void 0, void 0, function () {
+        var toBigNumber;
         return __generator(this, function (_a) {
+            toBigNumber = web3.toBigNumber;
             return [2, new Promise(function (resolve, reject) {
-                    web3.eth.sendTransaction({ from: from, to: to, value: value, data: data, gasPrice: 1e10 }, function (err, result) {
-                        exports.logger.info('send Transaction', err, result);
-                        if (err) {
-                            reject(err);
+                    web3.eth.getGasPrice(function (error, result) {
+                        if (error) {
+                            reject(error);
                         }
                         else {
-                            resolve(result);
+                            var biggerPrice = result.mul(toBigNumber(11)).div(toBigNumber(10));
+                            resolve(biggerPrice.toString(10));
                         }
                     });
                 })];
+        });
+    });
+}
+exports.getEthGasPrice = getEthGasPrice;
+function sendEthTx(web3, from, to, value, data) {
+    return __awaiter(this, void 0, void 0, function () {
+        var gasPrice;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, getEthGasPrice(web3)];
+                case 1:
+                    gasPrice = _a.sent();
+                    return [2, new Promise(function (resolve, reject) {
+                            web3.eth.sendTransaction({ from: from, to: to, value: value, data: data, gasPrice: gasPrice }, function (err, result) {
+                                exports.logger.info('send Transaction', err, result);
+                                if (err) {
+                                    reject(err);
+                                }
+                                else {
+                                    resolve(result);
+                                }
+                            });
+                        })];
+            }
         });
     });
 }

@@ -110,78 +110,53 @@ var HttpWatcher = (function () {
     HttpWatcher.prototype.start = function (lastBlockNumber) {
         if (lastBlockNumber === void 0) { lastBlockNumber = 0; }
         return __awaiter(this, void 0, void 0, function () {
-            var currentBlockNumber, _i, _a, watchItem, _b, _c, watchItem, err_1;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var currentBlockNumber, _i, _a, watchItem, err_1;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0: return [4, this.base.getBlockNumber()];
                     case 1:
-                        currentBlockNumber = _d.sent();
+                        currentBlockNumber = _b.sent();
                         lastBlockNumber = lastBlockNumber || currentBlockNumber - 1;
                         common_1.logger.info('start syncing process', lastBlockNumber, currentBlockNumber);
-                        _d.label = 2;
+                        common_1.logger.info('finish syncing process', currentBlockNumber);
+                        _b.label = 2;
                     case 2:
-                        if (!(lastBlockNumber <= currentBlockNumber)) return [3, 8];
-                        _i = 0, _a = this.watchList;
-                        _d.label = 3;
+                        if (!true) return [3, 12];
+                        return [4, common_1.delay(this.blockInterval)];
                     case 3:
-                        if (!(_i < _a.length)) return [3, 6];
+                        _b.sent();
+                        _b.label = 4;
+                    case 4:
+                        _b.trys.push([4, 10, , 11]);
+                        lastBlockNumber = currentBlockNumber + 1;
+                        return [4, this.base.getBlockNumber()];
+                    case 5:
+                        currentBlockNumber = _b.sent();
+                        if (lastBlockNumber > currentBlockNumber) {
+                            return [3, 2];
+                        }
+                        _i = 0, _a = this.watchList;
+                        _b.label = 6;
+                    case 6:
+                        if (!(_i < _a.length)) return [3, 9];
                         watchItem = _a[_i];
                         return [4, this.processAllEvent(lastBlockNumber, currentBlockNumber, watchItem)];
-                    case 4:
-                        _d.sent();
-                        if (this.enabled === false) {
-                            return [2];
-                        }
-                        _d.label = 5;
-                    case 5:
-                        _i++;
-                        return [3, 3];
-                    case 6:
-                        lastBlockNumber = currentBlockNumber + 1;
-                        return [4, this.base.getBlockNumber()];
                     case 7:
-                        currentBlockNumber = _d.sent();
-                        return [3, 2];
-                    case 8:
-                        common_1.logger.info('finish syncing process', currentBlockNumber);
-                        _d.label = 9;
-                    case 9:
-                        if (!true) return [3, 19];
-                        return [4, common_1.delay(this.blockInterval)];
-                    case 10:
-                        _d.sent();
-                        _d.label = 11;
-                    case 11:
-                        _d.trys.push([11, 17, , 18]);
-                        lastBlockNumber = currentBlockNumber + 1;
-                        return [4, this.base.getBlockNumber()];
-                    case 12:
-                        currentBlockNumber = _d.sent();
-                        if (lastBlockNumber > currentBlockNumber) {
-                            return [3, 9];
-                        }
-                        _b = 0, _c = this.watchList;
-                        _d.label = 13;
-                    case 13:
-                        if (!(_b < _c.length)) return [3, 16];
-                        watchItem = _c[_b];
-                        return [4, this.processAllEvent(lastBlockNumber, currentBlockNumber, watchItem)];
-                    case 14:
-                        _d.sent();
+                        _b.sent();
                         if (this.enabled === false) {
                             return [2];
                         }
-                        _d.label = 15;
-                    case 15:
-                        _b++;
-                        return [3, 13];
-                    case 16: return [3, 18];
-                    case 17:
-                        err_1 = _d.sent();
+                        _b.label = 8;
+                    case 8:
+                        _i++;
+                        return [3, 6];
+                    case 9: return [3, 11];
+                    case 10:
+                        err_1 = _b.sent();
                         common_1.logger.error('watch error:', err_1);
-                        return [3, 18];
-                    case 18: return [3, 9];
-                    case 19: return [2];
+                        return [3, 11];
+                    case 11: return [3, 2];
+                    case 12: return [2];
                 }
             });
         });

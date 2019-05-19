@@ -144,7 +144,7 @@ var CancelListener = (function () {
                         if (this.enabled === false) {
                             return [2];
                         }
-                        return [4, common_1.delay(3000)];
+                        return [4, common_1.delay(15000)];
                     case 10:
                         _c.sent();
                         return [3, 12];

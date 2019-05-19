@@ -86,7 +86,7 @@ export class L2 {
   private appWatcher: HttpWatcher;
 
   private constructor() {
-    debug = false;
+    debug = true;
     setLogger();
   }
 
@@ -167,14 +167,15 @@ export class L2 {
     ERC20.options.from = user;
 
     user = userAddress;
-    cp = await ethPN.methods.provider().call();
-    l2 = await ethPN.methods.regulator().call();
-
-    logger.info(`cp / l2 is ${cp} ${l2}`);
 
     cita = CITASDK(appRpcUrl);
     appPN = new cita.base.Contract(appPNInfo.abi, appPNInfo.address);
     appPN.options.address = appPNInfo.address;
+
+    cp = await appPN.methods.provider().call();
+    l2 = await appPN.methods.regulator().call();
+
+    logger.info(`cp / l2 is ${cp} ${l2}`);
 
     appSession = new cita.base.Contract(
       appSessionInfo.abi,
@@ -216,8 +217,10 @@ export class L2 {
    * @param tokenList token address array
    */
   async initTokenList(tokenList: Array<string>) {
+    logger.info('initTokenList: ', tokenList);
+    return;
     for (let token of tokenList) {
-      let channelID = await ethPN.methods.getChannelID(user, token).call();
+      let channelID = await appPN.methods.channelIDMap(user, token).call();
       let channel = await appPN.methods.channelMap(channelID).call();
       let {
         isConfirmed,
@@ -597,7 +600,7 @@ export class L2 {
       throw new Error(`token: [${token}] is not a valid address`);
     }
 
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error('app channel status is not open, can not transfer now');
@@ -694,19 +697,42 @@ export class L2 {
    * @returns {Promise<string>} user's balance
    */
   async getBalance(token: string = ADDRESS_ZERO): Promise<string> {
+    logger.info('getBalance called');
     this.checkInitialized();
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
+    if(Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE){
+      channel.userBalance = '0';
+    }
     return channel.userBalance;
   }
 
   async getChannelInfo(token: string = ADDRESS_ZERO) {
+    logger.info('getChannelInfo called');
     this.checkInitialized();
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    let ethChannel = await ethPN.methods.channelMap(channelID).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
+    // let ethChannel = await ethPN.methods.channelMap(channelID).call();
 
-    logger.info('ChannelID is ', channelID, ethChannel);
+    logger.info('ChannelID is ', channelID); //, ethChannel);
     let channel = await appPN.methods.channelMap(channelID).call();
+    if(Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE){
+      channel.userBalance = '0';
+    }
+
+    if (
+      Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_APP_CO_SETTLE
+    ) {
+      let {
+        isConfirmed,
+        balance,
+        lastCommitBlock,
+      } = await appPN.methods.cooperativeSettleProofMap(channelID).call();
+      cancelListener.add({
+        channelID,
+        balance,
+        lastCommitBlock: Number(lastCommitBlock),
+      });
+    }
 
     channel.status = await ethPendingTxStore.getChannelStatus(
       channelID,
@@ -997,7 +1023,7 @@ export class L2 {
       { contract: appPN, listener: appEvents },
       { contract: appSession, listener: sessionEvents },
     ];
-    this.appWatcher = new HttpWatcher(cita.base, 1000, appWatchList);
+    this.appWatcher = new HttpWatcher(cita.base, 2000, appWatchList);
     this.appWatcher.start();
   }
 

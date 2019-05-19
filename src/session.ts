@@ -246,7 +246,7 @@ export default class L2Session {
     let paymentSignature = '0x0';
     if (Number(amount) > 0) {
       logger.info('start get channelID');
-      channelID = await ethPN.methods.getChannelID(from, token).call();
+      channelID = await appPN.methods.channelIDMap(from, token).call();
       logger.info('start get channel status');
       let channel = await appPN.methods.channelMap(channelID).call();
 

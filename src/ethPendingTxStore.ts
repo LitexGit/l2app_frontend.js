@@ -151,8 +151,8 @@ export default class EthPendingTxStore {
       if (this.enabled === false) {
         return;
       }
-      console.log('ethPendingTxStore watching');
-      await delay(3000);
+      logger.info('ethPendingTxStore watching');
+      await delay(5000);
     }
   }
 

@@ -98,7 +98,7 @@ export default class CancelListener {
         if (this.enabled === false) {
           return;
         }
-        await delay(3000);
+        await delay(15000);
       } catch (err) {
         logger.error('cancelListener error', err);
       }
