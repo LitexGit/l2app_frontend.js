@@ -157,23 +157,36 @@
 
   <script>
     const SERVER_URL = 'http://localhost:9527/';
-    let config = {
-      ethPNAddress: '0x854b40910A47a2D07E8577601d1E4A038538985a',
-      appPNAddress: '0x4f8fc4084a0d59EB59390053E718D79aFc12295E',
-      appSessionAddress: '0x50Fc5569C9644FdFC22657E5E295fB5e131f7033',
-      appOperatorAddress: '0x7c4866861CC34946194b6FfD1196F9f9166Cdc5A',
-      appRpcUrl: 'http://39.106.71.164:1337',
-      ethRpcUrl: 'http://39.96.8.192:8545',
-      // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
+    // let config = {
+    //   appSessionAddress: '0x50A3fE0151936C4046AA3ba9e4ab8aC6Bd7fd72C',
+    //   ethPNAddress: '0x32388AD894f20De4542d19DE1468FBa7EBfb3A87',
+    //   appOperatorAddress: '0x9210b9008AF3dc2903E39d6e7920E94DFAeBE1Ee',
+    //   appPNAddress: '0x186645E99d5C01EF8CacE62EAA822ce72F16cb9D',
+    //   ethRpcUrl: 'http://39.96.8.192:8545',
+    //   appRpcUrl: 'http://39.106.71.164:1337',
+    //   // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
+    //   token: '0x0000000000000000000000000000000000000000',
+    // };
+
+      let config = {
+
+        appSessionAddress: '0x584C54A04BA40c22B886499F583AC50986aae18F',
+  ethPNAddress: '0x083eE35322c55b8c02653798c8399262894db55a',
+  appOperatorAddress: '0x3bC9c02AB80190B6f654229f280589538186A404',
+  appPNAddress: '0x8d2B8FcDedb50C7dF7603cE8579175B581916C74',
+  ethRpcUrl: 'http://52.208.46.161:8546',
+  appRpcUrl: 'http://39.106.71.164:1337',
       token: '0x0000000000000000000000000000000000000000',
-    };
+      }
+
     let { ethPNAddress, appPNAddress, appSessionAddress, appRpcUrl } = config;
     // let appRpcUrl = "http://wallet.milewan.com:8090";
     // let appRpcUrl = "https://node.cryptape.com";
 
     let tokenList = [
       '0x0000000000000000000000000000000000000000',
-      '0x3052c3104c32e666666fBEf3A5EAd4603747eA83',
+      // '0x3052c3104c32e666666fBEf3A5EAd4603747eA83',
+      '0xfe867c27e9f36a6264874ea9446f71b84c647b5c',
     ];
 
     let token = '0x0000000000000000000000000000000000000000';

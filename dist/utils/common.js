@@ -218,7 +218,7 @@ function prepareSignatureForTransfer(web3, ethPNAddress, channelID, balance, non
                         domain: {
                             name: 'litexlayer2',
                             version: '1',
-                            chainId: 4,
+                            chainId: main_1.ethChainId,
                             verifyingContract: ethPNAddress,
                         },
                         message: {

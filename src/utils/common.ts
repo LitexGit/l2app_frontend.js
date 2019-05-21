@@ -9,7 +9,7 @@ import {
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
 import { EIP712_TYPES, signHash, recoverTypedData } from '../config/TypedData';
-import { cita, puppet, debug, appOperator, web3, ERC20 } from '../main';
+import { cita, puppet, debug, appOperator, web3, ERC20, ethChainId } from '../main';
 import { bufferToHex } from 'ethereumjs-util';
 import { hexToBytes } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
@@ -238,7 +238,7 @@ export async function prepareSignatureForTransfer(
     domain: {
       name: 'litexlayer2',
       version: '1',
-      chainId: 4,
+      chainId: ethChainId,
       verifyingContract: ethPNAddress,
     },
     message: {

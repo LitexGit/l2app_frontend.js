@@ -2,10 +2,10 @@ import { AbiItem } from 'web3/node_modules/web3-utils';
 import L2Session from '../session';
 export declare type SOL_TYPE = 'address' | 'uint256' | 'bytes32' | 'bytes';
 export declare const CITA_SYNC_EVENT_TIMEOUT = 15;
-export declare const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 5;
+export declare const ETH_MESSAGE_COMMIT_BLOCK_EXPERITION = 9;
 export declare const CITA_TX_COMMIT_BLOCK_EXPERITION = 88;
 export declare const CITA_TX_BLOCK_INTERVAL = 1000;
-export declare const SETTLE_WINDOW = 5;
+export declare const SETTLE_WINDOW = 9;
 export declare const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 export declare enum PUPPET_STATUS {
     NULL = 0,

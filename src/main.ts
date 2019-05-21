@@ -60,6 +60,7 @@ export let cita: any; // cita sdk object
 export let EthProvider: any; // eth provider
 export let web3: any; // eth sdk object;
 export let ethPN: Contract; // eth payment contract
+export let ethChainId: number;
 export let ERC20: Contract; // ERC20 contract
 export let appPN: Contract; // cita payment contract
 export let appSession: Contract; // cita session contract
@@ -153,6 +154,10 @@ export class L2 {
     // logger.info(provider.toString());
     // logger.info(JSON.stringify(outerWeb3.version));
 
+    web3.version.getNetwork((err, result) => {
+      ethChainId = result;
+    });
+
     logger.info(`outer web3 version:`, outerWeb3.version);
 
     ethPN = new Contract(EthProvider, ethPNInfo.abi, ethPNInfo.address);
@@ -207,8 +212,8 @@ export class L2 {
   /** * ---------- Payment APIs ---------- */
 
   async setDebug(debugFlag: boolean) {
-    debug = debugFlag;
-    setLogger();
+    // debug = debugFlag;
+    // setLogger();
   }
 
   /**
@@ -701,7 +706,7 @@ export class L2 {
     this.checkInitialized();
     let channelID = await appPN.methods.channelIDMap(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
-    if(Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE){
+    if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
       channel.userBalance = '0';
     }
     return channel.userBalance;
@@ -715,7 +720,7 @@ export class L2 {
 
     logger.info('ChannelID is ', channelID); //, ethChannel);
     let channel = await appPN.methods.channelMap(channelID).call();
-    if(Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE){
+    if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
       channel.userBalance = '0';
     }
 

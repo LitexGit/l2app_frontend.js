@@ -8,6 +8,7 @@ export declare let cita: any;
 export declare let EthProvider: any;
 export declare let web3: any;
 export declare let ethPN: Contract;
+export declare let ethChainId: number;
 export declare let ERC20: Contract;
 export declare let appPN: Contract;
 export declare let appSession: Contract;

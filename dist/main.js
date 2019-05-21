@@ -101,6 +101,9 @@ var L2 = (function () {
                         common_1.logger.info('start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]', userAddress, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress);
                         exports.web3 = outerWeb3;
                         exports.EthProvider = outerWeb3.currentProvider;
+                        exports.web3.version.getNetwork(function (err, result) {
+                            exports.ethChainId = result;
+                        });
                         common_1.logger.info("outer web3 version:", outerWeb3.version);
                         exports.ethPN = new web3_eth_contract_1.Contract(exports.EthProvider, ethPNInfo.abi, ethPNInfo.address);
                         exports.ethPN.options.from = exports.user;
@@ -133,6 +136,7 @@ var L2 = (function () {
                     case 4:
                         _a.sent();
                         this.initListeners();
+                        this.initMissingEvent();
                         return [4, this.initEthPendingTxStore()];
                     case 5:
                         _a.sent();
@@ -149,8 +153,6 @@ var L2 = (function () {
     L2.prototype.setDebug = function (debugFlag) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                exports.debug = debugFlag;
-                common_1.setLogger();
                 return [2];
             });
         });
