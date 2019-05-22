@@ -149,6 +149,7 @@ export class L2 {
       appSessionAddress
     );
 
+    user = userAddress;
     web3 = outerWeb3;
     EthProvider = outerWeb3.currentProvider;
     // logger.info(provider.toString());
@@ -173,8 +174,6 @@ export class L2 {
     ERC20 = new Contract(EthProvider, ERC20Abi);
     ERC20.options.jsonInterface = ERC20Abi;
     ERC20.options.from = user;
-
-    user = userAddress;
 
     cita = CITASDK(appRpcUrl);
     appPN = new cita.base.Contract(appPNInfo.abi, appPNInfo.address);
@@ -275,8 +274,8 @@ export class L2 {
       throw new Error('allowance is great than amount now.');
     }
 
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    // let channel = await ethPN.methods.channelMap(channelID).call();
+    // let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
 
     let approveData = ERC20.methods
       .approve(ethPN.options.address, amountBN.toString())
@@ -317,8 +316,8 @@ export class L2 {
     if (!isAddress(token)) {
       throw new Error(`token: [${token}] is not a valid address`);
     }
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    let channel = await ethPN.methods.channelMap(channelID).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
+    let channel = await appPN.methods.channelMap(channelID).call();
 
     amount = toBN(amount).toString();
     let ethPNAddress = ethPN.options.address;
@@ -353,7 +352,10 @@ export class L2 {
           data
         );
       }
-    } else if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
+    } else if (
+      Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT ||
+      Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_SETTLE
+    ) {
       // open channel
       let from = puppet.getAccount().address;
       let data = ethPN.methods
@@ -409,7 +411,7 @@ export class L2 {
     }
 
     amount = toBN(amount).toString();
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
     let channel = await appPN.methods.channelMap(channelID).call();
     // withdraw amount must less than user balance
     if (toBN(channel.userBalance).lt(toBN(amount))) {
@@ -472,7 +474,7 @@ export class L2 {
    * @param token token contract address
    */
   async cancelWithdraw(token: string = ADDRESS_ZERO): Promise<string> {
-    const channelID = await ethPN.methods.getChannelID(user, token).call();
+    const channelID = await appPN.methods.channelIDMap(user, token).call();
 
     let {
       isConfirmed,
@@ -529,8 +531,8 @@ export class L2 {
       throw new Error(`token: [${token}] is not a valid address`);
     }
 
-    let channelID = await ethPN.methods.getChannelID(user, token).call();
-    let channel = await ethPN.methods.channelMap(channelID).call();
+    let channelID = await appPN.methods.channelIDMap(user, token).call();
+    let channel = await appPN.methods.channelMap(channelID).call();
     if (Number(channel.status) !== CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
       throw new Error('eth channel status is not open, can not force withdraw');
     }
@@ -1072,7 +1074,7 @@ export class L2 {
     for (let event of allChannelOpenedEvent) {
       let returnValues: any = event.returnValues;
       let { channelID } = returnValues;
-      let channel = await ethPN.methods.channelMap(channelID).call();
+      let channel = await appPN.methods.channelMap(channelID).call();
 
       if (Number(channel.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
         await appMethods.appSubmitGuardProof(channelID, user);

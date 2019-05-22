@@ -132,6 +132,7 @@ var HttpWatcher = (function () {
                         return [4, this.base.getBlockNumber()];
                     case 5:
                         currentBlockNumber = _b.sent();
+                        common_1.logger.info('currentBlockNumber', currentBlockNumber);
                         if (lastBlockNumber > currentBlockNumber) {
                             return [3, 2];
                         }
@@ -150,7 +151,9 @@ var HttpWatcher = (function () {
                     case 8:
                         _i++;
                         return [3, 6];
-                    case 9: return [3, 11];
+                    case 9:
+                        common_1.logger.info('process all event finish');
+                        return [3, 11];
                     case 10:
                         err_1 = _b.sent();
                         common_1.logger.error('watch error:', err_1);

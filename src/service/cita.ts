@@ -291,12 +291,13 @@ export const events = {
         let time = 0;
         let channelInfo;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
+          // let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
           // logger.info('ethChannelInfo', ethChannelInfo);
           channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
-            toBN(channelInfo.userDeposit).gte(toBN(amount)) &&
-            Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN
+            toBN(channelInfo.userDeposit).gte(toBN(amount)) 
+            // &&
+            // Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_OPEN
           ) {
             break;
           }
@@ -466,12 +467,13 @@ export const events = {
       if (callbacks.get('Withdraw')) {
         let time = 0;
         while (time < CITA_SYNC_EVENT_TIMEOUT) {
-          let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
+          // let ethChannelInfo = await ethPN.methods.channelMap(channelID).call();
           let channelInfo = await appPN.methods.channelMap(channelID).call();
           if (
             Number(channelInfo.status) ===
-              CHANNEL_STATUS.CHANNEL_STATUS_SETTLE &&
-            Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT
+              CHANNEL_STATUS.CHANNEL_STATUS_SETTLE 
+              // &&
+            // Number(ethChannelInfo.status) === CHANNEL_STATUS.CHANNEL_STATUS_INIT
           ) {
             break;
           }

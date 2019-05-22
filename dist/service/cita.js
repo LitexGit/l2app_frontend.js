@@ -186,7 +186,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, user, token, amount, channelID, transactionHash, time, channelInfo, ethChannelInfo, txhash, depositEvent;
+            var _a, user, token, amount, channelID, transactionHash, time, channelInfo, txhash, depositEvent;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -197,33 +197,29 @@ exports.events = {
                             common_1.logger.info('channel opened by provider, not emit event');
                             return [2];
                         }
-                        if (!main_1.callbacks.get('Deposit')) return [3, 8];
+                        if (!main_1.callbacks.get('Deposit')) return [3, 7];
                         time = 0;
                         channelInfo = void 0;
                         _b.label = 1;
                     case 1:
-                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 5];
-                        return [4, main_1.ethPN.methods.channelMap(channelID).call()];
-                    case 2:
-                        ethChannelInfo = _b.sent();
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 4];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
-                    case 3:
+                    case 2:
                         channelInfo = _b.sent();
-                        if (web3_utils_1.toBN(channelInfo.userDeposit).gte(web3_utils_1.toBN(amount)) &&
-                            Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
-                            return [3, 5];
+                        if (web3_utils_1.toBN(channelInfo.userDeposit).gte(web3_utils_1.toBN(amount))) {
+                            return [3, 4];
                         }
                         return [4, common_1.delay(1000)];
-                    case 4:
+                    case 3:
                         _b.sent();
                         time++;
                         return [3, 1];
-                    case 5: return [4, common_1.extractEthTxHashFromAppTx(transactionHash)];
-                    case 6:
+                    case 4: return [4, common_1.extractEthTxHashFromAppTx(transactionHash)];
+                    case 5:
                         txhash = _b.sent();
                         main_1.ethPendingTxStore.setTokenAllowance(token, '0');
                         return [4, main_1.ethPendingTxStore.removeTx(txhash)];
-                    case 7:
+                    case 6:
                         _b.sent();
                         depositEvent = {
                             user: user,
@@ -235,8 +231,8 @@ exports.events = {
                             balance: channelInfo.userBalance,
                         };
                         main_1.callbacks.get('Deposit')(null, depositEvent);
-                        _b.label = 8;
-                    case 8: return [2];
+                        _b.label = 7;
+                    case 7: return [2];
                 }
             });
         }); },
@@ -357,7 +353,7 @@ exports.events = {
             return { user: main_1.user };
         },
         handler: function (event) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, txhash, withdrawEvent, time, ethChannelInfo, channelInfo;
+            var _a, channelID, user, token, balance, lastCommitBlock, transactionHash, txhash, withdrawEvent, time, channelInfo;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -382,31 +378,27 @@ exports.events = {
                             txhash: txhash,
                             balance: '0',
                         };
-                        if (!main_1.callbacks.get('Withdraw')) return [3, 9];
+                        if (!main_1.callbacks.get('Withdraw')) return [3, 8];
                         time = 0;
                         _b.label = 4;
                     case 4:
-                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 8];
-                        return [4, main_1.ethPN.methods.channelMap(channelID).call()];
-                    case 5:
-                        ethChannelInfo = _b.sent();
+                        if (!(time < constants_1.CITA_SYNC_EVENT_TIMEOUT)) return [3, 7];
                         return [4, main_1.appPN.methods.channelMap(channelID).call()];
-                    case 6:
+                    case 5:
                         channelInfo = _b.sent();
                         if (Number(channelInfo.status) ===
-                            constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE &&
-                            Number(ethChannelInfo.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT) {
-                            return [3, 8];
+                            constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE) {
+                            return [3, 7];
                         }
                         return [4, common_1.delay(1000)];
-                    case 7:
+                    case 6:
                         _b.sent();
                         time++;
                         return [3, 4];
-                    case 8:
+                    case 7:
                         main_1.callbacks.get('Withdraw')(null, withdrawEvent);
-                        _b.label = 9;
-                    case 9: return [2];
+                        _b.label = 8;
+                    case 8: return [2];
                 }
             });
         }); },

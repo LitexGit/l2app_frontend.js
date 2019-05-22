@@ -128,6 +128,7 @@ export default class HttpWatcher {
       try {
         lastBlockNumber = currentBlockNumber + 1;
         currentBlockNumber = await this.base.getBlockNumber();
+        logger.info('currentBlockNumber', currentBlockNumber);
 
         if (lastBlockNumber > currentBlockNumber) {
           continue;
@@ -144,6 +145,7 @@ export default class HttpWatcher {
             return;
           }
         }
+        logger.info('process all event finish');
         // logger.info('currentBlockNumber', currentBlockNumber);
       } catch (err) {
         logger.error('watch error:', err);

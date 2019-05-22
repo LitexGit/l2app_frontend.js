@@ -168,16 +168,14 @@
     //   token: '0x0000000000000000000000000000000000000000',
     // };
 
-      let config = {
-
-        appSessionAddress: '0x584C54A04BA40c22B886499F583AC50986aae18F',
-  ethPNAddress: '0x083eE35322c55b8c02653798c8399262894db55a',
-  appOperatorAddress: '0x3bC9c02AB80190B6f654229f280589538186A404',
-  appPNAddress: '0x8d2B8FcDedb50C7dF7603cE8579175B581916C74',
-  ethRpcUrl: 'http://52.208.46.161:8546',
-  appRpcUrl: 'http://39.106.71.164:1337',
-      token: '0x0000000000000000000000000000000000000000',
-      }
+    let config = {
+      appSessionAddress: '0xa35Dcc0D52b3ff3da4e46a7292e2b287bD9bc8b9',
+      ethPNAddress: '0xf3e98cdb247fe6e636cf4e8fb20bd55ba9c2a846',
+      appOperatorAddress: '0x791091769EB05870332dB6B3c3a448E11FAc7cC9',
+      appPNAddress: '0x4DcE04C7ee6778e3C6BE3A6419A47862aEFA6De0',
+      ethRpcUrl: 'http://52.208.46.161:8546',
+      appRpcUrl: 'http://39.106.71.164:1337',
+    };
 
     let { ethPNAddress, appPNAddress, appSessionAddress, appRpcUrl } = config;
     // let appRpcUrl = "http://wallet.milewan.com:8090";
@@ -196,9 +194,8 @@
 
     var defaultAccount = '';
 
-    // console.log = message => {
-    //   document.getElementById('info').innerHTML += message + '<br/>';
-    // };
+
+
 
     window.addEventListener('load', async () => {
       console.log('hello world');
@@ -213,19 +210,6 @@
     window.L2 = l2js.default;
 
     async function main() {
-      if (typeof window.ethereum !== 'undefined') {
-        // window.web3 = new Web3(ethereum);
-        try {
-          console.log('start ethereum enable');
-          // window.web3 = new Web3(ethereum);
-          await window.ethereum.enable();
-          defaultAccount = ethereum.selectedAddress;
-        } catch (error) {
-          console.log(error);
-        }
-      } else if (window.web3) {
-        console.log('window.web3 enable');
-        // window.web3 = new Web3(web3.currentProvider);
         let getAccountPromise = new Promise((resolve, reject) => {
           var accounts = web3.eth.getAccounts((err, result) => {
             if (err) {
@@ -234,6 +218,18 @@
             resolve(result);
           });
         });
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          console.log('start ethereum enable');
+          // window.web3 = new Web3(ethereum);
+          await window.ethereum.enable();
+        let accounts = await getAccountPromise;
+        defaultAccount = accounts[0];
+        } catch (error) {
+          console.log(error);
+        }
+      } else if (window.web3) {
+        console.log('window.web3 enable');
 
         let accounts = await getAccountPromise;
         defaultAccount = accounts[0];
@@ -243,6 +239,8 @@
         console.log('no window.web3, no ethereum');
         return;
       }
+
+
 
       document.getElementById('token').innerHTML = 'token Address: ' + token;
 
@@ -308,6 +306,7 @@
           let res = await L2.getInstance().init(
             defaultAccount,
             window.web3,
+            // web3js,
             ethPNAddress,
             appRpcUrl,
             appPNAddress,

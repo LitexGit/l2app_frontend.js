@@ -99,6 +99,7 @@ var L2 = (function () {
                             address: appSessionAddress,
                         };
                         common_1.logger.info('start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]', userAddress, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress);
+                        exports.user = userAddress;
                         exports.web3 = outerWeb3;
                         exports.EthProvider = outerWeb3.currentProvider;
                         if (!(typeof exports.web3.version === 'string' && exports.web3.version.startsWith('1.0'))) return [3, 2];
@@ -120,7 +121,6 @@ var L2 = (function () {
                         exports.ERC20 = new web3_eth_contract_1.Contract(exports.EthProvider, ERC20Abi);
                         exports.ERC20.options.jsonInterface = ERC20Abi;
                         exports.ERC20.options.from = exports.user;
-                        exports.user = userAddress;
                         exports.cita = cita_sdk_1.default(appRpcUrl);
                         exports.appPN = new exports.cita.base.Contract(appPNInfo.abi, appPNInfo.address);
                         exports.appPN.options.address = appPNInfo.address;
@@ -218,7 +218,7 @@ var L2 = (function () {
                         if (web3_utils_1.toBN(allowance).gte(amountBN)) {
                             throw new Error('allowance is great than amount now.');
                         }
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 2:
                         channelID = _a.sent();
                         approveData = exports.ERC20.methods
@@ -253,10 +253,10 @@ var L2 = (function () {
                         if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _a.sent();
-                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
+                        return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _a.sent();
                         amount = web3_utils_1.toBN(amount).toString();
@@ -288,7 +288,8 @@ var L2 = (function () {
                     case 6: return [2, _a.sent()];
                     case 7: return [3, 14];
                     case 8:
-                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT)) return [3, 13];
+                        if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_INIT ||
+                            Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_SETTLE)) return [3, 13];
                         from = exports.puppet.getAccount().address;
                         data = exports.ethPN.methods
                             .openChannel(exports.user, from, constants_1.SETTLE_WINDOW, token, amount)
@@ -330,7 +331,7 @@ var L2 = (function () {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
                         amount = web3_utils_1.toBN(amount).toString();
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _j.sent();
                         return [4, exports.appPN.methods.channelMap(channelID).call()];
@@ -399,7 +400,7 @@ var L2 = (function () {
             var channelID, _a, isConfirmed, settleBalance, lastCommitBlock, providerSignature, regulatorSignature, status_2, currentBlockNumber;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                    case 0: return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _b.sent();
                         return [4, exports.appPN.methods.cooperativeSettleProofMap(channelID).call()];
@@ -447,10 +448,10 @@ var L2 = (function () {
                         if (!web3_utils_1.isAddress(token)) {
                             throw new Error("token: [" + token + "] is not a valid address");
                         }
-                        return [4, exports.ethPN.methods.getChannelID(exports.user, token).call()];
+                        return [4, exports.appPN.methods.channelIDMap(exports.user, token).call()];
                     case 1:
                         channelID = _d.sent();
-                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
+                        return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 2:
                         channel = _d.sent();
                         if (Number(channel.status) !== constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN) {
@@ -968,7 +969,7 @@ var L2 = (function () {
                         event_1 = allChannelOpenedEvent_1[_i];
                         returnValues = event_1.returnValues;
                         channelID = returnValues.channelID;
-                        return [4, exports.ethPN.methods.channelMap(channelID).call()];
+                        return [4, exports.appPN.methods.channelMap(channelID).call()];
                     case 3:
                         channel = _a.sent();
                         if (!(Number(channel.status) === constants_1.CHANNEL_STATUS.CHANNEL_STATUS_OPEN)) return [3, 5];
