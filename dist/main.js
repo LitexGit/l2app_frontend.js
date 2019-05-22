@@ -101,9 +101,17 @@ var L2 = (function () {
                         common_1.logger.info('start L2.init: userAddress: [%s], ethPaymentNetworkAddress: [%s], appRpcUrl: [%s], appPaymentNetworkAddress: [%s], appSessionAddress: [%s]', userAddress, ethPaymentNetworkAddress, appRpcUrl, appPaymentNetworkAddress, appSessionAddress);
                         exports.web3 = outerWeb3;
                         exports.EthProvider = outerWeb3.currentProvider;
+                        if (!(typeof exports.web3.version === 'string' && exports.web3.version.startsWith('1.0'))) return [3, 2];
+                        return [4, exports.web3.eth.net.getId()];
+                    case 1:
+                        exports.ethChainId = _a.sent();
+                        return [3, 3];
+                    case 2:
                         exports.web3.version.getNetwork(function (err, result) {
                             exports.ethChainId = result;
                         });
+                        _a.label = 3;
+                    case 3:
                         common_1.logger.info("outer web3 version:", outerWeb3.version);
                         exports.ethPN = new web3_eth_contract_1.Contract(exports.EthProvider, ethPNInfo.abi, ethPNInfo.address);
                         exports.ethPN.options.from = exports.user;
@@ -117,15 +125,15 @@ var L2 = (function () {
                         exports.appPN = new exports.cita.base.Contract(appPNInfo.abi, appPNInfo.address);
                         exports.appPN.options.address = appPNInfo.address;
                         return [4, exports.appPN.methods.provider().call()];
-                    case 1:
+                    case 4:
                         exports.cp = _a.sent();
                         return [4, exports.appPN.methods.regulator().call()];
-                    case 2:
+                    case 5:
                         exports.l2 = _a.sent();
                         common_1.logger.info("cp / l2 is " + exports.cp + " " + exports.l2);
                         exports.appSession = new exports.cita.base.Contract(appSessionInfo.abi, appSessionInfo.address);
                         return [4, exports.appPN.methods.operator().call()];
-                    case 3:
+                    case 6:
                         operatorCNAddress = _a.sent();
                         common_1.logger.info("op is " + operatorCNAddress);
                         operatorAbi = common_1.abi2jsonInterface(JSON.stringify(require('./config/operatorContract.json')));
@@ -133,15 +141,15 @@ var L2 = (function () {
                         exports.appOperator.options.address = operatorCNAddress;
                         common_1.logger.info('cita contract init finished');
                         return [4, this.initPuppet()];
-                    case 4:
+                    case 7:
                         _a.sent();
                         this.initListeners();
                         this.initMissingEvent();
                         return [4, this.initEthPendingTxStore()];
-                    case 5:
+                    case 8:
                         _a.sent();
                         return [4, this.initCancelListener()];
-                    case 6:
+                    case 9:
                         _a.sent();
                         this.initialized = true;
                         common_1.logger.info('finish L2.init');

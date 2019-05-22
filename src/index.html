@@ -186,7 +186,8 @@
     let tokenList = [
       '0x0000000000000000000000000000000000000000',
       // '0x3052c3104c32e666666fBEf3A5EAd4603747eA83',
-      '0xfe867c27e9f36a6264874ea9446f71b84c647b5c',
+      // '0xfe867c27e9f36a6264874ea9446f71b84c647b5c',
+      '0xdac17f958d2ee523a2206206994597c13d831ec7',
     ];
 
     let token = '0x0000000000000000000000000000000000000000';
@@ -331,7 +332,7 @@
         .getElementById('deposit')
         .addEventListener('click', async event => {
           console.log('deposit button clicked');
-          let res = await L2.getInstance().deposit(1e16, token);
+          let res = await L2.getInstance().deposit(10, token);
           console.log('deposit res ', res);
           txHash = res;
         });

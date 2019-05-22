@@ -35,7 +35,7 @@ export async function mock_sendEthTx(
     to: to,
     data: data,
     value: web3.utils.toHex(value),
-    gasPrice: web3.utils.toHex(await web3.eth.getGasPrice()),
+    gasPrice: web3.utils.toHex(10e9 + ''),
     gasLimit: web3.utils.toHex(300000),
   };
 

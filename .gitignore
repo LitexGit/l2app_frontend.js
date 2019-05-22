@@ -14,3 +14,4 @@ coverage/
 **.DS_Storedocs/
 docs/
 .vscode/
+tests/cosettle.spec.ts

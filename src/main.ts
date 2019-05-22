@@ -153,10 +153,13 @@ export class L2 {
     EthProvider = outerWeb3.currentProvider;
     // logger.info(provider.toString());
     // logger.info(JSON.stringify(outerWeb3.version));
-
-    web3.version.getNetwork((err, result) => {
-      ethChainId = result;
-    });
+    if (typeof web3.version === 'string' && web3.version.startsWith('1.0')) {
+      ethChainId = await web3.eth.net.getId();
+    } else {
+      web3.version.getNetwork((err, result) => {
+        ethChainId = result;
+      });
+    }
 
     logger.info(`outer web3 version:`, outerWeb3.version);
 
