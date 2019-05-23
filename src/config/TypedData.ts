@@ -90,15 +90,16 @@ function encodeData(primaryType: any, data: any) {
 function structHash(primaryType: any, data: any) {
   return ethUtil.keccak256(encodeData(primaryType, data));
 }
+export function compactTypedData(message: any) {
+  return Buffer.concat([
+    Buffer.from('1901', 'hex'),
+    structHash('EIP712Domain', message.domain),
+    structHash(message.primaryType, message.message),
+  ]);
+}
 
 export function signHash(message: any) {
-  return ethUtil.keccak256(
-    Buffer.concat([
-      Buffer.from('1901', 'hex'),
-      structHash('EIP712Domain', message.domain),
-      structHash(message.primaryType, message.message),
-    ])
-  );
+  return ethUtil.keccak256(compactTypedData(message));
 }
 
 export function recoverTypedData(typedData: any, signature: string) {

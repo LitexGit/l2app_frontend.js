@@ -87,12 +87,16 @@ function encodeData(primaryType, data) {
 function structHash(primaryType, data) {
     return ethUtil.keccak256(encodeData(primaryType, data));
 }
-function signHash(message) {
-    return ethUtil.keccak256(Buffer.concat([
+function compactTypedData(message) {
+    return Buffer.concat([
         Buffer.from('1901', 'hex'),
         structHash('EIP712Domain', message.domain),
         structHash(message.primaryType, message.message),
-    ]));
+    ]);
+}
+exports.compactTypedData = compactTypedData;
+function signHash(message) {
+    return ethUtil.keccak256(compactTypedData(message));
 }
 exports.signHash = signHash;
 function recoverTypedData(typedData, signature) {

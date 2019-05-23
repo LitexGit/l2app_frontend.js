@@ -8,8 +8,16 @@ import {
   CITA_TX_COMMIT_BLOCK_EXPERITION,
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
-import { EIP712_TYPES, signHash, recoverTypedData } from '../config/TypedData';
-import { cita, puppet, debug, appOperator, web3, ERC20, ethChainId } from '../main';
+import { EIP712_TYPES, signHash, recoverTypedData, compactTypedData } from '../config/TypedData';
+import {
+  cita,
+  puppet,
+  debug,
+  appOperator,
+  web3,
+  ERC20,
+  ethChainId,
+} from '../main';
 import { bufferToHex } from 'ethereumjs-util';
 import { hexToBytes } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
@@ -117,10 +125,17 @@ export async function signMessage(
   typedData: any
 ): Promise<string> {
   if (!(web3.currentProvider as any).isMetaMask) {
+
     const typedDataHash = bufferToHex(signHash(typedData));
+    let message = typedDataHash;
+
+    if ((web3.currentProvider as any).isAlphaWallet) {
+      message = bufferToHex(compactTypedData(typedData));
+    }
+
     console.log('typedDataHash, from', typedDataHash, from);
     let signFunc = new Promise((resolve, reject) => {
-      web3.eth.sign(from, typedDataHash, (err, result) => {
+      web3.eth.sign(from, message, (err, result) => {
         if (err) {
           reject(err);
         }

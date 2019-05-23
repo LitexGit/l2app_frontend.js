@@ -113,16 +113,20 @@ function sendEthTx(web3, from, to, value, data) {
 exports.sendEthTx = sendEthTx;
 function signMessage(web3, from, typedData) {
     return __awaiter(this, void 0, void 0, function () {
-        var typedDataHash_1, signFunc, sig, recoveredAddress, params_1, method_1;
+        var typedDataHash, message_1, signFunc, sig, recoveredAddress, params_1, method_1;
         var _this = this;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     if (!!web3.currentProvider.isMetaMask) return [3, 2];
-                    typedDataHash_1 = ethereumjs_util_2.bufferToHex(TypedData_1.signHash(typedData));
-                    console.log('typedDataHash, from', typedDataHash_1, from);
+                    typedDataHash = ethereumjs_util_2.bufferToHex(TypedData_1.signHash(typedData));
+                    message_1 = typedDataHash;
+                    if (web3.currentProvider.isAlphaWallet) {
+                        message_1 = ethereumjs_util_2.bufferToHex(TypedData_1.compactTypedData(typedData));
+                    }
+                    console.log('typedDataHash, from', typedDataHash, from);
                     signFunc = new Promise(function (resolve, reject) {
-                        web3.eth.sign(from, typedDataHash_1, function (err, result) {
+                        web3.eth.sign(from, message_1, function (err, result) {
                             if (err) {
                                 reject(err);
                             }
@@ -134,7 +138,7 @@ function signMessage(web3, from, typedData) {
                     sig = (_a.sent());
                     recoveredAddress = TypedData_1.recoverTypedData(typedData, sig);
                     if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
-                        throw new Error("Invalid sig " + sig + " of hash " + typedDataHash_1 + " of data " + JSON.stringify(typedData) + " recovered " + recoveredAddress + " instead of " + from + ".");
+                        throw new Error("Invalid sig " + sig + " of hash " + typedDataHash + " of data " + JSON.stringify(typedData) + " recovered " + recoveredAddress + " instead of " + from + ".");
                     }
                     return [2, sig];
                 case 2:
