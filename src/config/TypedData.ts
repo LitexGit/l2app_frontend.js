@@ -1,5 +1,6 @@
 let ethUtil = require('ethereumjs-util');
 const abi = require('ethereumjs-abi');
+import { soliditySha3 } from 'web3/node_modules/web3-utils';
 
 export const EIP712_TYPES = {
   EIP712Domain: [
@@ -106,6 +107,19 @@ export function recoverTypedData(typedData: any, signature: string) {
   const hash = signHash(typedData);
   const sigParams = ethUtil.fromRpcSig(signature);
   const pubKey = ethUtil.ecrecover(hash, sigParams.v, sigParams.r, sigParams.s);
+  const address = ethUtil.pubToAddress(pubKey);
+  return ethUtil.toChecksumAddress(ethUtil.bufferToHex(address));
+}
+
+export function recoverPersonalSign(messageHash: any, signature) {
+  const newHash = soliditySha3(
+    { t: 'string', v: '\x19Ethereum Signed Message:\n32' },
+    { t: 'bytes32', v: messageHash }
+  );
+  const newHashBuffer = Buffer.from(newHash.replace('0x', ''), 'hex');
+
+  const sigParams = ethUtil.fromRpcSig(signature);
+  const pubKey = ethUtil.ecrecover(newHashBuffer, sigParams.v, sigParams.r, sigParams.s);
   const address = ethUtil.pubToAddress(pubKey);
   return ethUtil.toChecksumAddress(ethUtil.bufferToHex(address));
 }

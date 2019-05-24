@@ -157,25 +157,25 @@
 
   <script>
     const SERVER_URL = 'http://localhost:9527/';
-    // let config = {
-    //   appSessionAddress: '0x50A3fE0151936C4046AA3ba9e4ab8aC6Bd7fd72C',
-    //   ethPNAddress: '0x32388AD894f20De4542d19DE1468FBa7EBfb3A87',
-    //   appOperatorAddress: '0x9210b9008AF3dc2903E39d6e7920E94DFAeBE1Ee',
-    //   appPNAddress: '0x186645E99d5C01EF8CacE62EAA822ce72F16cb9D',
-    //   ethRpcUrl: 'http://39.96.8.192:8545',
-    //   appRpcUrl: 'http://39.106.71.164:1337',
-    //   // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
-    //   token: '0x0000000000000000000000000000000000000000',
-    // };
-
     let config = {
-      appSessionAddress: '0xa35Dcc0D52b3ff3da4e46a7292e2b287bD9bc8b9',
-      ethPNAddress: '0xf3e98cdb247fe6e636cf4e8fb20bd55ba9c2a846',
-      appOperatorAddress: '0x791091769EB05870332dB6B3c3a448E11FAc7cC9',
-      appPNAddress: '0x4DcE04C7ee6778e3C6BE3A6419A47862aEFA6De0',
-      ethRpcUrl: 'http://52.208.46.161:8546',
-      appRpcUrl: 'http://39.106.71.164:1337',
+      appSessionAddress: "0x67D1FDf7a461707268a5B6C1278dAfe0ECF3170d",
+  ethPNAddress: "0xAF5fE505eAC0caCd692D9722a290F721f7E78298",
+  appOperatorAddress: "0x0D7efbE918d6790C8Ae7FA85b5E4c204Ca99A0ee",
+  appPNAddress: "0x6359C2455dd832Fe93b59E4EC6C19E89f00b11b0",
+  ethRpcUrl: "http://39.96.8.192:8545",
+  appRpcUrl: "http://39.106.71.164:1337",
+      // token: "0x605a409Dc63cFd7e35ef7cb2d2cab8B66b136928"
+      token: '0x0000000000000000000000000000000000000000',
     };
+
+    // let config = {
+    //   appSessionAddress: '0xa35Dcc0D52b3ff3da4e46a7292e2b287bD9bc8b9',
+    //   ethPNAddress: '0xf3e98cdb247fe6e636cf4e8fb20bd55ba9c2a846',
+    //   appOperatorAddress: '0x791091769EB05870332dB6B3c3a448E11FAc7cC9',
+    //   appPNAddress: '0x4DcE04C7ee6778e3C6BE3A6419A47862aEFA6De0',
+    //   ethRpcUrl: 'http://52.208.46.161:8546',
+    //   appRpcUrl: 'http://39.106.71.164:1337',
+    // };
 
     let { ethPNAddress, appPNAddress, appSessionAddress, appRpcUrl } = config;
     // let appRpcUrl = "http://wallet.milewan.com:8090";
@@ -194,9 +194,6 @@
 
     var defaultAccount = '';
 
-
-
-
     window.addEventListener('load', async () => {
       console.log('hello world');
       await main();
@@ -210,21 +207,21 @@
     window.L2 = l2js.default;
 
     async function main() {
-        let getAccountPromise = new Promise((resolve, reject) => {
-          var accounts = web3.eth.getAccounts((err, result) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(result);
-          });
+      let getAccountPromise = new Promise((resolve, reject) => {
+        var accounts = web3.eth.getAccounts((err, result) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(result);
         });
+      });
       if (typeof window.ethereum !== 'undefined') {
         try {
           console.log('start ethereum enable');
           // window.web3 = new Web3(ethereum);
           await window.ethereum.enable();
-        let accounts = await getAccountPromise;
-        defaultAccount = accounts[0];
+          let accounts = await getAccountPromise;
+          defaultAccount = accounts[0];
         } catch (error) {
           console.log(error);
         }
@@ -239,8 +236,6 @@
         console.log('no window.web3, no ethereum');
         return;
       }
-
-
 
       document.getElementById('token').innerHTML = 'token Address: ' + token;
 
@@ -331,7 +326,7 @@
         .getElementById('deposit')
         .addEventListener('click', async event => {
           console.log('deposit button clicked');
-          let res = await L2.getInstance().deposit(10, token);
+          let res = await L2.getInstance().deposit(1e16, token);
           console.log('deposit res ', res);
           txHash = res;
         });

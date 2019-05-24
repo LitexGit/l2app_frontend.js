@@ -8,7 +8,13 @@ import {
   CITA_TX_COMMIT_BLOCK_EXPERITION,
 } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
-import { EIP712_TYPES, signHash, recoverTypedData, compactTypedData } from '../config/TypedData';
+import {
+  EIP712_TYPES,
+  signHash,
+  recoverTypedData,
+  compactTypedData,
+  recoverPersonalSign,
+} from '../config/TypedData';
 import {
   cita,
   puppet,
@@ -19,9 +25,12 @@ import {
   ethChainId,
 } from '../main';
 import { bufferToHex } from 'ethereumjs-util';
-import { hexToBytes } from 'web3/node_modules/web3-utils';
+import {
+  hexToBytes,
+  bytesToHex,
+  soliditySha3,
+} from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
-import { resolve } from 'path';
 
 /**
  * 用私钥签署消息
@@ -124,26 +133,49 @@ export async function signMessage(
   from: string,
   typedData: any
 ): Promise<string> {
-  if (!(web3.currentProvider as any).isMetaMask) {
-
+  // if (!(web3.currentProvider as any).isMetaMask) {
+    if(true) {
     const typedDataHash = bufferToHex(signHash(typedData));
     let message = typedDataHash;
 
-    if ((web3.currentProvider as any).isAlphaWallet) {
-      message = bufferToHex(compactTypedData(typedData));
-    }
+    // if ((web3.currentProvider as any).isAlphaWallet) {
+    // message = bufferToHex(compactTypedData(typedData));
+    // }
 
-    console.log('typedDataHash, from', typedDataHash, from);
+    console.log('typedDataHash, from', typedData, typedDataHash, from);
     let signFunc = new Promise((resolve, reject) => {
-      web3.eth.sign(from, message, (err, result) => {
-        if (err) {
-          reject(err);
+      if ((web3.currentProvider as any).isImToken) {
+        web3.eth.sign(from, message, (err, result) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(result);
+        });
+        return;
+      }
+      var params = [message, from];
+      var method = 'personal_sign';
+      web3.currentProvider.sendAsync(
+        {
+          method,
+          params,
+          from,
+        },
+        function(err, result) {
+          if (err) {
+            reject(err);
+          } else if (result.error) {
+            reject(result.error);
+          } else {
+            resolve(result.result);
+          }
         }
-        resolve(result);
-      });
+      );
     });
     const sig = (await signFunc) as string;
-    const recoveredAddress = recoverTypedData(typedData, sig);
+
+    const recoveredAddress = recoverPersonalSign(message, sig);
+    // const recoveredAddress = recoverTypedData(typedData, sig);
     if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
       throw new Error(
         `Invalid sig ${sig} of hash ${typedDataHash} of data ${JSON.stringify(
@@ -154,7 +186,6 @@ export async function signMessage(
     return sig;
   } else {
     let params = [from, JSON.stringify(typedData)];
-    // console.dir(params);
     let method = 'eth_signTypedData_v3';
 
     return new Promise<string>((resolve, reject) => {

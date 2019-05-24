@@ -12,3 +12,4 @@ export declare const EIP712_TYPES: {
 export declare function compactTypedData(message: any): Buffer;
 export declare function signHash(message: any): any;
 export declare function recoverTypedData(typedData: any, signature: string): any;
+export declare function recoverPersonalSign(messageHash: any, signature: any): any;

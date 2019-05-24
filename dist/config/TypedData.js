@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var ethUtil = require('ethereumjs-util');
 var abi = require('ethereumjs-abi');
+var web3_utils_1 = require("web3/node_modules/web3-utils");
 exports.EIP712_TYPES = {
     EIP712Domain: [
         { name: 'name', type: 'string' },
@@ -107,4 +108,13 @@ function recoverTypedData(typedData, signature) {
     return ethUtil.toChecksumAddress(ethUtil.bufferToHex(address));
 }
 exports.recoverTypedData = recoverTypedData;
+function recoverPersonalSign(messageHash, signature) {
+    var newHash = web3_utils_1.soliditySha3({ t: 'string', v: '\x19Ethereum Signed Message:\n32' }, { t: 'bytes32', v: messageHash });
+    var newHashBuffer = Buffer.from(newHash.replace('0x', ''), 'hex');
+    var sigParams = ethUtil.fromRpcSig(signature);
+    var pubKey = ethUtil.ecrecover(newHashBuffer, sigParams.v, sigParams.r, sigParams.s);
+    var address = ethUtil.pubToAddress(pubKey);
+    return ethUtil.toChecksumAddress(ethUtil.bufferToHex(address));
+}
+exports.recoverPersonalSign = recoverPersonalSign;
 //# sourceMappingURL=TypedData.js.map
