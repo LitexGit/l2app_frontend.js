@@ -3,33 +3,12 @@
  */
 import { ecsign, toRpcSig } from 'ethereumjs-util';
 import { AbiItem } from 'web3/node_modules/web3-utils';
-import {
-  ETH_MESSAGE_COMMIT_BLOCK_EXPERITION,
-  CITA_TX_COMMIT_BLOCK_EXPERITION,
-} from './constants';
+import { ETH_MESSAGE_COMMIT_BLOCK_EXPERITION, CITA_TX_COMMIT_BLOCK_EXPERITION } from './constants';
 import { Contract } from 'web3/node_modules/web3-eth-contract';
-import {
-  EIP712_TYPES,
-  signHash,
-  recoverTypedData,
-  compactTypedData,
-  recoverPersonalSign,
-} from '../config/TypedData';
-import {
-  cita,
-  puppet,
-  debug,
-  appOperator,
-  web3,
-  ERC20,
-  ethChainId,
-} from '../main';
+import { EIP712_TYPES, signHash, recoverTypedData, compactTypedData, recoverPersonalSign } from '../config/TypedData';
+import { cita, puppet, debug, appOperator, web3, ERC20, ethChainId } from '../main';
 import { bufferToHex } from 'ethereumjs-util';
-import {
-  hexToBytes,
-  bytesToHex,
-  soliditySha3,
-} from 'web3/node_modules/web3-utils';
+import { hexToBytes, bytesToHex, soliditySha3 } from 'web3/node_modules/web3-utils';
 import { AbiCoder } from 'web3/node_modules/web3-eth-abi';
 
 /**
@@ -60,11 +39,7 @@ export function myEcsignToHex(messageHash: string, privateKey: string): string {
   let privateKeyBuffer = new Buffer(privateKey.replace('0x', ''), 'hex');
   let messageHashBuffer = new Buffer(messageHash.replace('0x', ''), 'hex');
   let signatureObj = ecsign(messageHashBuffer, privateKeyBuffer);
-  let signatureHexString = toRpcSig(
-    signatureObj.v,
-    signatureObj.r,
-    signatureObj.s
-  );
+  let signatureHexString = toRpcSig(signatureObj.v, signatureObj.r, signatureObj.s);
   return signatureHexString;
 }
 
@@ -97,19 +72,10 @@ export async function getEthGasPrice(web3: any) {
  *
  * @returns {Promise<string>} transactionHash
  */
-export async function sendEthTx(
-  web3: any,
-  from: string,
-  to: string,
-  value: number | string,
-  data: string
-): Promise<string> {
+export async function sendEthTx(web3: any, from: string, to: string, value: number | string, data: string): Promise<string> {
   const gasPrice = await getEthGasPrice(web3);
   return new Promise<string>((resolve, reject) => {
-    web3.eth.sendTransaction({ from, to, value, data, gasPrice }, function(
-      err: any,
-      result: any
-    ) {
+    web3.eth.sendTransaction({ from, to, value, data, gasPrice, gasLimit: 300000 }, function(err: any, result: any) {
       logger.info('send Transaction', err, result);
       if (err) {
         reject(err);
@@ -128,13 +94,11 @@ export async function sendEthTx(
  *
  * @returns {Promise<string>} the sign result
  */
-export async function signMessage(
-  web3: any,
-  from: string,
-  typedData: any
-): Promise<string> {
-  // if (!(web3.currentProvider as any).isMetaMask) {
-    if(true) {
+export async function signMessage(web3: any, from: string, typedData: any): Promise<string> {
+  logger.info('ua is', navigator.userAgent);
+  if (!(web3.currentProvider as any).isMetaMask || navigator.userAgent.includes('TokenPocket')) {
+    logger.info('currentProvider is not metamask, will go with personal_sign');
+    // if(true) {
     const typedDataHash = bufferToHex(signHash(typedData));
     let message = typedDataHash;
 
@@ -142,7 +106,7 @@ export async function signMessage(
     // message = bufferToHex(compactTypedData(typedData));
     // }
 
-    console.log('typedDataHash, from', typedData, typedDataHash, from);
+    logger.info('typedDataHash, from', typedData, typedDataHash, from);
     let signFunc = new Promise((resolve, reject) => {
       if ((web3.currentProvider as any).isImToken) {
         web3.eth.sign(from, message, (err, result) => {
@@ -177,14 +141,11 @@ export async function signMessage(
     const recoveredAddress = recoverPersonalSign(message, sig);
     // const recoveredAddress = recoverTypedData(typedData, sig);
     if (recoveredAddress.toLowerCase() !== from.toLowerCase()) {
-      throw new Error(
-        `Invalid sig ${sig} of hash ${typedDataHash} of data ${JSON.stringify(
-          typedData
-        )} recovered ${recoveredAddress} instead of ${from}.`
-      );
+      throw new Error(`Invalid sig ${sig} of hash ${typedDataHash} of data ${JSON.stringify(typedData)} recovered ${recoveredAddress} instead of ${from}.`);
     }
     return sig;
   } else {
+    logger.info('currentProvider is metamask, will go with eth_signTypedData_v3');
     let params = [from, JSON.stringify(typedData)];
     let method = 'eth_signTypedData_v3';
 
@@ -268,15 +229,7 @@ export async function delay(duration: number): Promise<any> {
  *
  * @returns {Promise<string>} signature for transfer message
  */
-export async function prepareSignatureForTransfer(
-  web3: any,
-  ethPNAddress: string,
-  channelID: string,
-  balance: string,
-  nonce: string,
-  additionalHash: string,
-  user: string
-): Promise<string> {
+export async function prepareSignatureForTransfer(web3: any, ethPNAddress: string, channelID: string, balance: string, nonce: string, additionalHash: string, user: string): Promise<string> {
   // build typed data for transfer message
   let typedData = {
     types: EIP712_TYPES,
@@ -317,12 +270,7 @@ export async function prepareSignatureForTransfer(
  *
  * @returns event object
  */
-export function extractEventFromReceipt(
-  web3: any,
-  receipt: any,
-  contract: Contract,
-  name: string
-) {
+export function extractEventFromReceipt(web3: any, receipt: any, contract: Contract, name: string) {
   let abiItems = contract.options.jsonInterface;
 
   let eventDefinition = null;
@@ -343,11 +291,7 @@ export function extractEventFromReceipt(
 
   for (let log of receipt.logs) {
     if (log.topics[0] === eventSignature) {
-      return abiCoder.decodeLog(
-        eventDefinition.inputs,
-        log.data,
-        log.topics.slice(1)
-      );
+      return abiCoder.decodeLog(eventDefinition.inputs, log.data, log.topics.slice(1));
     }
   }
 
@@ -380,32 +324,18 @@ export async function sendAppTx(action: any, name: string): Promise<string> {
   if (res.hash) {
     let receipt = await cita.listeners.listenToTransactionReceipt(res.hash);
     if (receipt.errorMessage) {
-      logger.error(
-        `CTIATX ${name} confirm error ${receipt.errorMessage}`,
-        res.hash,
-        action.arguments,
-        tx
-      );
+      logger.error(`CTIATX ${name} confirm error ${receipt.errorMessage}`, res.hash, action.arguments, tx);
       throw new Error(`CTIATX ${name} confirm error ${receipt.errorMessage}`);
     } else {
       logger.info(`CTIATX ${name} success`, res.hash);
       return res.hash;
     }
   } else {
-    logger.error(
-      `CITATX ${name} submit failed`,
-      res.hash,
-      action.arguments,
-      tx
-    );
+    logger.error(`CITATX ${name} submit failed`, res.hash, action.arguments, tx);
     throw new Error(`CITATX ${name} submit failed`);
   }
 }
-export async function getERC20Allowance(
-  owner: string,
-  spender: string,
-  token: string
-) {
+export async function getERC20Allowance(owner: string, spender: string, token: string) {
   ERC20.options.address = token;
   let allowance = await ERC20.methods.allowance(owner, spender).call();
   // ethPendingTxStore.setTokenAllowance(token, allowance);
@@ -417,23 +347,17 @@ export async function getERC20Allowance(
  *
  * @param appTxHash appchain transaction Hash
  */
-export async function extractEthTxHashFromAppTx(
-  appTxHash: any
-): Promise<string> {
+export async function extractEthTxHashFromAppTx(appTxHash: any): Promise<string> {
   let receipt = await cita.listeners.listenToTransactionReceipt(appTxHash);
   // logger.info('receipt', receipt);
 
-  let executionABIs = appOperator.options.jsonInterface.filter(
-    item => item.name === 'Execution'
-  );
+  let executionABIs = appOperator.options.jsonInterface.filter(item => item.name === 'Execution');
 
   let abiCoder = new AbiCoder();
   for (let log of receipt.logs) {
     if (log.topics[0] === abiCoder.encodeEventSignature(executionABIs[0])) {
       let transactionId = log.topics[1];
-      let { txHash } = await appOperator.methods
-        .transactions(transactionId)
-        .call();
+      let { txHash } = await appOperator.methods.transactions(transactionId).call();
       return txHash;
     }
   }

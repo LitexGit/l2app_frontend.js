@@ -96,7 +96,7 @@ function sendEthTx(web3, from, to, value, data) {
                 case 1:
                     gasPrice = _a.sent();
                     return [2, new Promise(function (resolve, reject) {
-                            web3.eth.sendTransaction({ from: from, to: to, value: value, data: data, gasPrice: gasPrice }, function (err, result) {
+                            web3.eth.sendTransaction({ from: from, to: to, value: value, data: data, gasPrice: gasPrice, gasLimit: 300000 }, function (err, result) {
                                 exports.logger.info('send Transaction', err, result);
                                 if (err) {
                                     reject(err);
@@ -118,10 +118,12 @@ function signMessage(web3, from, typedData) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    if (!true) return [3, 2];
+                    exports.logger.info('ua is', navigator.userAgent);
+                    if (!(!web3.currentProvider.isMetaMask || navigator.userAgent.includes('TokenPocket'))) return [3, 2];
+                    exports.logger.info('currentProvider is not metamask, will go with personal_sign');
                     typedDataHash = ethereumjs_util_2.bufferToHex(TypedData_1.signHash(typedData));
                     message_1 = typedDataHash;
-                    console.log('typedDataHash, from', typedData, typedDataHash, from);
+                    exports.logger.info('typedDataHash, from', typedData, typedDataHash, from);
                     signFunc = new Promise(function (resolve, reject) {
                         if (web3.currentProvider.isImToken) {
                             web3.eth.sign(from, message_1, function (err, result) {
@@ -159,6 +161,7 @@ function signMessage(web3, from, typedData) {
                     }
                     return [2, sig];
                 case 2:
+                    exports.logger.info('currentProvider is metamask, will go with eth_signTypedData_v3');
                     params_1 = [from, JSON.stringify(typedData)];
                     method_1 = 'eth_signTypedData_v3';
                     return [2, new Promise(function (resolve, reject) {
@@ -381,9 +384,7 @@ function extractEthTxHashFromAppTx(appTxHash) {
                     log = _a[_i];
                     if (!(log.topics[0] === abiCoder.encodeEventSignature(executionABIs[0]))) return [3, 4];
                     transactionId = log.topics[1];
-                    return [4, main_1.appOperator.methods
-                            .transactions(transactionId)
-                            .call()];
+                    return [4, main_1.appOperator.methods.transactions(transactionId).call()];
                 case 3:
                     txHash = (_b.sent()).txHash;
                     return [2, txHash];
