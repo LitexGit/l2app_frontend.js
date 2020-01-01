@@ -33,7 +33,7 @@
     "awesome-typescript-loader": "^5.2.0",
     "cross-env": "^5.0.1",
     "css-loader": "^1.0.0",
-    "ejs-loader": "^0.3.0",
+    "ejs-loader": "^0.3.3",
     "eslint": "^5.4.0",
     "eth-sig-util": "^2.1.2",
     "ethereumjs-abi": "^0.6.7",
@@ -58,7 +58,7 @@
     "ts-jest": "^24.0.2",
     "tslint": "^5.5.0",
     "tslint-loader": "^3.5.3",
-    "typedoc": "^0.14.2",
+    "typedoc": "^0.15.0",
     "typescript": "^3.4.3",
     "webpack": "^4.17.0",
     "webpack-cli": "^3.1.0",
@@ -87,13 +87,13 @@
   },
   "version": "0.0.1",
   "dependencies": {
-    "@cryptape/cita-sdk": "^0.21.1",
+    "@cryptape/cita-sdk": "^0.24.1",
     "@types/socket.io-client": "^1.4.32",
     "ethereumjs-util": "^6.1.0",
     "protobufjs": "^6.8.8",
     "rlp": "^2.2.3",
     "simple-crypto-js": "^2.0.2",
-    "web3": "^1.0.0-beta.48"
+    "web3": "^1.2.1"
   },
   "peerDependencies": {
     "lodash": "^4.17.11"
